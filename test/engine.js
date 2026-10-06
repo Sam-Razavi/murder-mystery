@@ -155,14 +155,35 @@ async function playOne(n, gameNo) {
   lg.setConnected('a', false);
   check('vip moves when vip disconnects', lg.vipId === 'b');
   check('kick by vip', lg.kick('b', 'c').ok && !lg.player('c'));
-  ['f', 'g', 'h', 'i', 'j', 'k', 'l'].forEach((x) => lg.join(x, x));
-  check('max 8 players', lg.players.length === 8 && !lg.join('m', 'm').ok);
+  ['f', 'g', 'h', 'i', 'j', 'k'].forEach((x) => lg.join(x, x));
+  check('8 players in lobby', lg.players.length === 8);
   check('portraits unique on join', new Set(lg.players.map((p) => p.portrait)).size === 8 && lg.players.every((p) => C.PORTRAITS.includes(p.portrait)));
   const freeP = C.PORTRAITS.find((x) => !lg.players.some((p) => p.portrait === x));
   check('pick a free portrait', lg.setPortrait('b', freeP).ok && lg.player('b').portrait === freeP);
   check('taken portrait rejected', !lg.setPortrait('f', freeP).ok);
   check('unknown portrait rejected', !lg.setPortrait('f', '🔪').ok);
   check('portrait is public', lg.publicState().players.find((p) => p.id === 'b').portrait === freeP);
+  ['m', 'n', 'o', 'q'].forEach((x) => lg.join(x, x));
+  check('up to 12 players can join', lg.players.length === 12 && !lg.join('p', 'p').ok);
+  check('portraits still unique at 12', new Set(lg.players.map((p) => p.portrait)).size === 12);
+  lg.players.forEach((p) => lg.setReady(p.id, true));
+  check('modeMax is 8 in classic', lg.publicState().modeMax === 8 && lg.publicState().maxPlayers === 12);
+  check('classic start refused with 12', !lg.start('b').ok && lg.phase === 'lobby');
+  ['m', 'n', 'o', 'q'].forEach((x) => lg.setConnected(x, false));
+  ['m', 'n', 'o', 'q'].forEach((x) => lg.kick('b', x));
+  lg.players.forEach((p) => lg.setReady(p.id, true));
+  check('classic start allowed again at 8', lg.players.length === 8 && lg.start('b').ok);
+  lg.backToLobby('b');
+  ['m', 'n', 'o', 'q'].forEach((x) => lg.join(x, x));
+  lg.setSetting('b', 'mode', 'items');
+  lg.players.forEach((p) => lg.setReady(p.id, true));
+  check('modeMax is 12 in items', lg.publicState().modeMax === 12);
+  check('items start allowed with 12', lg.start('b').ok && lg.g.killers.length === 3);
+  // Play-again path: switching back to classic after a 12-player game is refused at start.
+  for (let i = 0; i < 60 && lg.phase !== 'reveal'; i++) lg.skip('b');
+  check('12-player game reaches reveal', lg.skipReveal('b').ok && lg.phase === 'results');
+  check('switch to classic on results screen', lg.setSetting('b', 'mode', 'classic').ok);
+  check('classic play-again refused with 12', !lg.start('b').ok && lg.phase === 'results');
   lg.dispose();
 
   console.log(`\n${stats.games} games simulated, killer caught in ${stats.caught}, forged cards delivered: ${stats.delivered}`);

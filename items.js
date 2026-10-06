@@ -14,7 +14,9 @@ const ACTION_TYPES = ['snoop', 'swap', 'steal', 'shuffle'];
 const ITEM_REVEAL_LAST = 3;
 const QUIET_CHANCE = 0.25; // "quiet rounds" house rule: chance a round has no secret action
 
-const killersFor = (n) => (n <= 4 ? 1 : 2);
+const killersFor = (n) => (n <= 4 ? 1 : n <= 8 ? 2 : 3);
+// Big tables (9+) get two secret actions per round so everyone gets a turn.
+const actionsFor = (n) => (n >= 9 ? 2 : 1);
 
 const shuffle = (arr) => {
   const a = arr.slice();
@@ -249,6 +251,7 @@ const methods = {
   // Verdict rules:
   //  - one player has the most votes → innocents win if that player started with a knife
   //  - a tie for most votes → killers win, unless every tied player is a killer
+  //    (with 3 killers, a tie between any 2 of them also counts)
   //  - nobody voted → killers win
   _itVerdict(votes, killers) {
     const counts = this._tally(votes);
@@ -363,4 +366,4 @@ const methods = {
   },
 };
 
-module.exports = { methods, ITEM_ROUNDS, ROUNDS_PER_DISCUSS, ACTION_TYPES, ITEM_REVEAL_LAST, killersFor };
+module.exports = { methods, ITEM_ROUNDS, ROUNDS_PER_DISCUSS, ACTION_TYPES, ITEM_REVEAL_LAST, killersFor, actionsFor };

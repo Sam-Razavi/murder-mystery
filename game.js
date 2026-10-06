@@ -18,6 +18,8 @@ const DEFAULT_DURATIONS = {
 };
 
 const MODES = ['classic', 'items'];
+const MAX_PLAYERS = 12; // «دست‌به‌دست» takes up to 12
+const CLASSIC_MAX = C.CHARACTERS.length; // classic needs one character per player (8)
 
 // Host-adjustable settings and their allowed values. Everything except the
 // discussion length is fixed once a game starts.
@@ -47,7 +49,7 @@ class Game {
     this.durations = { ...DEFAULT_DURATIONS, ...(opts.durations || {}) };
     this.timeScale = opts.timeScale || 1; // tests run the clock faster
     this.minPlayers = opts.minPlayers || 4;
-    this.maxPlayers = 8;
+    this.maxPlayers = MAX_PLAYERS;
     this.onChange = opts.onChange || (() => {});
     this.players = []; // {id, name, score, connected, joinedAt}
     this.vipId = null;
@@ -137,7 +139,7 @@ class Game {
     }
     if (!name) return { ok: false, error: 'اسمت را بنویس.' };
     if (this.phase !== 'lobby') return { ok: false, error: 'بازی شروع شده. برای دور بعد صبر کن.' };
-    if (this.players.length >= this.maxPlayers) return { ok: false, error: 'ظرفیت پر است (حداکثر ۸ نفر).' };
+    if (this.players.length >= this.maxPlayers) return { ok: false, error: 'ظرفیت پر است (حداکثر ۱۲ نفر).' };
     if (this.players.some((p) => p.name.toLowerCase() === name.toLowerCase())) {
       return { ok: false, error: 'این اسم را کس دیگری برداشته.' };
     }
@@ -210,6 +212,9 @@ class Game {
     if (!['lobby', 'results'].includes(this.phase)) return { ok: false, error: 'بازی در جریان است.' };
     if (this.players.length < this.minPlayers) {
       return { ok: false, error: `دست‌کم ${this.minPlayers.toLocaleString('fa-IR')} نفر لازم است.` };
+    }
+    if (this.settings.mode !== 'items' && this.players.length > CLASSIC_MAX) {
+      return { ok: false, error: 'بازی کلاسیک حداکثر ۸ نفره است — حالت دست‌به‌دست را انتخاب کنید.' };
     }
     // From the lobby everyone must press Ready first. "Play again" from the
     // results screen skips this: the same group just finished a game.
@@ -729,6 +734,8 @@ class Game {
       settings: this.settings,
       minPlayers: this.minPlayers,
       maxPlayers: this.maxPlayers,
+      // Seats the chosen mode can take (classic 8, items 12).
+      modeMax: (g ? g.mode : this.settings.mode) === 'items' ? MAX_PLAYERS : CLASSIC_MAX,
       gamesPlayed: this.gamesPlayed,
       vipId: this.vipId,
       players: this.players.map((p) => ({
@@ -810,4 +817,4 @@ class Game {
 
 Object.assign(Game.prototype, Items.methods);
 
-module.exports = { Game, TOTAL_ROUNDS, DEFAULT_DURATIONS, SETTING_OPTIONS };
+module.exports = { Game, TOTAL_ROUNDS, DEFAULT_DURATIONS, SETTING_OPTIONS, MAX_PLAYERS, CLASSIC_MAX };

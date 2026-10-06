@@ -135,6 +135,10 @@ const ITEMS = [
   { id: 'shawl', name: 'شال ترمه', icon: '🧣' },
   { id: 'nuts', name: 'کاسه‌ی آجیل', icon: '🥜' },
   { id: 'phone', name: 'گوشی', icon: '📱' },
+  { id: 'nazar', name: 'نظرقربانی', icon: '🧿' },
+  { id: 'mirror', name: 'آینه', icon: '🪞' },
+  { id: 'grapes', name: 'خوشه‌ی انگور', icon: '🍇' },
+  { id: 'gift', name: 'کادوی یلدا', icon: '🎁' },
 ];
 
 const SECRET_ACTIONS = {
