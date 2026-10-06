@@ -1,6 +1,6 @@
 # ضیافت آخر — Ziafat-e Akhar ("The Last Feast")
 
-A Farsi murder-mystery party game for 4–8 players. One shared TV screen, and everyone plays on their own phone.
+A Farsi murder-mystery party game for 4–12 players: up to 8 in the classic mode, up to 12 in «دست‌به‌دست». One shared TV screen, and everyone plays on their own phone.
 It's a social-deduction game in the spirit of *Dead Man's Party*, but with its own story, characters and rules. Nothing comes from the Knives Out IP.
 
 **Setting:** It's Yalda night at the Farahmand family's old mansion in Shiraz. Agha-bozorg (the grandfather) called everyone together to read his will at midnight. When the clock strikes twelve, he's dead. One of the guests is the killer.
@@ -43,21 +43,22 @@ Requires Node 18+. The phones and the PC have to be on the same Wi-Fi/LAN. The g
 
 The host chooses the mode in the lobby on their phone. This mode follows the item-passing social-deduction rules (in the spirit of *Dead Man's Party*). It uses the same Yalda-night setting and has no characters, clues or rooms.
 
-- **Starting items:** Everyone secretly gets one item. **Whoever starts with 🔪 is a killer.** With 4 players there is 1 knife, and with 5–8 players there are 2. The knife is the only item that can be duplicated. Everyone can see which items are in play, but not who holds them.
-- **Gossip rounds (4, 6 or 8; the host picks in the lobby, along with 30/40/60 seconds to answer):** The TV asks a gossip question ("Who has the most suspicious laugh?") and everyone answers on their phone. At the same time, one random player also gets a **secret action** on their phone. Everyone gets an action once before anyone gets a second one. The actions are:
+- **Starting items:** Everyone secretly gets one item. **Whoever starts with 🔪 is a killer.** With 4 players there is 1 knife, with 5–8 players there are 2, and with 9–12 players there are 3. The knife is the only item that can be duplicated. Everyone can see which items are in play, but not who holds them.
+- **Gossip rounds (4, 6 or 8; the host picks in the lobby, along with 30/40/60 seconds to answer):** The TV asks a gossip question ("Who has the most suspicious laugh?") and everyone answers on their phone. At the same time, one random player also gets a **secret action** on their phone. From 9 players up, **two** different players get one each round, so everyone gets a turn without a longer game. Everyone gets an action once before anyone gets a second one. The actions are:
   - 🕵️ **Snoop:** see another player's current item.
   - 🔄 **Swap:** exchange items with a *random* player. You find out who it was.
   - 🫳 **Steal:** take a chosen player's item and give them yours.
   - 🔀 **Shuffle:** exchange the items of two other players. Your own item stays put.
 
-  Moves take effect when the round ends. A victim is told only that their item changed, not who changed it. A knife-for-knife exchange looks like no change at all. If the actor runs out of time, the game picks for them, so a frozen player doesn't give themselves away.
+  Moves take effect when the round ends (snoops see the item as the round started). A victim is told only that their item changed, not who changed it or how many actions touched it. A knife-for-knife exchange looks like no change at all. If the actor runs out of time, the game picks for them, so a frozen player doesn't give themselves away.
 - **House rules (optional, off by default, set in the lobby):**
   - *Quiet rounds:* each round has a 1-in-4 chance of no secret action, but there are never two quiet rounds in a row. The TV then stops showing the action count, since that would reveal which rounds were quiet.
-  - *Killers know each other:* with two killers, each killer's phone names the other one.
+  - *Killers know each other:* with two or three killers, each killer's phone names the others.
 - **Discussion** after every 2 rounds. Each phone keeps a private journal of everything its owner saw or did, plus a tracker for marking suspects.
-- **Final vote:** If one player has the most votes and that player **started** with a knife, the innocents win. If an innocent gets the most votes, the killers win. A tie also goes to the killers, unless the tie is only between the two killers.
+- **Final vote:** If one player has the most votes and that player **started** with a knife, the innocents win. If an innocent gets the most votes, the killers win. A tie also goes to the killers, unless everyone in the tie is a killer.
 - **Sound:** The TV plays a soft chime when each gossip question appears, and a rustle of items at the end of *every* round, so the sound never gives away whether anything moved. Phones stay silent for the same reason.
-- **Reveal:** The TV shows the tally, then the verdict, then who started with the knives, then the full item timeline (every action and every move).
+- **Reveal:** The TV shows the tally, then the verdict, then who started with the knives, then the full item timeline (every action and every move, one row per round).
+- **Big tables:** The lobby takes up to 12 phones. The classic mode still needs one character per player, so with more than 8 people the host's start button explains that and stays disabled. With 9+ players the TV switches to a denser layout.
 - **Scoring:** If the killers win, each killer gets **+3**. If the innocents win, each innocent gets **+2**. Every innocent who voted for a killer gets **+1** either way.
 
 ### Scoring — classic mode (accumulates across games)
@@ -74,9 +75,9 @@ All Persian text lives in **`content.js`**: story, characters, traits, weapons, 
 ```bash
 npm test
 ```
-- `test/items.js` plays 150 random «دست‌به‌دست» games. It checks that killers are exactly the starting knives, that items are conserved, that each action's exchange is correct, that victim notices are accurate, that the TV never sees holdings, and every tie/verdict rule.
+- `test/items.js` plays 225 random «دست‌به‌دست» games (4–12 players), replaying every round's log against the real holdings. It checks that killers are exactly the starting knives, that items are conserved, that each action's exchange is correct, that victim notices are accurate, that the TV never sees holdings, and every tie/verdict rule.
 - `test/engine.js` plays 200 random games (4–8 players) directly against the engine. It checks that every genuine clue is true, every forged clue is a lie, the TV never sees private data, scoring adds up, and the lobby edge cases behave.
-- `test/e2e.js` boots the real server and plays two classic games and one «دست‌به‌دست» game with socket bots, including a phone that drops and reconnects mid-game.
+- `test/e2e.js` boots the real server and plays two classic games and two «دست‌به‌دست» games (5 and 10 players) with socket bots, including a phone that drops and reconnects mid-game.
 
 ## Project layout
 ```
