@@ -396,7 +396,7 @@
 
   function logLine(e) {
     if (e.type === 'quiet') {
-      return `<div class="li tl quiet"><span class="ok">🤫</span><div><div class="main"><span class="muted">دور ${fa(e.round)}:</span> دور بی‌صدا — هیچ‌کس کار مخفی نگرفت</div></div><span></span></div>`;
+      return `<div class="li tl quiet"><span class="ok">🤫</span><div><div class="main">دور بی‌صدا — هیچ‌کس کار مخفی نگرفت</div></div><span></span></div>`;
     }
     const a = C.secretActions[e.type];
     let what;
@@ -407,8 +407,18 @@
     const moves = e.moves.map((m) => `<span class="mv">${name(m.playerId)}: ${item(m.from).icon} ← ${item(m.to).icon}</span>`).join('');
     return `<div class="li tl ${e.moves.some((m) => m.from === C.knifeId || m.to === C.knifeId) ? 'fake' : ''}">
       <span class="ok">${a.icon}</span>
-      <div><div class="main"><span class="muted">دور ${fa(e.round)}:</span> <b>${name(e.actorId)}</b> ${what}${e.auto ? ' <span class="muted">(خودکار)</span>' : ''}</div>
+      <div><div class="main"><b>${name(e.actorId)}</b> ${what}${e.auto ? ' <span class="muted">(خودکار)</span>' : ''}</div>
       <div class="meta">${moves || (e.type === 'snoop' ? 'چیزی جابه‌جا نشد' : 'هر دو یک‌جور چیز داشتند — ظاهراً چیزی عوض نشد')}</div></div><span></span></div>`;
+  }
+
+  // Timeline entries grouped by round: one row per round, 1–2 actions side by side.
+  function roundsOf(log) {
+    const out = [];
+    log.forEach((e) => {
+      const last = out[out.length - 1];
+      if (last && last[0] === e.round) last[1].push(e); else out.push([e.round, [e]]);
+    });
+    return out;
   }
 
   function itViewReveal() {
@@ -440,7 +450,8 @@
       const endRow = ids.map((id) => `<span class="st ${r.finalHold[id] === C.knifeId ? 'k' : ''}">${name(id)} ${item(r.finalHold[id]).icon}</span>`).join('');
       inner = `${itMini(r)}<h2 class="h-big">ردّ چاقو</h2>
         <div class="timeline"><div class="tl-row"><b>شروع شب</b>${startRow}</div>
-        <div class="list">${r.log.map(logLine).join('')}</div>
+        <div class="list">${roundsOf(r.log).map(([round, es]) => `<div class="tl-round"><span class="rn">دور ${fa(round)}</span>
+          <div class="tl-acts">${es.map(logLine).join('')}</div></div>`).join('')}</div>
         <div class="tl-row"><b>آخر شب</b>${endRow}</div></div>`;
     }
     return `<section class="reveal stage-in"><div class="reveal-inner ${step === 3 ? 'wide' : ''}">${inner}</div></section>`;
@@ -484,6 +495,9 @@
 
     stage.innerHTML = (itemsMode() ? IT_VIEWS : VIEWS)[S.phase]();
     stage.classList.toggle('settled', !phaseChanged);
+    // Big tables (9–12) switch the TV to a denser layout.
+    const tableSize = S.phase === 'lobby' ? Math.max(S.players.length, S.modeMax) : S.players.filter((p) => p.inGame).length;
+    $('app').classList.toggle('many', tableSize > 8);
     $('strip').innerHTML = stripHtml();
 
     if (phaseChanged) {

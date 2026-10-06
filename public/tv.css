@@ -284,3 +284,46 @@ ul.small { list-style: none; padding: 0; display: grid; gap: .35rem; line-height
 .house-rules { display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap; }
 .house-rules span { background: rgba(217,164,65,.12); border: 1px solid rgba(217,164,65,.35); border-radius: 2rem; padding: .35rem 1.1rem; font-size: 1.2rem; }
 .li.quiet { opacity: .6; }
+
+/* ---------- big tables (9–12 players): denser TV layout ---------- */
+.tl-round { display: grid; grid-template-columns: 4.2rem 1fr; gap: .6rem; align-items: stretch; }
+.tl-round .rn { font-family: var(--display); color: var(--gold); font-size: 1.15rem; display: grid; place-items: center; background: rgba(42,23,34,.6); border-radius: .7rem; }
+.tl-acts { display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; gap: .45rem; }
+
+.many .lobby { gap: 1rem 3rem; }
+.many .seats { grid-template-columns: repeat(6, 1fr); gap: .6rem; }
+.many .seat { height: 4.2rem; padding: 0 .7rem; gap: .6rem; font-size: 1rem; }
+.many .seat .avatar { width: 2.6rem; height: 2.6rem; font-size: 1.3rem; }
+.many .seat .nm { font-size: 1.2rem; }
+.many .seat .tag { font-size: .8rem; }
+
+.many .chip { gap: .4rem; padding: .25rem .4rem .25rem .8rem; }
+.many .chip .avatar { width: 2rem; height: 2rem; font-size: 1rem; }
+.many .chip .t1 { font-size: .95rem; }
+.many .strip { gap: .45rem; }
+
+.many .tally { grid-template-columns: 1fr 1fr; gap: .55rem 2.6rem; margin-top: 1.2rem; }
+.many .tally-row { grid-template-columns: 9.5rem 1fr 2.4rem; gap: .7rem; }
+.many .tally-row .who { font-size: 1.15rem; }
+.many .tally-row .avatar { width: 2.1rem; height: 2.1rem; font-size: 1.05rem; }
+.many .bar { height: 2.2rem; }
+.many .bar span { font-size: .85rem; padding: 0 .6rem; }
+.many .tally-row .n { font-size: 1.6rem; }
+
+.many .scores { grid-template-columns: 1fr 1fr; gap: .55rem 1.6rem; margin-top: 1.1rem; }
+.many .score-row { padding: .45rem 1rem; gap: .8rem; }
+.many .score-row .rank { font-size: 1.5rem; }
+.many .score-row .avatar { width: 2.3rem; height: 2.3rem; font-size: 1.15rem; }
+.many .score-row .nm { font-size: 1.2rem; }
+.many .score-row .tot { font-size: 1.8rem; }
+
+.many .timeline { gap: .4rem; }
+.many .timeline .li { padding: .3rem .8rem; gap: .7rem; }
+.many .timeline .li .main { font-size: 1rem; }
+.many .timeline .li .meta { font-size: .88rem; }
+.many .timeline .li .ok { font-size: 1.3rem; }
+.many .tl-row { font-size: .95rem; gap: .35rem; }
+.many .st { padding: .05rem .6rem; }
+.many .reveal-inner.wide .h-big { font-size: 2.6rem; }
+.many .seat > div { min-width: 0; }
+.many .seat .tag { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
