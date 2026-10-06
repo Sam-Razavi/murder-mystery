@@ -19,6 +19,16 @@ const DEFAULT_DURATIONS = {
 
 const MODES = ['classic', 'items'];
 
+// Host-adjustable settings and their allowed values. Everything except the
+// discussion length is fixed once a game starts.
+const SETTING_OPTIONS = {
+  discussSeconds: [90, 150, 240],
+  mode: MODES,
+  itemRounds: [4, 6, 8], // items mode: gossip rounds per game
+  gossipSeconds: [30, 40, 60], // items mode: time to answer (+ secret action)
+};
+const LIVE_SETTINGS = ['discussSeconds'];
+
 const shuffle = (arr) => {
   const a = arr.slice();
   for (let i = a.length - 1; i > 0; i--) {
@@ -41,7 +51,7 @@ class Game {
     this.vipId = null;
     this.phase = 'lobby';
     this.round = 0;
-    this.settings = { discussSeconds: 150, mode: 'classic' };
+    this.settings = { discussSeconds: 150, mode: 'classic', itemRounds: 6, gossipSeconds: 40 };
     this.g = null; // per-game state
     this.timer = null; // {endsAt, duration}
     this._timerHandle = null;
@@ -166,18 +176,15 @@ class Game {
 
   setSetting(byId_, key, value) {
     if (!this._isVip(byId_)) return { ok: false, error: 'فقط میزبان می‌تواند.' };
-    if (key === 'discussSeconds' && [90, 150, 240].includes(Number(value))) {
-      this.settings.discussSeconds = Number(value);
-      this._changed();
-      return { ok: true };
+    const options = Object.prototype.hasOwnProperty.call(SETTING_OPTIONS, key) ? SETTING_OPTIONS[key] : null;
+    const match = options && options.find((o) => String(o) === String(value));
+    if (match === undefined || match === null) return { ok: false, error: 'تنظیم نامعتبر.' };
+    if (!LIVE_SETTINGS.includes(key) && !['lobby', 'results'].includes(this.phase)) {
+      return { ok: false, error: 'وسط بازی نمی‌شود این را عوض کرد.' };
     }
-    if (key === 'mode' && MODES.includes(value)) {
-      if (!['lobby', 'results'].includes(this.phase)) return { ok: false, error: 'وسط بازی نمی‌شود حالت را عوض کرد.' };
-      this.settings.mode = value;
-      this._changed();
-      return { ok: true };
-    }
-    return { ok: false, error: 'تنظیم نامعتبر.' };
+    this.settings[key] = match;
+    this._changed();
+    return { ok: true };
   }
 
   // ---------------------------------------------------------------- setup
@@ -776,4 +783,4 @@ class Game {
 
 Object.assign(Game.prototype, Items.methods);
 
-module.exports = { Game, TOTAL_ROUNDS, DEFAULT_DURATIONS };
+module.exports = { Game, TOTAL_ROUNDS, DEFAULT_DURATIONS, SETTING_OPTIONS };

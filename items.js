@@ -8,7 +8,7 @@
 
 const C = require('./content');
 
-const ITEM_ROUNDS = 6; // gossip rounds per game
+const ITEM_ROUNDS = 6; // default gossip rounds per game (host can pick 4/6/8)
 const ROUNDS_PER_DISCUSS = 2; // a discussion after every 2 gossip rounds
 const ACTION_TYPES = ['snoop', 'swap', 'steal', 'shuffle'];
 const ITEM_REVEAL_LAST = 3;
@@ -45,7 +45,7 @@ const methods = {
       hold: { ...start },
       // Public: which items are in play (not who holds them). Knives first.
       items: pool.slice().sort((a, b) => (b === C.KNIFE.id) - (a === C.KNIFE.id)),
-      totalRounds: ITEM_ROUNDS,
+      totalRounds: this.settings.itemRounds || ITEM_ROUNDS,
       log: [], // one entry per secret action, for the final reveal
       notes: Object.fromEntries(ids.map((id) => [id, [{ round: 0, type: 'start', item: start[id] }]])),
       actorQueue: [],
@@ -87,7 +87,7 @@ const methods = {
     g.usedQuestions.add(question);
     g.gossip = { round: this.round, question, answers: {} };
     g.turn = { round: this.round, actorId: this._itNextActor(), type: pick(ACTION_TYPES), done: false, targets: null, result: null, auto: false };
-    this._setTimer(this.durations.gossip, () => this._itEndGossip());
+    this._setTimer(this.settings.gossipSeconds || this.durations.gossip, () => this._itEndGossip());
     this._changed();
   },
 

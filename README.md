@@ -44,7 +44,7 @@ Requires Node 18+. The phones and the PC have to be on the same Wi-Fi/LAN. The g
 The host chooses the mode in the lobby on their phone. This mode follows the item-passing social-deduction rules (in the spirit of *Dead Man's Party*). It uses the same Yalda-night setting and has no characters, clues or rooms.
 
 - **Starting items:** Everyone secretly gets one item. **Whoever starts with 🔪 is a killer.** With 4 players there is 1 knife, and with 5–8 players there are 2. The knife is the only item that can be duplicated. Everyone can see which items are in play, but not who holds them.
-- **6 gossip rounds:** The TV asks a gossip question ("Who has the most suspicious laugh?") and everyone answers on their phone. At the same time, one random player also gets a **secret action** on their phone. Everyone gets an action once before anyone gets a second one. The actions are:
+- **Gossip rounds (4, 6 or 8; the host picks in the lobby, along with 30/40/60 seconds to answer):** The TV asks a gossip question ("Who has the most suspicious laugh?") and everyone answers on their phone. At the same time, one random player also gets a **secret action** on their phone. Everyone gets an action once before anyone gets a second one. The actions are:
   - 🕵️ **Snoop:** see another player's current item.
   - 🔄 **Swap:** exchange items with a *random* player. You find out who it was.
   - 🫳 **Steal:** take a chosen player's item and give them yours.

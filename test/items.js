@@ -2,7 +2,7 @@
 // Run: node test/items.js
 const { Game } = require('../game');
 const C = require('../content');
-const { ITEM_ROUNDS, killersFor } = require('../items');
+const { killersFor } = require('../items');
 
 let pass = 0;
 let fail = 0;
@@ -23,6 +23,11 @@ async function playOne(n) {
   check(`[${n}] non-vip cannot change mode`, !game.setSetting('p1', 'mode', 'items').ok);
   check(`[${n}] bad mode rejected`, !game.setSetting('p0', 'mode', 'nope').ok);
   check(`[${n}] vip sets items mode`, game.setSetting('p0', 'mode', 'items').ok);
+  const rounds = pick([4, 6, 8]);
+  check(`[${n}] rounds setting accepted`, game.setSetting('p0', 'itemRounds', rounds).ok);
+  check(`[${n}] bad rounds rejected`, !game.setSetting('p0', 'itemRounds', 5).ok);
+  check(`[${n}] gossip time setting accepted`, game.setSetting('p0', 'gossipSeconds', pick([30, 40, 60])).ok);
+  check(`[${n}] unknown setting rejected`, !game.setSetting('p0', 'toString', 'x').ok);
   ids.forEach((id) => game.setReady(id, true));
   check(`[${n}] start ok`, game.start('p0').ok);
   check(`[${n}] cannot change mode mid-game`, !game.setSetting('p0', 'mode', 'classic').ok);
@@ -47,7 +52,9 @@ async function playOne(n) {
 
   game.skip('p0'); // intro -> gossip
   const actors = [];
-  for (let r = 1; r <= ITEM_ROUNDS; r++) {
+  check(`[${n}] game uses the rounds setting`, g.totalRounds === rounds && game.publicState().totalRounds === rounds);
+  check(`[${n}] rounds locked mid-game`, !game.setSetting('p0', 'itemRounds', 4).ok);
+  for (let r = 1; r <= rounds; r++) {
     check(`[${n}] r${r} gossip phase (${game.phase})`, game.phase === 'gossip' && game.round === r);
     leakCheck(`r${r} gossip`);
     const t = g.turn;
@@ -112,7 +119,7 @@ async function playOne(n) {
       game.skip('p0');
     }
   }
-  const firstN = actors.slice(0, Math.min(n, ITEM_ROUNDS));
+  const firstN = actors.slice(0, Math.min(n, rounds));
   check(`[${n}] everyone acts once before anyone acts twice`, new Set(firstN).size === firstN.length);
 
   check(`[${n}] final phase (${game.phase})`, game.phase === 'final');
@@ -131,7 +138,7 @@ async function playOne(n) {
   game.next('p0');
   check(`[${n}] step 2 shows killers`, game.publicState().game.reveal.killers.length === k);
   game.next('p0');
-  check(`[${n}] step 3 shows timeline`, game.publicState().game.reveal.log.length === ITEM_ROUNDS);
+  check(`[${n}] step 3 shows timeline`, game.publicState().game.reveal.log.length === rounds);
   game.next('p0');
   check(`[${n}] results phase`, game.phase === 'results');
 

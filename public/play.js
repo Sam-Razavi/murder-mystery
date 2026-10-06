@@ -77,6 +77,9 @@
   const inGame = () => me && me.inGame && S.phase !== 'lobby';
   const isKiller = () => me && me.role === 'killer';
 
+  // A row of host-setting buttons for one setting key.
+  const seg = (key, opts) => `<div class="seg">${opts.map(([v, l]) => `<button data-act="setting" data-k="${key}" data-v="${v}" class="${S.settings[key] === v ? 'sel' : ''}">${l}</button>`).join('')}</div>`;
+
   function actionLobby() {
     const n = S.players.length;
     const online = S.players.filter((p) => p.connected);
@@ -91,13 +94,13 @@
         ${me && me.isVip && !p.connected && p.id !== me.id ? `<button data-act="kick" data-id="${esc(p.id)}">حذف</button>` : ''}</span>`).join('')}</div>`;
     const mode = C.modes.find((m) => m.id === S.settings.mode) || C.modes[0];
     if (me && me.isVip) {
-      const d = S.settings.discussSeconds;
       html += `<div class="step-label">👑 تو میزبانی</div>
         <div class="sub">کدام بازی؟</div>
         <div class="seg">${C.modes.map((m) => `<button data-act="setMode" data-v="${m.id}" class="${mode.id === m.id ? 'sel' : ''}">${esc(m.name)}</button>`).join('')}</div>
         <div class="note">${esc(mode.text)}</div>
-        <div class="sub">زمان گفت‌وگو در هر دور</div>
-        <div class="seg">${[[90, '۱:۳۰'], [150, '۲:۳۰'], [240, '۴:۰۰']].map(([v, l]) => `<button data-act="setting" data-v="${v}" class="${d === v ? 'sel' : ''}">${l}</button>`).join('')}</div>
+        ${mode.id === 'items' ? `<div class="sub">تعداد دورهای پچ‌پچ (هر ۲ دور یک گفت‌وگو)</div>${seg('itemRounds', [[4, '۴ — کوتاه'], [6, '۶'], [8, '۸ — بلند']])}
+        <div class="sub">زمان جواب دادن در هر دور</div>${seg('gossipSeconds', [[30, '۳۰ ثانیه'], [40, '۴۰ ثانیه'], [60, '۶۰ ثانیه']])}` : ''}
+        <div class="sub">زمان هر گفت‌وگو</div>${seg('discussSeconds', [[90, '۱:۳۰'], [150, '۲:۳۰'], [240, '۴:۰۰']])}
         <button class="btn primary big" data-act="start" ${allReady ? '' : 'disabled'}>${allReady ? 'شروع بازی' : 'منتظر آماده شدن همه…'}</button>`;
     }
     else html += `<div class="note"><b>بازی: ${esc(mode.name)}</b> — ${esc(mode.text)}</div>`;
@@ -460,7 +463,7 @@
     lobby: () => send('vip:lobby'),
     resetScores: () => send('vip:resetScores'),
     kick: (el) => send('vip:kick', { targetId: el.dataset.id }),
-    setting: (el) => send('vip:setting', { key: 'discussSeconds', value: Number(el.dataset.v) }),
+    setting: (el) => send('vip:setting', { key: el.dataset.k, value: el.dataset.v }),
     vipSkip: () => {
       if (ui.vipConfirm === S.phase || S.phase === 'reveal') {
         ui.vipConfirm = null;
