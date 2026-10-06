@@ -54,7 +54,8 @@ const methods = {
       log: [], // one entry per round (secret action or quiet round), for the final reveal
       notes: Object.fromEntries(ids.map((id) => [id, [{ round: 0, type: 'start', item: start[id] }]])),
       actorQueue: [],
-      turn: null,
+      actionsPerRound: actionsFor(ids.length),
+      turns: [], // this round's secret actions (none in a quiet round)
       gossip: null,
       gossips: [],
       usedQuestions: new Set(),
@@ -75,11 +76,16 @@ const methods = {
 
   // Everyone gets a secret action once before anyone gets a second one.
   // Connected players are preferred so the action isn't wasted on an empty phone.
-  _itNextActor() {
+  // `exclude` holds players already picked this round: when the queue runs out
+  // mid-round, the next cycle starts but nobody gets two actions in one round.
+  _itNextActor(exclude = []) {
     const { g } = this;
-    if (!g.actorQueue.length) g.actorQueue = shuffle(g.ids);
-    const idx = g.actorQueue.findIndex((id) => { const p = this.player(id); return p && p.connected; });
-    return g.actorQueue.splice(idx < 0 ? 0 : idx, 1)[0];
+    if (!g.actorQueue.some((id) => !exclude.includes(id))) g.actorQueue = g.actorQueue.concat(shuffle(g.ids));
+    const free = (id) => !exclude.includes(id);
+    const online = (id) => { const p = this.player(id); return p && p.connected; };
+    let idx = g.actorQueue.findIndex((id) => free(id) && online(id));
+    if (idx < 0) idx = g.actorQueue.findIndex(free);
+    return g.actorQueue.splice(idx, 1)[0];
   },
 
   _itStartGossip() {
@@ -95,8 +101,13 @@ const methods = {
     // rounds in a row, so the game still moves items.
     const prev = g.log[g.log.length - 1];
     const quiet = g.rules.quietRounds && !(prev && prev.type === 'quiet') && Math.random() < QUIET_CHANCE;
-    g.turn = quiet ? null
-      : { round: this.round, actorId: this._itNextActor(), type: pick(ACTION_TYPES), done: false, targets: null, result: null, auto: false };
+    g.turns = [];
+    if (!quiet) {
+      for (let i = 0; i < g.actionsPerRound; i++) {
+        const actorId = this._itNextActor(g.turns.map((t) => t.actorId));
+        g.turns.push({ round: this.round, actorId, type: pick(ACTION_TYPES), done: false, targets: null, result: null, auto: false });
+      }
+    }
     this._setTimer(this.settings.gossipSeconds || this.durations.gossip, () => this._itEndGossip());
     this._changed();
   },
@@ -114,8 +125,8 @@ const methods = {
 
   itAct(pid, { targets } = {}) {
     const { g } = this;
-    const t = g && g.turn;
-    if (this.phase !== 'gossip' || !this._items() || !t || t.actorId !== pid) return { ok: false, error: 'این دور کار مخفی‌ای نداری.' };
+    const t = g && g.turns && g.turns.find((x) => x.actorId === pid);
+    if (this.phase !== 'gossip' || !this._items() || !t) return { ok: false, error: 'این دور کار مخفی‌ای نداری.' };
     if (t.done) return { ok: false, error: 'قبلاً انجامش داده‌ای.' };
     const list = Array.isArray(targets) ? targets : [];
     const valid = (id) => id !== pid && this._inGame(id);
@@ -147,14 +158,15 @@ const methods = {
     [hold[a], hold[b]] = [hold[b], hold[a]];
   },
 
-  _itResolveTurn() {
+  // Resolve this round's secret actions. Snoops already happened when they
+  // were made; moving actions apply now, one after another in random order.
+  _itResolveRound() {
     const { g } = this;
-    const t = g.turn;
-    if (!t) {
+    if (!g.turns.length) {
       g.log.push({ round: this.round, actorId: null, type: 'quiet', targets: [], auto: false, seen: null, moves: [], holdAfter: { ...g.hold } });
       return;
     }
-    if (!t.done) {
+    g.turns.filter((t) => !t.done).forEach((t) => {
       // Actor ran out of time: the game picks for them so items still move
       // and nobody can tell who froze.
       t.auto = true;
@@ -162,33 +174,41 @@ const methods = {
       const others = shuffle(this._itOthers(t.actorId));
       t.targets = t.type === 'shuffle' ? others.slice(0, 2) : others.slice(0, 1);
       if (t.type === 'snoop') this._itSnoop(t);
-    }
-    const before = { ...g.hold };
-    if (t.type === 'swap' || t.type === 'steal') this._itExchange(t.actorId, t.targets[0]);
-    if (t.type === 'shuffle') this._itExchange(t.targets[0], t.targets[1]);
-    const moves = g.ids.filter((id) => before[id] !== g.hold[id]).map((id) => ({ playerId: id, from: before[id], to: g.hold[id] }));
-
-    if (t.type === 'swap' || t.type === 'steal') {
-      g.notes[t.actorId].push({ round: t.round, type: t.type, targetId: t.targets[0], gave: before[t.actorId], got: g.hold[t.actorId], auto: t.auto });
-    } else if (t.type === 'shuffle') {
-      g.notes[t.actorId].push({ round: t.round, type: 'shuffle', a: t.targets[0], b: t.targets[1], auto: t.auto });
-    }
-    // Victims only notice that their item changed — not who did it.
-    // Two knives look identical, so a knife-for-knife exchange goes unnoticed.
-    moves.filter((m) => m.playerId !== t.actorId).forEach((m) => {
-      g.notes[m.playerId].push({ round: t.round, type: 'changed', from: m.from, to: m.to });
     });
 
-    g.log.push({
-      round: t.round, actorId: t.actorId, type: t.type, targets: t.targets.slice(), auto: t.auto,
-      seen: t.type === 'snoop' ? t.result.item : null, moves,
-      holdAfter: { ...g.hold },
+    // What each player last knew they were holding: the round start, or for an
+    // actor, whatever their own action handed them.
+    const known = { ...g.hold };
+    const order = [...g.turns.filter((t) => t.type === 'snoop'), ...shuffle(g.turns.filter((t) => t.type !== 'snoop'))];
+    order.forEach((t) => {
+      const before = { ...g.hold };
+      if (t.type === 'swap' || t.type === 'steal') this._itExchange(t.actorId, t.targets[0]);
+      if (t.type === 'shuffle') this._itExchange(t.targets[0], t.targets[1]);
+      const moves = g.ids.filter((id) => before[id] !== g.hold[id]).map((id) => ({ playerId: id, from: before[id], to: g.hold[id] }));
+      if (t.type === 'swap' || t.type === 'steal') {
+        g.notes[t.actorId].push({ round: t.round, type: t.type, targetId: t.targets[0], gave: before[t.actorId], got: g.hold[t.actorId], auto: t.auto });
+        known[t.actorId] = g.hold[t.actorId];
+      } else if (t.type === 'shuffle') {
+        g.notes[t.actorId].push({ round: t.round, type: 'shuffle', a: t.targets[0], b: t.targets[1], auto: t.auto });
+      }
+      g.log.push({
+        round: t.round, actorId: t.actorId, type: t.type, targets: t.targets.slice(), auto: t.auto,
+        seen: t.type === 'snoop' ? t.result.item : null, moves,
+        holdAfter: { ...g.hold },
+      });
+    });
+
+    // Victims only learn that their item changed this round — not who did it,
+    // and not how many actions touched them. Two knives look identical, so a
+    // knife-for-knife exchange goes unnoticed.
+    g.ids.forEach((id) => {
+      if (g.hold[id] !== known[id]) g.notes[id].push({ round: this.round, type: 'changed', from: known[id], to: g.hold[id] });
     });
   },
 
   _itEndGossip() {
     const { g } = this;
-    this._itResolveTurn();
+    this._itResolveRound();
     const counts = this._tally(g.gossip.answers);
     g.gossips.push({
       round: g.gossip.round,
@@ -300,7 +320,7 @@ const methods = {
     const { g } = this;
     switch (this.phase) {
       case 'gossip':
-        return !!g.gossip.answers[pid] && (!g.turn || g.turn.actorId !== pid || g.turn.done);
+        return !!g.gossip.answers[pid] && g.turns.every((t) => t.actorId !== pid || t.done);
       case 'final': return !!g.finalVotes[pid];
       default: return false;
     }
@@ -315,7 +335,8 @@ const methods = {
       items: g.items,
       rules: g.rules,
       // With quiet rounds on, the count would reveal which rounds were quiet.
-      actionsSoFar: g.rules.quietRounds ? null : g.log.length,
+      actionsSoFar: g.rules.quietRounds ? null : g.log.filter((e) => e.type !== 'quiet').length,
+      actionsPerRound: g.actionsPerRound,
       question: ['gossip', 'gossipResult'].includes(this.phase) ? g.gossip.question : null,
       gossipResult: this.phase === 'gossipResult' ? g.gossips[g.gossips.length - 1] : null,
       gossips: g.gossips.map(({ round, question, tally }) => ({ round, question, top: tally.filter((t) => t.votes && t.votes === tally[0].votes).map((t) => t.playerId) })),
@@ -352,8 +373,8 @@ const methods = {
     out.acted = this._itHasActed(pid);
     if (this.phase === 'gossip') {
       out.gossipAnswer = g.gossip.answers[pid] || null;
-      if (g.turn && g.turn.actorId === pid) {
-        const t = g.turn;
+      const t = g.turns.find((x) => x.actorId === pid);
+      if (t) {
         out.turn = {
           type: t.type, done: t.done, result: t.result,
           targets: t.type === 'swap' ? null : t.targets, // swap partner is revealed when the round ends
