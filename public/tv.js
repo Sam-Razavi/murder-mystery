@@ -96,7 +96,9 @@
   // ------------------------------------------------------------ views
   function viewLobby() {
     const seats = [];
-    for (let i = 0; i < S.maxPlayers; i++) {
+    // Seats for the chosen mode (classic 8, «دست‌به‌دست» 12), plus anyone over the classic limit.
+    const seatCount = Math.max(S.players.length, S.modeMax);
+    for (let i = 0; i < seatCount; i++) {
       const p = S.players[i];
       if (p) {
         const isNew = !seenSeats.has(p.id); seenSeats.add(p.id);
@@ -107,15 +109,16 @@
       }
     }
     const n = S.players.length;
-    const foot = n < S.minPlayers
+    const foot = n > S.modeMax ? '<b class="pom">بازی کلاسیک حداکثر ۸ نفره است — حالت دست‌به‌دست را انتخاب کنید.</b>'
+      : n < S.minPlayers
       ? `دست‌کم ${fa(S.minPlayers)} نفر لازم است — ${fa(S.minPlayers - n)} نفر دیگر`
       : S.players.some((p) => p.connected && !p.ready) ? 'هر کس آماده است، روی گوشی‌اش «آماده‌ام» را بزند.'
         : 'همه آماده‌اند! میزبان (👑) از روی گوشی‌اش بازی را شروع می‌کند.';
     const items = S.settings.mode === 'items';
     const story = items ? C.itemsStory : C.story;
     const how = items ? `
-          <li><span><b>هر کس پنهانی یک چیز می‌گیرد.</b> هر کس شب را با 🔪 چاقو شروع کند قاتل است (۴ نفر: ۱ قاتل، ۵ تا ۸ نفر: ۲ قاتل).</span></li>
-          <li><span><b>به سؤال‌های پچ‌پچ جواب می‌دهید</b> — و همان موقع یک نفر پنهانی سرک می‌کشد، معاوضه می‌کند، می‌دزدد یا جابه‌جا می‌کند.</span></li>
+          <li><span><b>هر کس پنهانی یک چیز می‌گیرد.</b> هر کس شب را با 🔪 چاقو شروع کند قاتل است (۴ نفر: ۱ قاتل، ۵ تا ۸ نفر: ۲ قاتل، ۹ تا ۱۲ نفر: ۳ قاتل).</span></li>
+          <li><span><b>به سؤال‌های پچ‌پچ جواب می‌دهید</b> — و همان موقع یک نفر (از ۹ نفر به بالا: دو نفر) پنهانی سرک می‌کشد، معاوضه می‌کند، می‌دزدد یا جابه‌جا می‌کند.</span></li>
           <li><span><b>ردّ چاقو را بگیرید.</b> در رأی نهایی به کسی رأی بدهید که چاقو را <u>اول</u> داشت.</span></li>` : `
           <li><span><b>هر کدام نقشی مخفی می‌گیرید.</b> یکی از شما قاتل است و خودش می‌داند.</span></li>
           <li><span><b>سه دور اتاق‌های عمارت را می‌گردید</b> و مدرک پیدا می‌کنید — اما قاتل مدرک جعلی می‌کارد.</span></li>
@@ -307,6 +310,7 @@
     const lines = [];
     if (r.quietRounds) lines.push('🤫 دورهای بی‌صدا: بعضی دورها هیچ‌کس کار مخفی نمی‌گیرد.');
     if (r.killersKnow && S.game.killerCount > 1) lines.push('🤝 قاتل‌ها هم‌دیگر را می‌شناسند.');
+    if (S.game.actionsPerRound > 1) lines.push('👥 از ۹ نفر به بالا: هر دور دو نفر کار مخفی می‌گیرند.');
     return lines.length ? `<div class="house-rules">${lines.map((l) => `<span>${l}</span>`).join('')}</div>` : '';
   }
 
@@ -333,7 +337,7 @@
         <div class="eyebrow">پچ‌پچ <i class="sep"></i> دور ${fa(S.round)} از ${fa(S.totalRounds)}</div>
         <h2 class="g-q display">${esc(S.game.question)}</h2>
         <p class="lead">روی گوشی یک نفر را انتخاب کنید.</p>
-        <p class="whisper">${S.game.rules.quietRounds ? '…و شاید همین حالا، یک نفر پنهانی کاری مخفی انجام می‌دهد.' : '…و همین حالا، یک نفر پنهانی کاری مخفی انجام می‌دهد.'}</p>
+        <p class="whisper">…و ${S.game.rules.quietRounds ? 'شاید ' : ''}همین حالا، ${S.game.actionsPerRound > 1 ? 'دو نفر' : 'یک نفر'} پنهانی کاری مخفی انجام می‌دهد.</p>
       </div>
       <aside class="side">${itemsInPlay()}${actionsBox()}</aside>
     </section>`;
@@ -374,9 +378,9 @@
       <div class="eyebrow">آخرین فرصت</div><h2 class="h-big">رأی نهایی</h2>
       <p class="lead">روی گوشی به کسی رأی بدهید که فکر می‌کنید شب را <b>با چاقو شروع کرد</b>.</p>
       <div class="rules3">
-        <div><span>✅</span>بیشترین رأی به یک قاتل ← <b>بی‌گناه‌ها می‌برند</b>${S.game.killerCount > 1 ? ' (یکی از دو قاتل کافی است)' : ''}</div>
+        <div><span>✅</span>بیشترین رأی به یک قاتل ← <b>بی‌گناه‌ها می‌برند</b>${S.game.killerCount > 1 ? ' (یکی از قاتل‌ها کافی است)' : ''}</div>
         <div><span>🔪</span>بیشترین رأی به یک بی‌گناه ← <b>قاتل‌ها می‌برند</b></div>
-        <div><span>⚖️</span>تساوی ← <b>قاتل‌ها می‌برند</b>${S.game.killerCount > 1 ? ' — مگر اینکه تساوی فقط بین خودِ دو قاتل باشد' : ''}</div>
+        <div><span>⚖️</span>تساوی ← <b>قاتل‌ها می‌برند</b>${S.game.killerCount > 1 ? ' — مگر اینکه تساوی فقط بین خودِ قاتل‌ها باشد' : ''}</div>
       </div></div></section>`;
   }
 

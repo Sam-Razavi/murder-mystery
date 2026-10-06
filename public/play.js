@@ -85,7 +85,8 @@
     const n = S.players.length;
     const online = S.players.filter((p) => p.connected);
     const waiting = online.filter((p) => !p.ready).length;
-    const allReady = n >= S.minPlayers && waiting === 0;
+    const tooMany = n > S.modeMax; // classic takes at most 8
+    const allReady = n >= S.minPlayers && waiting === 0 && !tooMany;
     const meReady = !!(pl(me.id) && pl(me.id).ready);
     let html = `<h2 class="prompt">${me ? 'به مهمانی خوش آمدی!' : ''}</h2>
       <p class="sub">${n < S.minPlayers ? `منتظر بقیه‌ایم — دست‌کم ${fa(S.minPlayers)} نفر لازم است (الان ${fa(n)} نفر).`
@@ -110,7 +111,8 @@
         <div class="sub">دورهای بی‌صدا: گاهی هیچ‌کس کار مخفی نمی‌گیرد</div>${seg('quietRounds', [[false, 'خاموش'], [true, 'روشن']])}
         <div class="sub">قاتل‌ها هم‌دیگر را می‌شناسند (از ۵ نفر به بالا)</div>${seg('killersKnow', [[false, 'خاموش'], [true, 'روشن']])}` : ''}
         <div class="sub">زمان هر گفت‌وگو</div>${seg('discussSeconds', [[90, '۱:۳۰'], [150, '۲:۳۰'], [240, '۴:۰۰']])}
-        <button class="btn primary big" data-act="start" ${allReady ? '' : 'disabled'}>${allReady ? 'شروع بازی' : 'منتظر آماده شدن همه…'}</button>`;
+        ${tooMany ? `<div class="note warn">${'بازی کلاسیک حداکثر ۸ نفره است — حالت دست‌به‌دست را انتخاب کنید.'}</div>` : ''}
+        <button class="btn primary big" data-act="start" ${allReady ? '' : 'disabled'}>${allReady ? 'شروع بازی' : tooMany ? 'برای بازی کلاسیک زیادیم' : 'منتظر آماده شدن همه…'}</button>`;
     }
     else html += `<div class="note"><b>بازی: ${esc(mode.name)}</b> — ${esc(mode.text)}</div>`;
     html += `<div class="note">📺 صفحه‌ی تلویزیون را ببینید. وقتی بازی شروع شد، نقش مخفی‌ات اینجا روی گوشی می‌آید — نگذار کسی ببیند!</div>`;
@@ -286,8 +288,10 @@
     const moved = me.item !== me.startItem;
     const secret = killer
       ? `<div class="secret killer"><h4>🔪 تو قاتلی!</h4><p>شب را با چاقو شروع کردی. ${me.partners && me.partners.length
-        ? `شریک جرمت <b>${me.partners.map(shortName).join('، ')}</b> است — او هم تو را می‌شناسد.`
-        : S.game.killerCount > 1 ? 'یک قاتل دیگر هم هست — اما نمی‌دانی کیست.' : ''}
+        ? (me.partners.length > 1
+          ? `شریک‌های جرمت <b>${me.partners.map(shortName).join(' و ')}</b> هستند — آن‌ها هم تو را می‌شناسند.`
+          : `شریک جرمت <b>${shortName(me.partners[0])}</b> است — او هم تو را می‌شناسد.`)
+        : S.game.killerCount > 1 ? `${fa(S.game.killerCount - 1)} قاتل دیگر هم هست — اما نمی‌دانی کیست.` : ''}
          کاری کن در رأی نهایی بیشترین رأی به تو نرسد. بگذار ردّ چاقو گم شود.</p></div>`
       : `<div class="secret innocent"><h4>🕊️ تو بی‌گناهی</h4><p>شب را با ${itemTag(me.startItem)} شروع کردی.
          بفهم چه کسی شب را با چاقو شروع کرد و در رأی نهایی همه با هم به او رأی بدهید.</p></div>`;
