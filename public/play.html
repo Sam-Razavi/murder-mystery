@@ -13,13 +13,13 @@
 <body>
   <div class="backdrop phone">
     <section id="join" class="join hidden">
-      <div class="join-eyebrow">شب یلدا · عمارت فرهمند</div>
-      <h1 class="display join-title">ضیافت آخر</h1>
-      <p class="join-tag">یکی از ما قاتل است.</p>
+      <div class="join-eyebrow" data-i18n="شب یلدا · عمارت فرهمند">شب یلدا · عمارت فرهمند</div>
+      <h1 class="display join-title" id="joinTitle">ضیافت آخر</h1>
+      <p class="join-tag" data-i18n="یکی از ما قاتل است.">یکی از ما قاتل است.</p>
       <form id="joinForm" autocomplete="off">
-        <label for="nameInput">اسمت چیست؟</label>
-        <input id="nameInput" maxlength="14" placeholder="مثلاً: سام" enterkeyhint="go">
-        <button class="btn primary big" type="submit">ورود به مهمانی</button>
+        <label for="nameInput" data-i18n="اسمت چیست؟">اسمت چیست؟</label>
+        <input id="nameInput" maxlength="14" placeholder="مثلاً: سام" data-i18n-ph="مثلاً: سام" enterkeyhint="go">
+        <button class="btn primary big" type="submit" data-i18n="ورود به مهمانی">ورود به مهمانی</button>
         <div id="joinError" class="error"></div>
       </form>
     </section>
@@ -37,9 +37,10 @@
     </section>
 
     <div id="toast" class="toast hidden"></div>
-    <div id="offline" class="offline hidden">اتصال قطع شد… در حال اتصال دوباره</div>
+    <div id="offline" class="offline hidden" data-i18n="اتصال قطع شد… در حال اتصال دوباره">اتصال قطع شد… در حال اتصال دوباره</div>
   </div>
   <script src="/socket.io/socket.io.js"></script>
+  <script src="/i18n.js"></script>
   <script src="/shared.js"></script>
   <script src="/art.js"></script>
   <script src="/faces.js"></script>

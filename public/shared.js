@@ -1,7 +1,24 @@
 /* Shared client helpers for tv.js and play.js */
 (function () {
-  const FA_DIGITS = '۰۱۲۳۴۵۶۷۸۹';
-  const fa = (v) => String(v).replace(/\d/g, (d) => FA_DIGITS[d]);
+  // Current language (set from each state). num() writes digits for it;
+  // t() translates interface text (public/i18n.js).
+  let lang = 'fa';
+  const setLang = (l) => {
+    if (l === lang) return false;
+    lang = l;
+    document.documentElement.lang = l;
+    document.documentElement.dir = l === 'en' ? 'ltr' : 'rtl';
+    applyStatic();
+    return true;
+  };
+  const getLang = () => lang;
+  const num = (v) => window.I18N.digits(lang, v);
+  const t = (text, vars) => window.I18N.tr(lang, text, vars);
+  // Static page text carries its Farsi source in data-i18n / data-i18n-ph.
+  const applyStatic = () => {
+    document.querySelectorAll('[data-i18n]').forEach((el) => { el.textContent = t(el.dataset.i18n); });
+    document.querySelectorAll('[data-i18n-ph]').forEach((el) => { el.placeholder = t(el.dataset.i18nPh); });
+  };
 
   const esc = (s) => String(s == null ? '' : s)
     .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
@@ -38,7 +55,7 @@
         const m = Math.floor(secs / 60);
         const s = secs % 60;
         const label = el.querySelector('[data-timer-label]') || el;
-        label.textContent = m ? `${fa(m)}:${fa(String(s).padStart(2, '0'))}` : fa(s);
+        label.textContent = m ? `${num(m)}:${num(String(s).padStart(2, '0'))}` : num(s);
         el.style.setProperty('--p', currentTimer.duration ? (ms / currentTimer.duration).toFixed(4) : 0);
         el.classList.toggle('urgent', secs <= 10);
       });
@@ -47,5 +64,5 @@
   }
   requestAnimationFrame(tick);
 
-  window.Z = { fa, esc, store, makeId, syncClock, now, remaining, setTimer };
+  window.Z = { num, t, setLang, getLang, esc, store, makeId, syncClock, now, remaining, setTimer };
 })();

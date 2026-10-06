@@ -17,7 +17,9 @@ const pick = (a) => a[Math.floor(Math.random() * a.length)];
 function makeBot(id, name) {
   const sock = io(URL, { transports: ['websocket'], forceNew: true });
   const bot = { id, name, sock, state: null, content: null, leaks: [] };
-  sock.on('content', (c) => { bot.content = c; });
+  // Content arrives in both languages; read the bundle for the current one.
+  sock.on('content', (c) => { bot.all = c; });
+  Object.defineProperty(bot, 'content', { get: () => bot.all && bot.all[(bot.state && bot.state.lang) || 'fa'] });
   sock.on('state', (s) => { bot.state = s; });
   bot.emit = (ev, payload = {}) => new Promise((res) => sock.emit(ev, payload, res));
   return bot;
@@ -117,6 +119,9 @@ async function playItemsGame(bots, tv) {
   check(`${tag}: ${apr} action(s) per round is public`, tv.state.game.actionsPerRound === apr);
   check(`${tag}: killers started with knives`, bots.every((b) => (b.state.me.startItem === knife) === (b.state.me.role === 'killer')));
   const leak = () => /"(killers|start|hold|turn|turns|startItem|role|partners)"/.test(JSON.stringify(tv.state));
+  // In English, no screen may receive Persian (player names here are Persian, so drop them).
+  const persianIn = (st) => /[\u0600-\u06FF]/.test(JSON.stringify({ ...st, players: [], me: st.me && { ...st.me, name: '' } }));
+  const en = tv.state.lang === 'en';
   check(`${tag}: TV gets no private data`, tv.state.me === null && !leak());
   await vip.emit('vip:skip');
 
@@ -126,6 +131,7 @@ async function playItemsGame(bots, tv) {
     const actors = bots.filter((b) => b.state.me.turn);
     check(`${tag} r${round}: ${apr} secret action(s)`, actors.length === apr);
     check(`${tag} r${round}: TV shows the question, not the actors`, !!tv.state.game.question && !leak());
+    if (en) check(`${tag} r${round}: no Persian on any screen`, ![tv, ...bots].some((b) => persianIn(b.state)));
     const types = {};
     for (const a of actors) {
       const others = a.state.players.filter((p) => p.id !== a.id).map((p) => p.id);
@@ -164,6 +170,7 @@ async function playItemsGame(bots, tv) {
   check(`${tag}: reveal names every killer`, rev.killers.length === k && killers.every((x) => rev.killers.includes(x.id)));
   check(`${tag}: timeline has every round`, Array.from({ length: total }, (_, i) => i + 1).every((r) => rev.log.some((e) => e.round === r)));
   check(`${tag}: every phone has points`, bots.every((b) => b.state.me.myPoints));
+  if (en) check(`${tag}: English results, no Persian`, ![tv, ...bots].some((b) => persianIn(b.state)) && /killer|innocent/i.test(JSON.stringify(bots.map((b) => b.state.me.myPoints))));
   await vip.emit('vip:setting', { key: 'mode', value: 'classic' });
 }
 
@@ -224,6 +231,10 @@ async function backToLobby(bots) {
   await readyAll(bots);
   const classic10 = await bots[0].emit('vip:start');
   check('big table: classic start refused with 10', !classic10.ok && /۸/.test(classic10.error));
+  check('big table: switch to English', (await bots[0].emit('vip:setting', { key: 'lang', value: 'en' })).ok);
+  await waitFor(() => tv.state.lang === 'en' && bots.every((b) => b.state.lang === 'en'), 'everyone in English');
+  const classicEn = await bots[0].emit('vip:start');
+  check('English error text', !classicEn.ok && /at most 8/.test(classicEn.error));
   for (const b of bots) await b.emit('player:ready', { ready: false });
   await playItemsGame(bots, tv);
 

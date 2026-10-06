@@ -1,7 +1,9 @@
 // Plays many random games straight against the engine and checks invariants.
 // Run: node test/engine.js
 const { Game } = require('../game');
-const C = require('../content');
+const CF = require('../content');
+const CE = require('../content.en');
+const PERSIAN = /[\u0600-\u06FF]/;
 
 let pass = 0;
 let fail = 0;
@@ -13,10 +15,18 @@ function check(label, cond) {
 const pick = (a) => a[Math.floor(Math.random() * a.length)];
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
-async function playOne(n, gameNo) {
+async function playOne(n, gameNo, lang = 'fa') {
+  const C = lang === 'en' ? CE : CF;
   const game = new Game({ timeScale: 1000, minPlayers: 4 });
   const ids = Array.from({ length: n }, (_, i) => `p${i}`);
   ids.forEach((id, i) => game.join(id, `Bot${i}`));
+  if (lang === 'en') check(`[${n}] set English`, game.setSetting('p0', 'lang', 'en').ok);
+  // In English, nothing any screen receives may contain Persian.
+  const noPersian = (label) => {
+    if (lang !== 'en') return;
+    const all = JSON.stringify([game.publicState(), ...ids.map((id) => game.privateState(id))]);
+    check(`[${n}] en ${label}: no Persian`, !PERSIAN.test(all));
+  };
   check(`[${n}] vip is first player`, game.vipId === 'p0');
   check(`[${n}] cannot start as non-vip`, !game.start('p1').ok);
   check(`[${n}] cannot start before everyone is ready`, !game.start('p0').ok);
@@ -27,6 +37,9 @@ async function playOne(n, gameNo) {
   check(`[${n}] ready flags reset on start`, game.players.every((p) => !p.ready));
   check(`[${n}] cannot toggle ready mid-game`, !game.setReady('p1', true).ok);
   check(`[${n}] cannot join mid-game`, !game.join('late', 'Late').ok);
+  check(`[${n}] language locked mid-game`, !game.setSetting('p0', 'lang', lang === 'en' ? 'fa' : 'en').ok);
+  if (lang === 'en') check(`[${n}] en error text`, !PERSIAN.test(game.join('late', 'Late').error));
+  noPersian('intro');
 
   const g = game.g;
   const killer = g.killerId;
@@ -60,6 +73,7 @@ async function playOne(n, gameNo) {
     if (leaveOneOut) await sleep(60); // search timer at 1000x = 40ms
     else await sleep(5);
     check(`[${n}] r${r} moved to discuss (${game.phase})`, game.phase === 'discuss');
+    noPersian(`r${r} discuss`);
     ids.forEach((id) => {
       const got = g.hands[id].length - before[id];
       if (id === killer) check(`[${n}] killer got 1 forged copy`, got === 1);
@@ -96,6 +110,7 @@ async function playOne(n, gameNo) {
   if (gameNo % 2) check(`[${n}] vip skips to results`, game.skipReveal('p0').ok && game.phase === 'results');
   else for (let s = 0; s < 5; s++) game.next('p0');
   check(`[${n}] results phase`, game.phase === 'results');
+  noPersian('results');
   check(`[${n}] skip reveal only during reveal`, !game.skipReveal('p0').ok);
   const res = game.publicState().game.reveal;
   check(`[${n}] results show killer`, res.killerId === killer && res.points.length === n);
@@ -141,13 +156,14 @@ async function playOne(n, gameNo) {
   const stats = { games: 0, caught: 0, delivered: 0 };
   for (let k = 0; k < 40; k++) {
     for (const n of [4, 5, 6, 7, 8]) {
-      const r = await playOne(n, k);
+      const r = await playOne(n, k, k % 2 ? 'en' : 'fa');
       stats.games += 1;
       if (r.caught) stats.caught += 1;
       stats.delivered += r.delivered;
     }
   }
   // Lobby edge cases
+  const C = CF;
   const lg = new Game({ minPlayers: 4 });
   check('cannot start with 3', (() => { ['a', 'b', 'c'].forEach((x) => lg.join(x, x)); return !lg.start('a').ok; })());
   check('duplicate name rejected', !lg.join('d', 'A').ok);

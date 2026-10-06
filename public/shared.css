@@ -37,7 +37,7 @@ body {
   font-family: var(--body);
   background: var(--night);
   color: var(--text);
-  direction: rtl;
+  /* direction comes from <html dir>, which the language switch sets */
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
 }

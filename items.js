@@ -34,20 +34,21 @@ const methods = {
   _itSetup() {
     const ids = this.players.map((p) => p.id);
     const k = killersFor(ids.length);
-    const others = shuffle(C.ITEMS).slice(0, ids.length - k).map((i) => i.id);
-    const pool = shuffle([...Array(k).fill(C.KNIFE.id), ...others]);
+    const others = shuffle(this.L.ITEMS).slice(0, ids.length - k).map((i) => i.id);
+    const pool = shuffle([...Array(k).fill(this.L.KNIFE.id), ...others]);
     const start = {};
     ids.forEach((id, i) => { start[id] = pool[i]; });
 
     this.g = {
       mode: 'items',
+      lang: this.settings.lang,
       id: `${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`,
       ids,
-      killers: ids.filter((id) => start[id] === C.KNIFE.id),
+      killers: ids.filter((id) => start[id] === this.L.KNIFE.id),
       start,
       hold: { ...start },
       // Public: which items are in play (not who holds them). Knives first.
-      items: pool.slice().sort((a, b) => (b === C.KNIFE.id) - (a === C.KNIFE.id)),
+      items: pool.slice().sort((a, b) => (b === this.L.KNIFE.id) - (a === this.L.KNIFE.id)),
       totalRounds: this.settings.itemRounds || ITEM_ROUNDS,
       // Optional house rules, fixed for the whole game.
       rules: { quietRounds: !!this.settings.quietRounds, killersKnow: !!this.settings.killersKnow },
@@ -92,8 +93,8 @@ const methods = {
     this.round += 1;
     this.phase = 'gossip';
     const { g } = this;
-    let pool = C.GOSSIP_QUESTIONS.filter((q) => !g.usedQuestions.has(q));
-    if (!pool.length) { g.usedQuestions.clear(); pool = C.GOSSIP_QUESTIONS; }
+    let pool = this.L.GOSSIP_QUESTIONS.filter((q) => !g.usedQuestions.has(q));
+    if (!pool.length) { g.usedQuestions.clear(); pool = this.L.GOSSIP_QUESTIONS; }
     const question = pick(pool);
     g.usedQuestions.add(question);
     g.gossip = { round: this.round, question, answers: {} };
@@ -113,8 +114,8 @@ const methods = {
   },
 
   itAnswer(pid, targetId) {
-    if (this.phase !== 'gossip' || !this._items() || !this._inGame(pid)) return { ok: false, error: 'الان وقت جواب دادن نیست.' };
-    if (pid === targetId || !this._inGame(targetId)) return { ok: false, error: 'جواب نامعتبر.' };
+    if (this.phase !== 'gossip' || !this._items() || !this._inGame(pid)) return { ok: false, error: this._t('الان وقت جواب دادن نیست.') };
+    if (pid === targetId || !this._inGame(targetId)) return { ok: false, error: this._t('جواب نامعتبر.') };
     this.g.gossip.answers[pid] = targetId;
     this._checkAllDone();
     this._changed();
@@ -126,15 +127,15 @@ const methods = {
   itAct(pid, { targets } = {}) {
     const { g } = this;
     const t = g && g.turns && g.turns.find((x) => x.actorId === pid);
-    if (this.phase !== 'gossip' || !this._items() || !t) return { ok: false, error: 'این دور کار مخفی‌ای نداری.' };
-    if (t.done) return { ok: false, error: 'قبلاً انجامش داده‌ای.' };
+    if (this.phase !== 'gossip' || !this._items() || !t) return { ok: false, error: this._t('این دور کار مخفی‌ای نداری.') };
+    if (t.done) return { ok: false, error: this._t('قبلاً انجامش داده‌ای.') };
     const list = Array.isArray(targets) ? targets : [];
     const valid = (id) => id !== pid && this._inGame(id);
     if (t.type === 'snoop' || t.type === 'steal') {
-      if (list.length !== 1 || !valid(list[0])) return { ok: false, error: 'یک نفر را انتخاب کن.' };
+      if (list.length !== 1 || !valid(list[0])) return { ok: false, error: this._t('یک نفر را انتخاب کن.') };
       t.targets = [list[0]];
     } else if (t.type === 'shuffle') {
-      if (list.length !== 2 || list[0] === list[1] || !list.every(valid)) return { ok: false, error: 'دو نفرِ دیگر را انتخاب کن.' };
+      if (list.length !== 2 || list[0] === list[1] || !list.every(valid)) return { ok: false, error: this._t('دو نفرِ دیگر را انتخاب کن.') };
       t.targets = [list[0], list[1]];
     } else {
       t.targets = [pick(this._itOthers(pid))]; // swap: the partner is random
@@ -247,8 +248,8 @@ const methods = {
   // ---------------------------------------------------------------- final vote
 
   itFinal(pid, targetId) {
-    if (this.phase !== 'final' || !this._items() || !this._inGame(pid)) return { ok: false, error: 'الان وقت رأی نیست.' };
-    if (pid === targetId || !this._inGame(targetId)) return { ok: false, error: 'یک نفر را انتخاب کن.' };
+    if (this.phase !== 'final' || !this._items() || !this._inGame(pid)) return { ok: false, error: this._t('الان وقت رأی نیست.') };
+    if (pid === targetId || !this._inGame(targetId)) return { ok: false, error: this._t('یک نفر را انتخاب کن.') };
     this.g.finalVotes[pid] = targetId;
     this._checkAllDone();
     this._changed();
@@ -294,9 +295,9 @@ const methods = {
     const points = g.ids.map((pid) => {
       const breakdown = [];
       const isKiller = g.killers.includes(pid);
-      if (isKiller && !v.innocentsWin) breakdown.push({ label: 'قاتل‌ها قسر در رفتند', pts: 3 });
-      if (!isKiller && v.innocentsWin) breakdown.push({ label: 'بی‌گناه‌ها قاتل را گرفتند', pts: 2 });
-      if (!isKiller && g.killers.includes(g.finalVotes[pid])) breakdown.push({ label: 'به یک قاتل رأی دادی', pts: 1 });
+      if (isKiller && !v.innocentsWin) breakdown.push({ label: this._t('قاتل‌ها قسر در رفتند'), pts: 3 });
+      if (!isKiller && v.innocentsWin) breakdown.push({ label: this._t('بی‌گناه‌ها قاتل را گرفتند'), pts: 2 });
+      if (!isKiller && g.killers.includes(g.finalVotes[pid])) breakdown.push({ label: this._t('به یک قاتل رأی دادی'), pts: 1 });
       return { playerId: pid, total: breakdown.reduce((s, b) => s + b.pts, 0), breakdown };
     });
 

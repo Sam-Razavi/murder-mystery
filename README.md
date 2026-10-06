@@ -1,6 +1,6 @@
 # ضیافت آخر — Ziafat-e Akhar ("The Last Feast")
 
-A Farsi murder-mystery party game for 4–12 players: up to 8 in the classic mode, up to 12 in «دست‌به‌دست». One shared TV screen, and everyone plays on their own phone.
+A Farsi (and English) murder-mystery party game for 4–12 players: up to 8 in the classic mode, up to 12 in «دست‌به‌دست». One shared TV screen, and everyone plays on their own phone.
 It's a social-deduction game in the spirit of *Dead Man's Party*, but with its own story, characters and rules. Nothing comes from the Knives Out IP.
 
 **Setting:** It's Yalda night at the Farahmand family's old mansion in Shiraz. Agha-bozorg (the grandfather) called everyone together to read his will at midnight. When the clock strikes twelve, he's dead. One of the guests is the killer.
@@ -67,6 +67,17 @@ The host chooses the mode in the lobby on their phone. This mode follows the ite
 
 ### Phone features
 Private role card (tap to reveal, hides itself after 15 seconds), clue hand with pin-to-TV, a deduction notebook (tap to mark ✕ or ؟, saved per game), reconnect-safe identity (the phone remembers who it is), and vibration when it's your turn to act.
+
+## Languages: فارسی and English
+The host picks the language in the lobby, and it applies to the TV and every phone. It can't be changed mid-game; a change from the lobby applies to the next game.
+
+- **Farsi** is right-to-left with Persian digits. **English** is left-to-right with Latin digits.
+- The English version tells the same story: Yalda night in Shiraz, the Farahmand family, the same characters and items.
+- **Where the text lives:**
+  - Story content: `content.js` (Farsi) and `content.en.js` (English), with the same keys and ids.
+  - Interface text: written in Farsi in the code, with the English in one dictionary, `public/i18n.js`, shared by the server and both screens.
+- **To add or change interface text:** write it in Farsi wrapped in `t('…')` (screens) or `this._t('…')` (engine), then add its English to `public/i18n.js`.
+- **Checks:** half of the simulated games run in English, and `test/e2e.js` plays a 10-player English game. Both fail if any Persian character reaches a screen in English.
 
 ## Look & feel
 - **Living backdrop (TV):** A night sky with a glowing moon, twinkling stars and falling snow. Along the bottom is the Farahmand mansion's skyline (domes, wind-catchers, cypresses), and its windows flicker like candlelight. It calms down on busy screens like the reveal and the scoreboard (`public/scene.js`).

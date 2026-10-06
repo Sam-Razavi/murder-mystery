@@ -1,8 +1,9 @@
 /* TV screen: public view only. Never receives private data. */
 (function () {
-  const { fa, esc, syncClock, setTimer } = window.Z;
+  const { num, t, setLang, esc, syncClock, setTimer } = window.Z;
   const socket = io();
-  let C = null; // content
+  let ALL = null; // story content in both languages: { fa, en }
+  let C = null; // ...the bundle for the current language
   let S = null; // state
   let lastKey = '';
   const seenCards = new Set();
@@ -94,7 +95,7 @@
   const room = (id) => C.rooms.find((r) => r.id === id);
   // Illustration for a weapon, room or trait (public/art.js), falling back to its emoji.
   const artOf = (o, anim = false) => (o && window.Art && Art.has(o.id) ? Art.item(o.id, { anim, title: o.name }) : (o ? o.icon : ''));
-  const item = (id) => C.items.find((x) => x.id === id) || { icon: '❔', name: '؟' };
+  const item = (id) => C.items.find((x) => x.id === id) || { icon: '❔', name: t('؟') };
   // Illustrated item (public/art.js); `anim` only on big displays.
   const art = (id, anim = false) => (window.Art && Art.has(id) ? Art.item(id, { anim, title: item(id).name }) : item(id).icon);
   const itemsMode = () => S && S.mode === 'items';
@@ -112,22 +113,23 @@
     const face = window.Art && (p.charId ? Art.character(p.charId) : p.portrait ? Art.portrait(p.portrait) : '');
     if (face) return `<span class="avatar has-face ${extra}" style="background:${colorOf(p)}">${face}</span>`;
     if (!p.charId && p.portrait) return `<span class="avatar pt ${extra}" style="background:${colorOf(p)}">${esc(p.portrait)}</span>`;
-    const letter = p.charId ? ch(p.charId).name.replace('دکتر ', '').replace('خانم‌جان', 'خ')[0] : p.name[0];
+    const letter = p.charId ? ch(p.charId).name.replace('دکتر ', '').replace('Dr. ', '').replace('خانم‌جان', 'خ')[0] : p.name[0];
     return `<span class="avatar ${extra}" style="background:${colorOf(p)}">${esc(letter)}</span>`;
   }
   const who = (pid) => {
-    const p = pl(pid); if (!p) return '؟';
+    const p = pl(pid); if (!p) return t('؟');
     return p.charId ? `${esc(ch(p.charId).name)} <span class="muted">(${esc(p.name)})</span>` : esc(p.name);
   };
-  const plainWho = (pid) => { const p = pl(pid); return p ? (p.charId ? `${ch(p.charId).name} (${p.name})` : p.name) : '؟'; };
+  const plainWho = (pid) => { const p = pl(pid); return p ? (p.charId ? `${ch(p.charId).name} (${p.name})` : p.name) : t('؟'); };
+  const LIST = () => t('، '); // list separator
 
   // Only owned traits are listed; a missing trait means "no".
   function traitTags(charId) {
     const c = ch(charId);
-    const owned = C.traits.filter((t, i) => c.traits[i]);
-    return owned.length ? owned.map((t) => `<span class="trait">${artOf(t)} ${esc(t.name)}</span>`).join('') : '<span class="trait none">هیچ نشانه‌ی خاصی ندارد</span>';
+    const owned = C.traits.filter((row, i) => c.traits[i]);
+    return owned.length ? owned.map((row) => `<span class="trait">${artOf(row)} ${esc(row.name)}</span>`).join('') : `<span class="trait none">${t('هیچ نشانه‌ی خاصی ندارد')}</span>`;
   }
-  const traitIcons = (charId) => C.traits.filter((t, i) => ch(charId).traits[i]).map((t) => artOf(t)).join('');
+  const traitIcons = (charId) => C.traits.filter((row, i) => ch(charId).traits[i]).map((row) => artOf(row)).join('');
 
   // ------------------------------------------------------------ views
   function viewLobby() {
@@ -139,35 +141,35 @@
       if (p) {
         const isNew = !seenSeats.has(p.id); seenSeats.add(p.id);
         seats.push(`<div class="seat filled ${p.connected ? '' : 'off'} ${p.ready ? 'ready' : ''} ${isNew ? 'anim' : ''}">${avatar(p)}
-          <div><div class="nm">${esc(p.name)}</div><div class="tag ${p.ready ? 'ok' : ''}">${p.id === S.vipId ? '👑 میزبان <i class="sep"></i> ' : ''}${!p.connected ? 'آفلاین' : p.ready ? '✓ آماده' : 'هنوز آماده نیست'}${p.score ? ` <i class="sep"></i> ${fa(p.score)} امتیاز` : ''}</div></div></div>`);
+          <div><div class="nm">${esc(p.name)}</div><div class="tag ${p.ready ? 'ok' : ''}">${p.id === S.vipId ? `${t('👑 میزبان')} <i class="sep"></i> ` : ''}${!p.connected ? t('آفلاین') : p.ready ? t('✓ آماده') : t('هنوز آماده نیست')}${p.score ? ` <i class="sep"></i> ${t('{n} امتیاز', { n: p.score })}` : ''}</div></div></div>`);
       } else {
-        seats.push(`<div class="seat">${i < S.minPlayers ? 'منتظر مهمان…' : 'جای خالی'}</div>`);
+        seats.push(`<div class="seat">${i < S.minPlayers ? t('منتظر مهمان…') : t('جای خالی')}</div>`);
       }
     }
     const n = S.players.length;
-    const foot = n > S.modeMax ? '<b class="pom">بازی کلاسیک حداکثر ۸ نفره است — حالت دست‌به‌دست را انتخاب کنید.</b>'
+    const foot = n > S.modeMax ? `<b class="pom">${t('بازی کلاسیک حداکثر ۸ نفره است — حالت دست‌به‌دست را انتخاب کنید.')}</b>`
       : n < S.minPlayers
-      ? `دست‌کم ${fa(S.minPlayers)} نفر لازم است — ${fa(S.minPlayers - n)} نفر دیگر`
-      : S.players.some((p) => p.connected && !p.ready) ? 'هر کس آماده است، روی گوشی‌اش «آماده‌ام» را بزند.'
-        : 'همه آماده‌اند! میزبان (👑) از روی گوشی‌اش بازی را شروع می‌کند.';
+      ? t('دست‌کم {min} نفر لازم است — {n} نفر دیگر', { min: S.minPlayers, n: S.minPlayers - n })
+      : S.players.some((p) => p.connected && !p.ready) ? t('هر کس آماده است، روی گوشی‌اش «آماده‌ام» را بزند.')
+        : t('همه آماده‌اند! میزبان (👑) از روی گوشی‌اش بازی را شروع می‌کند.');
     const items = S.settings.mode === 'items';
     const story = items ? C.itemsStory : C.story;
     const how = items ? `
-          <li><span><b>هر کس پنهانی یک چیز می‌گیرد.</b> هر کس شب را با 🔪 چاقو شروع کند قاتل است (۴ نفر: ۱ قاتل، ۵ تا ۸ نفر: ۲ قاتل، ۹ تا ۱۲ نفر: ۳ قاتل).</span></li>
-          <li><span><b>به سؤال‌های پچ‌پچ جواب می‌دهید</b> — و همان موقع یک نفر (از ۹ نفر به بالا: دو نفر) پنهانی سرک می‌کشد، معاوضه می‌کند، می‌دزدد یا جابه‌جا می‌کند.</span></li>
-          <li><span><b>ردّ چاقو را بگیرید.</b> در رأی نهایی به کسی رأی بدهید که چاقو را <u>اول</u> داشت.</span></li>` : `
-          <li><span><b>هر کدام نقشی مخفی می‌گیرید.</b> یکی از شما قاتل است و خودش می‌داند.</span></li>
-          <li><span><b>سه دور اتاق‌های عمارت را می‌گردید</b> و مدرک پیدا می‌کنید — اما قاتل مدرک جعلی می‌کارد.</span></li>
-          <li><span><b>بحث کنید، بازجویی کنید،</b> و در آخر بگویید قاتل کیست، با چه سلاحی و کجا.</span></li>`;
+          <li><span>${t('<b>هر کس پنهانی یک چیز می‌گیرد.</b> هر کس شب را با 🔪 چاقو شروع کند قاتل است (۴ نفر: ۱ قاتل، ۵ تا ۸ نفر: ۲ قاتل، ۹ تا ۱۲ نفر: ۳ قاتل).')}</span></li>
+          <li><span>${t('<b>به سؤال‌های پچ‌پچ جواب می‌دهید</b> — و همان موقع یک نفر (از ۹ نفر به بالا: دو نفر) پنهانی سرک می‌کشد، معاوضه می‌کند، می‌دزدد یا جابه‌جا می‌کند.')}</span></li>
+          <li><span>${t('<b>ردّ چاقو را بگیرید.</b> در رأی نهایی به کسی رأی بدهید که چاقو را <u>اول</u> داشت.')}</span></li>` : `
+          <li><span>${t('<b>هر کدام نقشی مخفی می‌گیرید.</b> یکی از شما قاتل است و خودش می‌داند.')}</span></li>
+          <li><span>${t('<b>سه دور اتاق‌های عمارت را می‌گردید</b> و مدرک پیدا می‌کنید — اما قاتل مدرک جعلی می‌کارد.')}</span></li>
+          <li><span>${t('<b>بحث کنید، بازجویی کنید،</b> و در آخر بگویید قاتل کیست، با چه سلاحی و کجا.')}</span></li>`;
     return `<section class="lobby stage-in">
       <div>
-        <div class="eyebrow">شب یلدا <i class="sep"></i> شیراز <i class="sep"></i> عمارت فرهمند</div>
+        <div class="eyebrow">${t('شب یلدا')} <i class="sep"></i> ${t('شیراز')} <i class="sep"></i> ${t('عمارت فرهمند')}</div>
         <h1 class="display title">${esc(story.title)}</h1>
         <p class="subtitle">${esc(story.subtitle)}</p>
         <ol class="how">${how}
         </ol>
       </div>
-      <div class="join-card"><img src="/qr.svg" alt="QR"><div class="scan">با گوشی اسکن کنید</div><div class="url">${esc(C.joinUrl)}</div></div>
+      <div class="join-card"><img src="/qr.svg" alt="QR"><div class="scan">${t('با گوشی اسکن کنید')}</div><div class="url">${esc(C.joinUrl)}</div></div>
       <div class="seats">${seats.join('')}</div>
       <div class="lobby-foot">${foot}</div>
     </section>`;
@@ -187,7 +189,7 @@
     return `<section class="intro stage-in">
       <div class="story">${C.story.intro.map((l, i) => `<p style="animation-delay:${i * 0.35}s">${esc(l)}</p>`).join('')}</div>
       <div class="suspects">${ps.map(suspectCard).join('')}</div>
-      <div class="look">📱 به گوشی‌تان نگاه کنید — نقش مخفی‌تان آنجاست. مواظب باشید کسی نبیند!</div>
+      <div class="look">${t('📱 به گوشی‌تان نگاه کنید — نقش مخفی‌تان آنجاست. مواظب باشید کسی نبیند!')}</div>
     </section>`;
   }
 
@@ -195,11 +197,10 @@
     const layout = ['library', 'shahneshin', 'kitchen', 'sardab', 'garden', 'howz'];
     return `<section class="search stage-in">
       <div>
-        <div class="eyebrow">دور ${fa(S.round)} از ${fa(S.totalRounds)}</div>
-        <h2 class="h-big">عمارت را بگردید</h2>
-        <p class="lead">هر کس روی گوشی‌اش یک اتاق را انتخاب می‌کند و مدرکی پیدا می‌کند.
-        مدرک‌ها خصوصی‌اند — خودتان تصمیم بگیرید چه چیزی را بگویید.</p>
-        <p class="whisper">…و همین حالا، قاتل در تاریکی مدرکی جعلی می‌کارد.</p>
+        <div class="eyebrow">${t('دور {n} از {total}', { n: S.round, total: S.totalRounds })}</div>
+        <h2 class="h-big">${t('عمارت را بگردید')}</h2>
+        <p class="lead">${t('هر کس روی گوشی‌اش یک اتاق را انتخاب می‌کند و مدرکی پیدا می‌کند. مدرک‌ها خصوصی‌اند — خودتان تصمیم بگیرید چه چیزی را بگویید.')}</p>
+        <p class="whisper">${t('…و همین حالا، قاتل در تاریکی مدرکی جعلی می‌کارد.')}</p>
       </div>
       <div class="mansion">${layout.map((id, i) => { const r = room(id); return `<div class="room ${id === 'garden' ? 'lit' : ''}" style="animation-delay:${i * 0.08}s"><div><div class="ri">${artOf(r, true)}</div><div class="rn">${esc(r.name)}</div></div></div>`; }).join('')}</div>
     </section>`;
@@ -207,7 +208,7 @@
 
   function boardHtml() {
     const b = S.game.board.slice().reverse();
-    if (!b.length) return '<div class="board"><div class="board-empty">هنوز کسی مدرکی نشان نداده.<br>روی گوشی دکمه‌ی «نشان بده» را بزنید تا مدرکتان اینجا بیاید.</div></div>';
+    if (!b.length) return `<div class="board"><div class="board-empty">${t('هنوز کسی مدرکی نشان نداده.')}<br>${t('روی گوشی دکمه‌ی «نشان بده» را بزنید تا مدرکتان اینجا بیاید.')}</div></div>`;
     const dense = b.length > 6;
     const denser = b.length > 12;
     const max = denser ? 20 : dense ? 12 : 6;
@@ -216,18 +217,18 @@
       const p = pl(c.playerId);
       return `<div class="card ${isNew ? 'anim' : ''} ${i === 0 && isNew ? 'fresh' : ''}"><span class="kind">${KIND_ICON[c.kind] || '📄'}</span>
         <p>${esc(c.text)}</p>
-        <div class="by">${avatar(p)}<span>${who(c.playerId)} <i class="sep"></i> دور ${fa(c.round)}</span></div></div>`;
+        <div class="by">${avatar(p)}<span>${who(c.playerId)} <i class="sep"></i> ${t('دور {n}', { n: c.round })}</span></div></div>`;
     });
-    const more = b.length > max ? `<div class="board-more">+ ${fa(b.length - max)} مدرک قدیمی‌تر روی گوشی صاحبانشان</div>` : '';
+    const more = b.length > max ? `<div class="board-more">${t('+ {n} مدرک قدیمی‌تر روی گوشی صاحبانشان', { n: b.length - max })}</div>` : '';
     return `<div class="board ${denser ? 'dense denser' : dense ? 'dense' : ''}">${items.join('')}${more}</div>`;
   }
 
   function sidePanel() {
     const spots = S.game.spotlights.length
-      ? `<div class="box"><h3>بازجویی‌شده‌ها</h3><ul>${S.game.spotlights.map((s) => `<li>دور ${fa(s.round)}: ${who(s.playerId)}</li>`).join('')}</ul></div>` : '';
+      ? `<div class="box"><h3>${t('بازجویی‌شده‌ها')}</h3><ul>${S.game.spotlights.map((s) => `<li>${t('دور {n}', { n: s.round })}: ${who(s.playerId)}</li>`).join('')}</ul></div>` : '';
     return `<aside class="side">
-      <div class="box"><h3>سلاح‌ها</h3><ul>${C.weapons.map((w) => `<li>${artOf(w)} ${esc(w.name)}</li>`).join('')}</ul></div>
-      <div class="box"><h3>اتاق‌ها</h3><ul>${C.rooms.map((r) => `<li>${artOf(r)} ${esc(r.name)}</li>`).join('')}</ul></div>
+      <div class="box"><h3>${t('سلاح‌ها')}</h3><ul>${C.weapons.map((w) => `<li>${artOf(w)} ${esc(w.name)}</li>`).join('')}</ul></div>
+      <div class="box"><h3>${t('اتاق‌ها')}</h3><ul>${C.rooms.map((r) => `<li>${artOf(r)} ${esc(r.name)}</li>`).join('')}</ul></div>
       ${spots}
     </aside>`;
   }
@@ -235,7 +236,7 @@
   function viewDiscuss() {
     return `<section class="discuss stage-in">
       <div class="board-wrap">
-        <div class="board-head"><h2>تابلوی شواهد</h2><span class="hint">دور ${fa(S.round)} <i class="sep"></i> حرف بزنید، شک کنید، دروغ‌ها را پیدا کنید.</span></div>
+        <div class="board-head"><h2>${t('تابلوی شواهد')}</h2><span class="hint">${t('دور {n}', { n: S.round })} <i class="sep"></i> ${t('حرف بزنید، شک کنید، دروغ‌ها را پیدا کنید.')}</span></div>
         ${boardHtml()}
       </div>
       ${sidePanel()}
@@ -244,8 +245,8 @@
 
   function viewVote() {
     return `<section class="ask stage-in">
-      <div class="ask-head"><div><div class="eyebrow">دور ${fa(S.round)}</div><h2 class="h-big">چه کسی باید بازجویی شود؟</h2>
-      <p class="lead">روی گوشی رأی بدهید. کسی که بیشترین رأی را بیاورد باید از خودش دفاع کند — و اتاق‌هایی که گشته لو می‌رود.</p></div></div>
+      <div class="ask-head"><div><div class="eyebrow">${t('دور {n}', { n: S.round })}</div><h2 class="h-big">${t('چه کسی باید بازجویی شود؟')}</h2>
+      <p class="lead">${t('روی گوشی رأی بدهید. کسی که بیشترین رأی را بیاورد باید از خودش دفاع کند — و اتاق‌هایی که گشته لو می‌رود.')}</p></div></div>
       ${boardHtml()}
     </section>`;
   }
@@ -254,30 +255,31 @@
     const sp = S.game.spotlight;
     const p = pl(sp.playerId);
     const c = ch(p.charId);
-    const rooms = sp.rooms.map((rid, i) => `<div class="rv"><small>دور ${fa(i + 1)}</small>${artOf(room(rid))} ${esc(room(rid).name)}</div>`).join('');
-    const ballots = sp.ballots.map((b) => `<span>${esc(pl(b.from) ? pl(b.from).name : '؟')} ← ${esc(pl(b.to) ? pl(b.to).name : '؟')}</span>`).join('');
+    const rooms = sp.rooms.map((rid, i) => `<div class="rv"><small>${t('دور {n}', { n: i + 1 })}</small>${artOf(room(rid))} ${esc(room(rid).name)}</div>`).join('');
+    const arrow = document.documentElement.dir === 'ltr' ? '→' : '←';
+    const ballots = sp.ballots.map((b) => `<span>${esc(pl(b.from) ? pl(b.from).name : t('؟'))} ${arrow} ${esc(pl(b.to) ? pl(b.to).name : t('؟'))}</span>`).join('');
     return `<section class="spot stage-in">
-      <div class="spot-who">${avatar(p)}<div class="nm">${esc(c.name)}</div><div class="sub">${esc(p.name)} <i class="sep"></i> ${esc(c.role)} <i class="sep"></i> ${fa(sp.votes)} رأی${sp.tie ? ' (قرعه بین مساوی‌ها)' : ''}</div></div>
+      <div class="spot-who">${avatar(p)}<div class="nm">${esc(c.name)}</div><div class="sub">${esc(p.name)} <i class="sep"></i> ${esc(c.role)} <i class="sep"></i> ${t('{n} رأی', { n: sp.votes })}${sp.tie ? ` ${t('(قرعه بین مساوی‌ها)')}` : ''}</div></div>
       <div class="spot-detail">
-        <h3>اتاق‌هایی که گشته</h3><div class="rooms-visited">${rooms}</div>
-        <h3>چه کسی به چه کسی رأی داد</h3><div class="ballots">${ballots}</div>
-        <div class="defend">${esc(p.name)}، از خودت دفاع کن!</div>
-        <p class="lead">چه پیدا کردی؟ چرا آنجا رفتی؟ بقیه سؤال کنند.</p>
+        <h3>${t('اتاق‌هایی که گشته')}</h3><div class="rooms-visited">${rooms}</div>
+        <h3>${t('چه کسی به چه کسی رأی داد')}</h3><div class="ballots">${ballots}</div>
+        <div class="defend">${t('{name}، از خودت دفاع کن!', { name: esc(p.name) })}</div>
+        <p class="lead">${t('چه پیدا کردی؟ چرا آنجا رفتی؟ بقیه سؤال کنند.')}</p>
       </div>
     </section>`;
   }
 
   function viewFinal() {
     return `<section class="ask stage-in">
-      <div class="ask-head"><div><div class="eyebrow">آخرین فرصت</div><h2 class="h-big">اتهام نهایی</h2>
-      <p class="lead">روی گوشی انتخاب کنید: قاتل کیست؟ با چه سلاحی؟ در کدام اتاق؟</p></div></div>
+      <div class="ask-head"><div><div class="eyebrow">${t('آخرین فرصت')}</div><h2 class="h-big">${esc(C.phaseTitles.final)}</h2>
+      <p class="lead">${t('روی گوشی انتخاب کنید: قاتل کیست؟ با چه سلاحی؟ در کدام اتاق؟')}</p></div></div>
       ${boardHtml()}
     </section>`;
   }
 
   function miniKiller(r) {
     if (!r.killerId) return '';
-    return `<div class="mini-killer">${avatar(pl(r.killerId))} قاتل: ${who(r.killerId)} — ${r.caught ? 'گیر افتاد' : 'فرار کرد'}</div>`;
+    return `<div class="mini-killer">${avatar(pl(r.killerId))} ${t('قاتل: {name} — {verdict}', { name: who(r.killerId), verdict: r.caught ? t('گیر افتاد') : t('فرار کرد') })}</div>`;
   }
 
   function viewReveal() {
@@ -285,31 +287,31 @@
     const step = S.game.revealStep;
     let inner = '';
     if (step === 0) {
-      const max = Math.max(1, ...r.tally.map((t) => t.votes));
-      inner = `<h2 class="h-big">رأی‌ها شمرده شد…</h2>
-        <div class="tally">${r.tally.map((t, i) => `<div class="tally-row" style="animation-delay:${i * 0.15}s">
-          <div class="who">${avatar(pl(t.playerId))}<span>${who(t.playerId)}</span></div>
-          <div class="bar">${t.votes ? `<i style="width:${(t.votes / max) * 100}%"></i>` : ''}<span>${t.voters.map((v) => esc(pl(v) ? pl(v).name : '؟')).join('، ')}</span></div>
-          <div class="n">${fa(t.votes)}</div></div>`).join('')}</div>`;
+      const max = Math.max(1, ...r.tally.map((row) => row.votes));
+      inner = `<h2 class="h-big">${t('رأی‌ها شمرده شد…')}</h2>
+        <div class="tally">${r.tally.map((row, i) => `<div class="tally-row" style="animation-delay:${i * 0.15}s">
+          <div class="who">${avatar(pl(row.playerId))}<span>${who(row.playerId)}</span></div>
+          <div class="bar">${row.votes ? `<i style="width:${(row.votes / max) * 100}%"></i>` : ''}<span>${row.voters.map((v) => esc(pl(v) ? pl(v).name : t('؟'))).join(LIST())}</span></div>
+          <div class="n">${num(row.votes)}</div></div>`).join('')}</div>`;
     } else if (step === 1) {
       const p = pl(r.killerId);
-      inner = `<div class="killer-reveal show" style="--sus:${SUSPENSE + 0.5}s"><div class="spot"></div>${unmask(p, SUSPENSE - 0.3)}<div class="k1">قاتل آقابزرگ…</div>
+      inner = `<div class="killer-reveal show" style="--sus:${SUSPENSE + 0.5}s"><div class="spot"></div>${unmask(p, SUSPENSE - 0.3)}<div class="k1">${t('قاتل آقابزرگ…')}</div>
         ${dots()}<div class="k2 after">${esc(ch(p.charId).name)} (${esc(p.name)})</div>
-        <div class="verdict stamp ${r.caught ? 'caught' : 'escaped'}" style="--vd:${SUSPENSE + 1.1}s">${r.caught ? 'گیر افتاد!' : 'فرار کرد!'}</div></div>`;
+        <div class="verdict stamp ${r.caught ? 'caught' : 'escaped'}" style="--vd:${SUSPENSE + 1.1}s">${r.caught ? t('گیر افتاد!') : t('فرار کرد!')}</div></div>`;
     } else if (step === 2) {
-      const names = (ids) => ids.map((id) => esc(pl(id) ? pl(id).name : '')).join('، ');
-      inner = `${miniKiller(r)}<h2 class="h-big">سلاح و مکان</h2><div class="truth">
-        <div class="truth-card flipin" style="--d:.3s"><div class="ti">${artOf(weapon(r.weapon), true)}</div><div class="tl">سلاح</div><div class="tn">${esc(weapon(r.weapon).name)}</div><div class="right">${r.weaponRight.length ? `✓ ${names(r.weaponRight)}` : 'هیچ‌کس درست نگفت'}</div></div>
-        <div class="truth-card flipin" style="--d:1.4s"><div class="ti">${artOf(room(r.room), true)}</div><div class="tl">مکان</div><div class="tn">${esc(room(r.room).name)}</div><div class="right">${r.roomRight.length ? `✓ ${names(r.roomRight)}` : 'هیچ‌کس درست نگفت'}</div></div>
+      const names = (ids) => ids.map((id) => esc(pl(id) ? pl(id).name : '')).join(LIST());
+      inner = `${miniKiller(r)}<h2 class="h-big">${t('سلاح و مکان')}</h2><div class="truth">
+        <div class="truth-card flipin" style="--d:.3s"><div class="ti">${artOf(weapon(r.weapon), true)}</div><div class="tl">${t('سلاح')}</div><div class="tn">${esc(weapon(r.weapon).name)}</div><div class="right">${r.weaponRight.length ? `✓ ${names(r.weaponRight)}` : t('هیچ‌کس درست نگفت')}</div></div>
+        <div class="truth-card flipin" style="--d:1.4s"><div class="ti">${artOf(room(r.room), true)}</div><div class="tl">${t('مکان')}</div><div class="tn">${esc(room(r.room).name)}</div><div class="right">${r.roomRight.length ? `✓ ${names(r.roomRight)}` : t('هیچ‌کس درست نگفت')}</div></div>
       </div>`;
     } else if (step === 3) {
       const rows = r.forgeries.map((f, i) => `<div class="li fake" style="animation-delay:${i * 0.25}s"><span class="ok">🎭</span>
-        <div><div class="main">«${esc(f.text)}»</div><div class="meta">دور ${fa(f.round)} <i class="sep"></i> کاشته‌شده در ${esc(room(f.roomId).name)} <i class="sep"></i> ${f.deliveredTo ? `به دست ${esc(plainWho(f.deliveredTo))} رسید` : 'کسی پیدایش نکرد'}${f.pinnedBy.length ? ` <i class="sep"></i> روی تابلو: ${f.pinnedBy.map((id) => esc(pl(id) ? pl(id).name : '')).join('، ')}` : ''}</div></div><span></span></div>`).join('');
-      inner = `${miniKiller(r)}<h2 class="h-big">مدارک جعلی قاتل</h2><div class="list">${rows || '<div class="li"><span></span><div class="main">قاتل هیچ مدرک جعلی‌ای نکاشت.</div><span></span></div>'}</div>`;
+        <div><div class="main">«${esc(f.text)}»</div><div class="meta">${t('دور {n}', { n: f.round })} <i class="sep"></i> ${t('کاشته‌شده در {r}', { r: esc(room(f.roomId).name) })} <i class="sep"></i> ${f.deliveredTo ? t('به دست {name} رسید', { name: esc(plainWho(f.deliveredTo)) }) : t('کسی پیدایش نکرد')}${f.pinnedBy.length ? ` <i class="sep"></i> ${t('روی تابلو:')} ${f.pinnedBy.map((id) => esc(pl(id) ? pl(id).name : '')).join(LIST())}` : ''}</div></div><span></span></div>`).join('');
+      inner = `${miniKiller(r)}<h2 class="h-big">${t('مدارک جعلی قاتل')}</h2><div class="list">${rows || `<div class="li"><span></span><div class="main">${t('قاتل هیچ مدرک جعلی‌ای نکاشت.')}</div><span></span></div>`}</div>`;
     } else {
       const rows = r.missions.map((m, i) => `<div class="li" style="animation-delay:${i * 0.15}s">${avatar(pl(m.playerId))}
-        <div><div class="main"><b>${esc(pl(m.playerId) ? pl(m.playerId).name : '')}</b> — مأموریت «${esc(m.title)}»</div><div class="meta">${esc(m.text)}</div></div><span class="ok">${m.success ? '✅' : '❌'}</span></div>`).join('');
-      inner = `${miniKiller(r)}<h2 class="h-big">مأموریت‌های مخفی</h2><div class="list">${rows}</div>`;
+        <div><div class="main"><b>${esc(pl(m.playerId) ? pl(m.playerId).name : '')}</b> — ${t('مأموریت «{title}»', { title: esc(m.title) })}</div><div class="meta">${esc(m.text)}</div></div><span class="ok">${m.success ? '✅' : '❌'}</span></div>`).join('');
+      inner = `${miniKiller(r)}<h2 class="h-big">${t('مأموریت‌های مخفی')}</h2><div class="list">${rows}</div>`;
     }
     return `<section class="reveal stage-in"><div class="reveal-inner">${inner}</div></section>`;
   }
@@ -320,32 +322,32 @@
     const ranked = S.players.slice().sort((a, b) => b.score - a.score);
     return `<section class="reveal stage-in"><div class="reveal-inner">
       ${r ? (itemsMode() ? itMini(r) : miniKiller(r)) : ''}
-      <h2 class="h-big">جدول امتیاز</h2>
+      <h2 class="h-big">${t('جدول امتیاز')}</h2>
       <div class="scores">${ranked.map((p, i) => `<div class="score-row ${i === 0 ? 'first' : ''}" style="animation-delay:${i * 0.1}s">
-        <div class="rank">${i === 0 ? '👑' : fa(i + 1)}</div>${avatar(p)}
-        <div class="nm">${esc(p.name)}${p.charId ? `<small>${esc(ch(p.charId).name)}${r && r.killerId === p.id ? ' <i class="sep"></i> قاتل' : ''}</small>` : ''}${r && r.killers && r.killers.includes(p.id) ? '<small>🔪 قاتل</small>' : ''}</div>
-        <div class="delta">${delta(p.id) ? `<span class="num">+${fa(delta(p.id))}</span>` : ''}</div>
-        <div class="tot">${fa(p.score)}</div></div>`).join('')}</div>
-      <p class="lead">میزبان می‌تواند از روی گوشی دور بعد را شروع کند.</p>
+        <div class="rank">${i === 0 ? '👑' : num(i + 1)}</div>${avatar(p)}
+        <div class="nm">${esc(p.name)}${p.charId ? `<small>${esc(ch(p.charId).name)}${r && r.killerId === p.id ? ` <i class="sep"></i> ${t('قاتل')}` : ''}</small>` : ''}${r && r.killers && r.killers.includes(p.id) ? `<small>🔪 ${t('قاتل')}</small>` : ''}</div>
+        <div class="delta">${delta(p.id) ? `<span class="num">+${num(delta(p.id))}</span>` : ''}</div>
+        <div class="tot">${num(p.score)}</div></div>`).join('')}</div>
+      <p class="lead">${t('میزبان می‌تواند از روی گوشی دور بعد را شروع کند.')}</p>
     </div></section>`;
   }
 
 
   // ------------------------------------------------------------ items mode («دست‌به‌دست»)
-  const name = (pid) => esc(pl(pid) ? pl(pid).name : '؟');
-  const itemsInPlay = () => `<div class="box"><h3>چیزهای در بازی</h3><div class="itm-row">${S.game.items.map((x) => `<span title="${esc(item(x).name)}">${art(x)}</span>`).join('')}</div>
-    <p class="small">${fa(S.game.killerCount)} قاتل <i class="sep"></i> فقط چاقو تکراری است</p></div>`;
+  const name = (pid) => esc(pl(pid) ? pl(pid).name : t('؟'));
+  const itemsInPlay = () => `<div class="box"><h3>${t('چیزهای در بازی')}</h3><div class="itm-row">${S.game.items.map((x) => `<span title="${esc(item(x).name)}">${art(x)}</span>`).join('')}</div>
+    <p class="small">${t('{n} قاتل', { n: S.game.killerCount })} <i class="sep"></i> ${t('فقط چاقو تکراری است')}</p></div>`;
 
   // Hidden when quiet rounds are on: the count would show which rounds were quiet.
   const actionsBox = () => (S.game.actionsSoFar == null ? ''
-    : `<div class="box"><h3>کارهای مخفی تا حالا</h3><div class="big-n">${fa(S.game.actionsSoFar)}</div></div>`);
+    : `<div class="box"><h3>${t('کارهای مخفی تا حالا')}</h3><div class="big-n">${num(S.game.actionsSoFar)}</div></div>`);
 
   function rulesNote() {
     const r = S.game.rules || {};
     const lines = [];
-    if (r.quietRounds) lines.push('🤫 دورهای بی‌صدا: بعضی دورها هیچ‌کس کار مخفی نمی‌گیرد.');
-    if (r.killersKnow && S.game.killerCount > 1) lines.push('🤝 قاتل‌ها هم‌دیگر را می‌شناسند.');
-    if (S.game.actionsPerRound > 1) lines.push('👥 از ۹ نفر به بالا: هر دور دو نفر کار مخفی می‌گیرند.');
+    if (r.quietRounds) lines.push(t('🤫 دورهای بی‌صدا: بعضی دورها هیچ‌کس کار مخفی نمی‌گیرد.'));
+    if (r.killersKnow && S.game.killerCount > 1) lines.push(t('🤝 قاتل‌ها هم‌دیگر را می‌شناسند.'));
+    if (S.game.actionsPerRound > 1) lines.push(t('👥 از ۹ نفر به بالا: هر دور دو نفر کار مخفی می‌گیرند.'));
     return lines.length ? `<div class="house-rules">${lines.map((l) => `<span>${l}</span>`).join('')}</div>` : '';
   }
 
@@ -357,23 +359,25 @@
     return `<section class="it-intro stage-in">
       <div class="story">${C.itemsStory.intro.map((l, i) => `<p style="animation-delay:${i * 0.35}s">${esc(l)}</p>`).join('')}</div>
       <div class="it-cols">
-        <div class="box"><h3>امشب</h3><div class="itm-row big">${S.game.items.map((x, i) => `<span style="animation-delay:${0.6 + i * 0.08}s">${art(x, true)}</span>`).join('')}</div>
-          <p class="lead">${fa(S.players.filter((p) => p.inGame).length)} نفر <i class="sep"></i> <b class="pom">${fa(S.game.killerCount)} چاقو = ${fa(S.game.killerCount)} قاتل</b></p></div>
-        <div class="box"><h3>کارهای مخفی</h3><div class="acts">${actionCards()}</div></div>
+        <div class="box"><h3>${t('امشب')}</h3><div class="itm-row big">${S.game.items.map((x, i) => `<span style="animation-delay:${0.6 + i * 0.08}s">${art(x, true)}</span>`).join('')}</div>
+          <p class="lead">${t('{n} نفر', { n: S.players.filter((p) => p.inGame).length })} <i class="sep"></i> <b class="pom">${t('{n} چاقو = {n} قاتل', { n: S.game.killerCount })}</b></p></div>
+        <div class="box"><h3>${t('کارهای مخفی')}</h3><div class="acts">${actionCards()}</div></div>
       </div>
       ${rulesNote()}
-      <div class="look">📱 به گوشی‌تان نگاه کنید — چیزی که دستتان است آنجاست. مواظب باشید کسی نبیند!</div>
+      <div class="look">${t('📱 به گوشی‌تان نگاه کنید — چیزی که دستتان است آنجاست. مواظب باشید کسی نبیند!')}</div>
     </section>`;
   }
 
   function itViewGossip() {
     return `<section class="gossip stage-in">
       <div class="g-main">
-        <div class="eyebrow">پچ‌پچ <i class="sep"></i> دور ${fa(S.round)} از ${fa(S.totalRounds)}</div>
+        <div class="eyebrow">${esc(C.itemPhaseTitles.gossip)} <i class="sep"></i> ${t('دور {n} از {total}', { n: S.round, total: S.totalRounds })}</div>
         <h2 class="g-q display ink">${esc(S.game.question)}</h2>
         ${answerProgress()}
-        <p class="lead">روی گوشی یک نفر را انتخاب کنید.</p>
-        <p class="whisper">…و ${S.game.rules.quietRounds ? 'شاید ' : ''}همین حالا، ${S.game.actionsPerRound > 1 ? 'دو نفر' : 'یک نفر'} پنهانی کاری مخفی انجام می‌دهد.</p>
+        <p class="lead">${t('روی گوشی یک نفر را انتخاب کنید.')}</p>
+        <p class="whisper">${t(S.game.rules.quietRounds
+          ? (S.game.actionsPerRound > 1 ? '…و شاید همین حالا، دو نفر پنهانی کاری مخفی انجام می‌دهند.' : '…و شاید همین حالا، یک نفر پنهانی کاری مخفی انجام می‌دهد.')
+          : (S.game.actionsPerRound > 1 ? '…و همین حالا، دو نفر پنهانی کاری مخفی انجام می‌دهند.' : '…و همین حالا، یک نفر پنهانی کاری مخفی انجام می‌دهد.'))}</p>
       </div>
       <aside class="side">${itemsInPlay()}${actionsBox()}</aside>
     </section>`;
@@ -389,57 +393,58 @@
     const from = Math.min(lastPct, pct);
     lastPct = pct;
     return `<div class="g-progress"><i class="anim" style="--from:${from}%;--to:${pct}%"></i>
-      <span>${done === ps.length ? 'همه جواب دادند!' : `${fa(done)} از ${fa(ps.length)} نفر جواب داده‌اند`}</span></div>`;
+      <span>${done === ps.length ? t('همه جواب دادند!') : t('{done} از {all} نفر جواب داده‌اند', { done, all: ps.length })}</span></div>`;
   }
 
   // Vote bars spring out one after another; the most-picked rows glow.
   function tallyHtml(tally) {
-    const max = Math.max(1, ...tally.map((t) => t.votes));
-    const top = Math.max(0, ...tally.map((t) => t.votes));
-    return `<div class="tally">${tally.map((t, i) => `<div class="tally-row ${top && t.votes === top ? 'win' : ''}" style="animation-delay:${i * 0.12}s;--bd:${(0.25 + i * 0.12).toFixed(2)}s">
-      <div class="who">${avatar(pl(t.playerId))}<span>${name(t.playerId)}</span></div>
-      <div class="bar">${t.votes ? `<i style="width:${(t.votes / max) * 100}%"></i>` : ''}<span>${t.voters.map(name).join('، ')}</span></div>
-      <div class="n">${fa(t.votes)}</div></div>`).join('')}</div>`;
+    const max = Math.max(1, ...tally.map((row) => row.votes));
+    const top = Math.max(0, ...tally.map((row) => row.votes));
+    return `<div class="tally">${tally.map((row, i) => `<div class="tally-row ${top && row.votes === top ? 'win' : ''}" style="animation-delay:${i * 0.12}s;--bd:${(0.25 + i * 0.12).toFixed(2)}s">
+      <div class="who">${avatar(pl(row.playerId))}<span>${name(row.playerId)}</span></div>
+      <div class="bar">${row.votes ? `<i style="width:${(row.votes / max) * 100}%"></i>` : ''}<span>${row.voters.map(name).join(LIST())}</span></div>
+      <div class="n">${num(row.votes)}</div></div>`).join('')}</div>`;
   }
 
   function itViewGossipResult() {
     const r = S.game.gossipResult;
     return `<section class="reveal stage-in"><div class="reveal-inner">
-      <div class="eyebrow">دور ${fa(r.round)}</div><h2 class="h-big">${esc(r.question)}</h2>${gossipWinner(r)}${tallyHtml(r.tally)}</div></section>`;
+      <div class="eyebrow">${t('دور {n}', { n: r.round })}</div><h2 class="h-big">${esc(r.question)}</h2>${gossipWinner(r)}${tallyHtml(r.tally)}</div></section>`;
   }
 
   // Crown banner for whoever the room picked most (after the bars land).
   function gossipWinner(r) {
     const top = r.tally[0] ? r.tally[0].votes : 0;
     if (!top) return '';
-    const ids = r.tally.filter((t) => t.votes === top).map((t) => t.playerId);
+    const ids = r.tally.filter((row) => row.votes === top).map((row) => row.playerId);
     return `<div class="g-winner" style="--wd:${Math.min(1.6, 0.25 + r.tally.length * 0.12 + 0.7).toFixed(2)}s">👑 ${ids.map((id) => `${avatar(pl(id))} ${name(id)}`).join(' <i class="sep"></i> ')}</div>`;
   }
 
   function itViewDiscuss() {
     const qs = ['چه کسی اول چه چیزی داشت؟', 'کسی چاقو دیده؟ کِی؟', 'به چه کسی سرک کشیدی؟', 'چیزت کِی عوض شد؟',
-      'قبلاً چه چیزی دستت بود؟', 'چه کسی حرفت را تأیید می‌کند؟', 'این چاقو قبل از تو دست چه کسی بود؟', 'چرا داستانت عوض شد؟'];
-    const hist = S.game.gossips.slice(-6).reverse().map((g) => `<li><span class="muted">دور ${fa(g.round)}:</span> ${esc(g.question)} ${g.top.length ? `← <b>${g.top.map(name).join('، ')}</b>` : ''}</li>`).join('');
+      'قبلاً چه چیزی دستت بود؟', 'چه کسی حرفت را تأیید می‌کند؟', 'این چاقو قبل از تو دست چه کسی بود؟', 'چرا داستانت عوض شد؟'].map((q) => t(q));
+    const arrow = document.documentElement.dir === 'ltr' ? '→' : '←';
+    const hist = S.game.gossips.slice(-6).reverse().map((g) => `<li><span class="muted">${t('دور {n}', { n: g.round })}:</span> ${esc(g.question)} ${g.top.length ? `${arrow} <b>${g.top.map(name).join(LIST())}</b>` : ''}</li>`).join('');
     return `<section class="discuss stage-in">
       <div class="it-talk">
-        <div class="eyebrow">گفت‌وگو <i class="sep"></i> بعد از دور ${fa(S.round)} از ${fa(S.totalRounds)}</div>
-        <h2 class="h-big">نپرسید «چاقو الان دست کیست؟»<br><span class="pom">بپرسید «چه کسی شب را با چاقو شروع کرد؟»</span></h2>
+        <div class="eyebrow">${esc(C.itemPhaseTitles.discuss)} <i class="sep"></i> ${t('بعد از دور {n} از {total}', { n: S.round, total: S.totalRounds })}</div>
+        <h2 class="h-big">${t('نپرسید «چاقو الان دست کیست؟»')}<br><span class="pom">${t('بپرسید «چه کسی شب را با چاقو شروع کرد؟»')}</span></h2>
         <div class="qs">${qs.map((q) => `<span>${esc(q)}</span>`).join('')}</div>
-        <p class="lead">چاقو جابه‌جا می‌شود؛ تاریخچه‌اش مدرک است. قاتل‌ها می‌خواهند این تاریخچه گم شود — شما باید دوباره بسازیدش.</p>
+        <p class="lead">${t('چاقو جابه‌جا می‌شود؛ تاریخچه‌اش مدرک است. قاتل‌ها می‌خواهند این تاریخچه گم شود — شما باید دوباره بسازیدش.')}</p>
       </div>
       <aside class="side">${itemsInPlay()}${actionsBox()}
-        ${hist ? `<div class="box"><h3>پچ‌پچ‌ها</h3><ul class="small">${hist}</ul></div>` : ''}</aside>
+        ${hist ? `<div class="box"><h3>${t('پچ‌پچ‌ها')}</h3><ul class="small">${hist}</ul></div>` : ''}</aside>
     </section>`;
   }
 
   function itViewFinal() {
     return `<section class="it-final stage-in"><div class="reveal-inner">
-      <div class="eyebrow">آخرین فرصت</div><h2 class="h-big">رأی نهایی</h2>
-      <p class="lead">روی گوشی به کسی رأی بدهید که فکر می‌کنید شب را <b>با چاقو شروع کرد</b>.</p>
+      <div class="eyebrow">${t('آخرین فرصت')}</div><h2 class="h-big">${esc(C.itemPhaseTitles.final)}</h2>
+      <p class="lead">${t('روی گوشی به کسی رأی بدهید که فکر می‌کنید شب را <b>با چاقو شروع کرد</b>.')}</p>
       <div class="rules3">
-        <div><span>✅</span>بیشترین رأی به یک قاتل ← <b>بی‌گناه‌ها می‌برند</b>${S.game.killerCount > 1 ? ' (یکی از قاتل‌ها کافی است)' : ''}</div>
-        <div><span>🔪</span>بیشترین رأی به یک بی‌گناه ← <b>قاتل‌ها می‌برند</b></div>
-        <div><span>⚖️</span>تساوی ← <b>قاتل‌ها می‌برند</b>${S.game.killerCount > 1 ? ' — مگر اینکه تساوی فقط بین خودِ قاتل‌ها باشد' : ''}</div>
+        <div><span>✅</span>${t('بیشترین رأی به یک قاتل ← <b>بی‌گناه‌ها می‌برند</b>')}${S.game.killerCount > 1 ? ` ${t('(یکی از قاتل‌ها کافی است)')}` : ''}</div>
+        <div><span>🔪</span>${t('بیشترین رأی به یک بی‌گناه ← <b>قاتل‌ها می‌برند</b>')}</div>
+        <div><span>⚖️</span>${t('تساوی ← <b>قاتل‌ها می‌برند</b>')}${S.game.killerCount > 1 ? ` ${t('— مگر اینکه تساوی فقط بین خودِ قاتل‌ها باشد')}` : ''}</div>
       </div></div></section>`;
   }
 
@@ -447,7 +452,7 @@
 
   function itMini(r) {
     if (!r.killers) return '';
-    return `<div class="mini-killer">${r.killers.map((k) => avatar(pl(k))).join('')} قاتل‌ها: ${r.killers.map(name).join(' و ')} — ${r.innocentsWin ? 'گیر افتادند' : 'فرار کردند'}</div>`;
+    return `<div class="mini-killer">${r.killers.map((k) => avatar(pl(k))).join('')} ${t('قاتل‌ها: {names} — {verdict}', { names: r.killers.map(name).join(t(' و ')), verdict: r.innocentsWin ? t('گیر افتادند') : t('فرار کردند') })}</div>`;
   }
 
 
@@ -466,24 +471,24 @@
   const SUSPENSE = 2.3; // seconds of drumroll before a verdict lands
   const UNMASK_GAP = 1.3; // seconds between killers being unmasked
   // An avatar hidden behind a dark mask that shakes and drops away at `delay`.
-  const unmask = (p, delay) => `<div class="unmask" style="--d:${delay}s">${avatar(p)}<div class="mask"><span>؟</span></div></div>`;
+  const unmask = (p, delay) => `<div class="unmask" style="--d:${delay}s">${avatar(p)}<div class="mask"><span>${t('؟')}</span></div></div>`;
   const dots = () => '<div class="suspense"><i></i><i></i><i></i></div>';
 
   function itVerdict(r, stampAt) {
     const cls = `verdict ${r.innocentsWin ? 'caught' : 'escaped'}${stampAt != null ? ' stamp' : ''}`;
     const style = stampAt != null ? ` style="--vd:${stampAt}s"` : '';
-    return `<div class="${cls}"${style}>${r.innocentsWin ? 'بی‌گناه‌ها بردند!' : 'قاتل‌ها بردند!'}</div>`;
+    return `<div class="${cls}"${style}>${r.innocentsWin ? t('بی‌گناه‌ها بردند!') : t('قاتل‌ها بردند!')}</div>`;
   }
 
   // Short Farsi label for one secret action, for the knife-trail rows.
   function actShort(e) {
     const a = (id) => name(id);
     switch (e.type) {
-      case 'quiet': return '🤫 بی‌صدا';
-      case 'snoop': return `🕵️ ${a(e.actorId)} به ${a(e.targets[0])}`;
-      case 'swap': return `🔄 ${a(e.actorId)} و ${a(e.targets[0])}`;
-      case 'steal': return `🫳 ${a(e.actorId)} از ${a(e.targets[0])}`;
-      default: return `🔀 ${a(e.targets[0])} و ${a(e.targets[1])}`;
+      case 'quiet': return t('🤫 بی‌صدا');
+      case 'snoop': return t('🕵️ {a} به {b}', { a: a(e.actorId), b: a(e.targets[0]) });
+      case 'swap': return t('🔄 {a} و {b}', { a: a(e.actorId), b: a(e.targets[0]) });
+      case 'steal': return t('🫳 {a} از {b}', { a: a(e.actorId), b: a(e.targets[0]) });
+      default: return t('🔀 {a} و {b}', { a: a(e.targets[0]), b: a(e.targets[1]) });
     }
   }
 
@@ -499,14 +504,14 @@
     const kid = {};
     let n = 0;
     ids.forEach((id) => { if (r.start[id] === C.knifeId) { kid[id] = n; n += 1; } });
-    const rows = [{ label: '<b>شروع شب</b>', hold: { ...hold }, kid: { ...kid } }];
+    const rows = [{ label: `<b>${t('شروع شب')}</b>`, hold: { ...hold }, kid: { ...kid } }];
     const exchange = (a, b) => { [hold[a], hold[b]] = [hold[b], hold[a]]; [kid[a], kid[b]] = [kid[b], kid[a]]; };
     roundsOf(r.log).forEach(([round, es]) => {
       es.forEach((e) => {
         if (e.type === 'swap' || e.type === 'steal') exchange(e.actorId, e.targets[0]);
         else if (e.type === 'shuffle') exchange(e.targets[0], e.targets[1]);
       });
-      rows.push({ label: `<b>دور ${fa(round)}</b> ${es.map(actShort).join('<br>')}`, hold: { ...hold }, kid: { ...kid } });
+      rows.push({ label: `<b>${t('دور {n}', { n: round })}</b> ${es.map(actShort).join('<br>')}`, hold: { ...hold }, kid: { ...kid } });
     });
     const trails = Array.from({ length: n }, (_, k) => rows.map((row) => col[ids.find((id) => row.kid[id] === k)]));
     const head = `<div class="tr-head"><span></span>${ids.map((id) => `<span class="th ${r.killers.includes(id) ? 'k' : ''}">${avatar(pl(id))}<b>${name(id)}</b></span>`).join('')}</div>`;
@@ -553,28 +558,28 @@
     const step = S.game.revealStep;
     let inner = '';
     if (step === 0) {
-      inner = `<h2 class="h-big">رأی‌ها شمرده شد…</h2>${tallyHtml(r.tally)}`;
+      inner = `<h2 class="h-big">${t('رأی‌ها شمرده شد…')}</h2>${tallyHtml(r.tally)}`;
     } else if (step === 1) {
       if (r.accusedId) {
         const k = r.topKiller[0];
-        inner = `<div class="killer-reveal show" style="--sus:${SUSPENSE}s"><div class="spot"></div>${avatar(pl(r.accusedId))}<div class="k1">بیشترین رأی به…</div>
+        inner = `<div class="killer-reveal show" style="--sus:${SUSPENSE}s"><div class="spot"></div>${avatar(pl(r.accusedId))}<div class="k1">${t('بیشترین رأی به…')}</div>
           <div class="k2">${name(r.accusedId)}</div>${dots()}
-          <div class="k1 after">${k ? `شب را با ${art('knife', true)} چاقو شروع کرده بود!` : 'شب را با چاقو شروع نکرده بود.'}</div>${itVerdict(r, SUSPENSE + 0.5)}</div>`;
+          <div class="k1 after">${k ? t('شب را با {knife} چاقو شروع کرده بود!', { knife: art('knife', true) }) : t('شب را با چاقو شروع نکرده بود.')}</div>${itVerdict(r, SUSPENSE + 0.5)}</div>`;
       } else if (r.tie) {
         inner = `<div class="killer-reveal show" style="--sus:${SUSPENSE}s"><div class="spot"></div><div class="tie-row">${r.top.map((id) => avatar(pl(id))).join('')}</div>
-          <div class="k1">تساوی بین</div><div class="k2">${r.top.map(name).join(' و ')}</div>${dots()}
-          <div class="k1 after">${r.innocentsWin ? 'تساوی فقط بین قاتل‌هاست — پس بی‌گناه‌ها می‌برند.' : 'تساوی یعنی بُرد قاتل‌ها.'}</div>${itVerdict(r, SUSPENSE + 0.5)}</div>`;
+          <div class="k1">${t('تساوی بین')}</div><div class="k2">${r.top.map(name).join(t(' و '))}</div>${dots()}
+          <div class="k1 after">${r.innocentsWin ? t('تساوی فقط بین قاتل‌هاست — پس بی‌گناه‌ها می‌برند.') : t('تساوی یعنی بُرد قاتل‌ها.')}</div>${itVerdict(r, SUSPENSE + 0.5)}</div>`;
       } else {
-        inner = `<div class="killer-reveal show" style="--sus:${SUSPENSE}s"><div class="k2">کسی رأی نداد!</div>${dots()}${itVerdict(r, SUSPENSE)}</div>`;
+        inner = `<div class="killer-reveal show" style="--sus:${SUSPENSE}s"><div class="k2">${t('کسی رأی نداد!')}</div>${dots()}${itVerdict(r, SUSPENSE)}</div>`;
       }
     } else if (step === 2) {
       const last = 0.6 + r.killers.length * UNMASK_GAP;
-      inner = `<h2 class="h-big">چه کسی شب را با چاقو شروع کرد؟</h2>
+      inner = `<h2 class="h-big">${t('چه کسی شب را با چاقو شروع کرد؟')}</h2>
         <div class="killers-row">${r.killers.map((id, i) => `<div class="kr">${unmask(pl(id), 0.6 + i * UNMASK_GAP)}
           <div class="nm after" style="--sus:${0.6 + i * UNMASK_GAP + 0.6}s">${name(id)}</div><div class="it after" style="--sus:${0.6 + i * UNMASK_GAP + 0.8}s">${art('knife', true)}</div></div>`).join('')}</div>
         ${itVerdict(r, last)}`;
     } else {
-      inner = `${itMini(r)}<h2 class="h-big">ردّ چاقو</h2>${knifeTrail(r)}`;
+      inner = `${itMini(r)}<h2 class="h-big">${t('ردّ چاقو')}</h2>${knifeTrail(r)}`;
     }
     return `<section class="reveal stage-in"><div class="reveal-inner ${step === 3 ? 'wide' : ''}">${inner}</div></section>`;
   }
@@ -607,14 +612,14 @@
   // Title card shown on the curtain when a new phase starts.
   function curtainText() {
     const title = (itemsMode() ? C.itemPhaseTitles : C.phaseTitles)[S.phase] || '';
-    const round = S.round ? `دور ${fa(S.round)} از ${fa(S.totalRounds)}` : '';
+    const round = S.round ? t('دور {n} از {total}', { n: S.round, total: S.totalRounds }) : '';
     const story = itemsMode() ? C.itemsStory : C.story;
     switch (S.phase) {
       case 'intro': return [story.title, story.subtitle];
-      case 'discuss': return [title, itemsMode() ? 'چه کسی شب را با چاقو شروع کرد؟' : round];
+      case 'discuss': return [title, itemsMode() ? t('چه کسی شب را با چاقو شروع کرد؟') : round];
       case 'spotlight': return [title, plainWho(S.game.spotlight.playerId)];
-      case 'final': return [title, 'آخرین فرصت'];
-      case 'reveal': return [title, 'حقیقت آشکار می‌شود…'];
+      case 'final': return [title, t('آخرین فرصت')];
+      case 'reveal': return [title, t('حقیقت آشکار می‌شود…')];
       case 'results': return [title, ''];
       default: return [title, round];
     }
@@ -699,6 +704,11 @@
 
   socket.on('connect', () => { $('offline').classList.add('hidden'); socket.emit('tv:hello'); });
   socket.on('disconnect', () => $('offline').classList.remove('hidden'));
-  socket.on('content', (c) => { C = c; render(); });
-  socket.on('state', (s) => { S = s; syncClock(s.serverNow); setTimer(s.timer); render(); });
+  socket.on('content', (c) => { ALL = c; C = ALL[(S && S.lang) || 'fa']; render(); });
+  socket.on('state', (s) => {
+    S = s;
+    setLang(s.lang || 'fa');
+    if (ALL) C = ALL[s.lang || 'fa'];
+    syncClock(s.serverNow); setTimer(s.timer); render();
+  });
 })();

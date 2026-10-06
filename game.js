@@ -1,7 +1,9 @@
 // Game engine: pure state machine, no networking.
 // The server calls the action methods and re-broadcasts on onChange().
 
-const C = require('./content');
+const C = require('./content'); // Farsi bundle: language-independent data (ids, portraits, counts)
+const LANGS = { fa: C, en: require('./content.en') };
+const { tr } = require('./public/i18n');
 const Items = require('./items');
 
 const TOTAL_ROUNDS = 3;
@@ -26,6 +28,7 @@ const CLASSIC_MAX = C.CHARACTERS.length; // classic needs one character per play
 const SETTING_OPTIONS = {
   discussSeconds: [90, 150, 240],
   mode: MODES,
+  lang: ['fa', 'en'], // everyone's language: host's choice
   itemRounds: [4, 6, 8], // items mode: gossip rounds per game
   gossipSeconds: [30, 40, 60], // items mode: time to answer (+ secret action)
   quietRounds: [false, true], // items mode: some rounds have no secret action
@@ -56,7 +59,7 @@ class Game {
     this.phase = 'lobby';
     this.round = 0;
     this.settings = {
-      discussSeconds: 150, mode: 'classic', itemRounds: 6, gossipSeconds: 40, quietRounds: false, killersKnow: false,
+      discussSeconds: 150, mode: 'classic', lang: 'fa', itemRounds: 6, gossipSeconds: 40, quietRounds: false, killersKnow: false,
     };
     this.g = null; // per-game state
     this.timer = null; // {endsAt, duration}
@@ -76,12 +79,21 @@ class Game {
 
   _gamePlayers() { return this.g ? this.players.filter((p) => this._inGame(p.id)) : []; }
 
+  // Language of everything shown: fixed for a running game, else the lobby setting.
+  lang() { return (this.g && this.g.lang) || this.settings.lang || 'fa'; }
+
+  // Story content in the current language (ids are the same in both).
+  get L() { return LANGS[this.lang()]; }
+
+  // Interface text: written in Farsi, translated by public/i18n.js.
+  _t(text, vars) { return tr(this.lang(), text, vars); }
+
   _items() { return !!(this.g && this.g.mode === 'items'); }
 
   _label(pid) {
     const p = this.player(pid);
-    const ch = byId(C.CHARACTERS, this.g.chars[pid]);
-    return `${ch.name} (${p ? p.name : '؟'})`;
+    const ch = byId(this.L.CHARACTERS, this.g.chars[pid]);
+    return `${ch.name} (${p ? p.name : this._t('؟')})`;
   }
 
   _card(kind, text, extra = {}) {
@@ -137,11 +149,11 @@ class Game {
       this._changed();
       return { ok: true };
     }
-    if (!name) return { ok: false, error: 'اسمت را بنویس.' };
-    if (this.phase !== 'lobby') return { ok: false, error: 'بازی شروع شده. برای دور بعد صبر کن.' };
-    if (this.players.length >= this.maxPlayers) return { ok: false, error: 'ظرفیت پر است (حداکثر ۱۲ نفر).' };
+    if (!name) return { ok: false, error: this._t('اسمت را بنویس.') };
+    if (this.phase !== 'lobby') return { ok: false, error: this._t('بازی شروع شده. برای دور بعد صبر کن.') };
+    if (this.players.length >= this.maxPlayers) return { ok: false, error: this._t('ظرفیت پر است (حداکثر {n} نفر).', { n: this.maxPlayers }) };
     if (this.players.some((p) => p.name.toLowerCase() === name.toLowerCase())) {
-      return { ok: false, error: 'این اسم را کس دیگری برداشته.' };
+      return { ok: false, error: this._t('این اسم را کس دیگری برداشته.') };
     }
     const free = C.PORTRAITS.filter((x) => !this.players.some((p) => p.portrait === x));
     this.players.push({ id, name, score: 0, connected: true, ready: false, portrait: pick(free), joinedAt: Date.now() + this.players.length });
@@ -162,10 +174,10 @@ class Game {
 
   setPortrait(id, portrait) {
     const p = this.player(id);
-    if (!p) return { ok: false, error: 'اول وارد بازی شو.' };
-    if (this.phase !== 'lobby') return { ok: false, error: 'فقط در سالن انتظار.' };
-    if (!C.PORTRAITS.includes(portrait)) return { ok: false, error: 'چهره‌ی نامعتبر.' };
-    if (this.players.some((x) => x.id !== id && x.portrait === portrait)) return { ok: false, error: 'این چهره را کس دیگری برداشته.' };
+    if (!p) return { ok: false, error: this._t('اول وارد بازی شو.') };
+    if (this.phase !== 'lobby') return { ok: false, error: this._t('فقط در سالن انتظار.') };
+    if (!C.PORTRAITS.includes(portrait)) return { ok: false, error: this._t('چهره‌ی نامعتبر.') };
+    if (this.players.some((x) => x.id !== id && x.portrait === portrait)) return { ok: false, error: this._t('این چهره را کس دیگری برداشته.') };
     p.portrait = portrait;
     this._changed();
     return { ok: true };
@@ -173,8 +185,8 @@ class Game {
 
   setReady(id, ready) {
     const p = this.player(id);
-    if (!p) return { ok: false, error: 'اول وارد بازی شو.' };
-    if (this.phase !== 'lobby') return { ok: false, error: 'فقط در سالن انتظار.' };
+    if (!p) return { ok: false, error: this._t('اول وارد بازی شو.') };
+    if (this.phase !== 'lobby') return { ok: false, error: this._t('فقط در سالن انتظار.') };
     p.ready = !!ready;
     this._changed();
     return { ok: true };
@@ -184,8 +196,8 @@ class Game {
   _allReady() { return this.players.filter((p) => p.connected).every((p) => p.ready); }
 
   kick(byId_, targetId) {
-    if (!this._isVip(byId_)) return { ok: false, error: 'فقط میزبان می‌تواند.' };
-    if (this.phase !== 'lobby') return { ok: false, error: 'فقط در سالن انتظار.' };
+    if (!this._isVip(byId_)) return { ok: false, error: this._t('فقط میزبان می‌تواند.') };
+    if (this.phase !== 'lobby') return { ok: false, error: this._t('فقط در سالن انتظار.') };
     this.players = this.players.filter((p) => p.id !== targetId);
     this._ensureVip();
     this._changed();
@@ -193,12 +205,12 @@ class Game {
   }
 
   setSetting(byId_, key, value) {
-    if (!this._isVip(byId_)) return { ok: false, error: 'فقط میزبان می‌تواند.' };
+    if (!this._isVip(byId_)) return { ok: false, error: this._t('فقط میزبان می‌تواند.') };
     const options = Object.prototype.hasOwnProperty.call(SETTING_OPTIONS, key) ? SETTING_OPTIONS[key] : null;
     const match = options && options.find((o) => String(o) === String(value));
-    if (match === undefined || match === null) return { ok: false, error: 'تنظیم نامعتبر.' };
+    if (match === undefined || match === null) return { ok: false, error: this._t('تنظیم نامعتبر.') };
     if (!LIVE_SETTINGS.includes(key) && !['lobby', 'results'].includes(this.phase)) {
-      return { ok: false, error: 'وسط بازی نمی‌شود این را عوض کرد.' };
+      return { ok: false, error: this._t('وسط بازی نمی‌شود این را عوض کرد.') };
     }
     this.settings[key] = match;
     this._changed();
@@ -208,18 +220,21 @@ class Game {
   // ---------------------------------------------------------------- setup
 
   start(byId_) {
-    if (!this._isVip(byId_)) return { ok: false, error: 'فقط میزبان می‌تواند بازی را شروع کند.' };
-    if (!['lobby', 'results'].includes(this.phase)) return { ok: false, error: 'بازی در جریان است.' };
+    if (!this._isVip(byId_)) return { ok: false, error: this._t('فقط میزبان می‌تواند بازی را شروع کند.') };
+    if (!['lobby', 'results'].includes(this.phase)) return { ok: false, error: this._t('بازی در جریان است.') };
     if (this.players.length < this.minPlayers) {
-      return { ok: false, error: `دست‌کم ${this.minPlayers.toLocaleString('fa-IR')} نفر لازم است.` };
+      return { ok: false, error: this._t('دست‌کم {n} نفر لازم است.', { n: this.minPlayers }) };
     }
     if (this.settings.mode !== 'items' && this.players.length > CLASSIC_MAX) {
-      return { ok: false, error: 'بازی کلاسیک حداکثر ۸ نفره است — حالت دست‌به‌دست را انتخاب کنید.' };
+      return { ok: false, error: this._t('بازی کلاسیک حداکثر ۸ نفره است — حالت دست‌به‌دست را انتخاب کنید.') };
     }
     // From the lobby everyone must press Ready first. "Play again" from the
     // results screen skips this: the same group just finished a game.
-    if (this.phase === 'lobby' && !this._allReady()) return { ok: false, error: 'هنوز همه آماده نیستند.' };
+    if (this.phase === 'lobby' && !this._allReady()) return { ok: false, error: this._t('هنوز همه آماده نیستند.') };
     this.players.forEach((p) => { p.ready = false; });
+    // Drop the previous game first, so setup reads the language from the
+    // lobby setting rather than from the old game.
+    this.g = null;
     if (this.settings.mode === 'items') {
       this._itStart();
       this._changed();
@@ -236,15 +251,15 @@ class Game {
   _setupGame() {
     const ids = this.players.map((p) => p.id);
     const chars = {};
-    shuffle(C.CHARACTERS).slice(0, ids.length).forEach((ch, i) => { chars[ids[i]] = ch.id; });
+    shuffle(this.L.CHARACTERS).slice(0, ids.length).forEach((ch, i) => { chars[ids[i]] = ch.id; });
 
     const killerId = pick(ids);
-    const weapon = pick(C.WEAPONS).id;
-    const room = pick(C.ROOMS).id;
+    const weapon = pick(this.L.WEAPONS).id;
+    const room = pick(this.L.ROOMS).id;
     const innocents = ids.filter((id) => id !== killerId);
 
     const missions = {};
-    const missionPool = shuffle(C.MISSIONS);
+    const missionPool = shuffle(this.L.MISSIONS);
     innocents.forEach((pid, i) => {
       const m = missionPool[i % missionPool.length];
       const targetId = m.needsTarget ? pick(ids.filter((x) => x !== pid)) : null;
@@ -253,6 +268,7 @@ class Game {
 
     this.g = {
       mode: 'classic',
+      lang: this.settings.lang,
       id: `${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`,
       ids,
       killerId, weapon, room, chars, missions, innocents,
@@ -268,46 +284,46 @@ class Game {
       this.g.pins[id] = 0;
       this.g.newCards[id] = [];
     });
-    C.ROOMS.forEach((r) => { this.g.decks[r.id] = []; this.g.planted[r.id] = []; });
+    this.L.ROOMS.forEach((r) => { this.g.decks[r.id] = []; this.g.planted[r.id] = []; });
     this._buildDecks();
   }
 
   _killerTraits() {
-    return byId(C.CHARACTERS, this.g.chars[this.g.killerId]).traits;
+    return byId(this.L.CHARACTERS, this.g.chars[this.g.killerId]).traits;
   }
 
   _buildDecks() {
     const { g } = this;
     const pool = [];
 
-    C.WEAPONS.filter((w) => w.id !== g.weapon).forEach((w) => pool.push(this._card('weapon', w.clear)));
-    C.ROOMS.filter((r) => r.id !== g.room).forEach((r) => pool.push(this._card('room', r.clear)));
+    this.L.WEAPONS.filter((w) => w.id !== g.weapon).forEach((w) => pool.push(this._card('weapon', w.clear)));
+    this.L.ROOMS.filter((r) => r.id !== g.room).forEach((r) => pool.push(this._card('room', r.clear)));
 
     // Trait clues: 3 of 4, preferring ones that actually separate the killer
     // from at least one innocent.
     const kt = this._killerTraits();
-    const innocentTraits = g.innocents.map((pid) => byId(C.CHARACTERS, g.chars[pid]).traits);
+    const innocentTraits = g.innocents.map((pid) => byId(this.L.CHARACTERS, g.chars[pid]).traits);
     const traitIdx = shuffle([0, 1, 2, 3]).sort((a, b) => {
       const inf = (i) => innocentTraits.some((t) => t[i] !== kt[i]) ? 0 : 1;
       return inf(a) - inf(b);
     }).slice(0, 3);
     traitIdx.forEach((i) => {
-      const t = C.TRAITS[i];
+      const t = this.L.TRAITS[i];
       pool.push(this._card('trait', kt[i] ? t.yesClue : t.noClue));
     });
 
     const alibiCount = this.players.length <= 5 ? 1 : 2;
-    const alibiTemplates = shuffle(C.ALIBI_TEMPLATES);
+    const alibiTemplates = shuffle(this.L.ALIBI_TEMPLATES);
     shuffle(g.innocents).slice(0, alibiCount).forEach((pid, i) => {
       pool.push(this._card('alibi', alibiTemplates[i].replace(/\{X\}/g, this._label(pid))));
     });
 
-    const motiveTemplates = shuffle(C.MOTIVE_TEMPLATES);
+    const motiveTemplates = shuffle(this.L.MOTIVE_TEMPLATES);
     shuffle(Object.keys(g.chars)).slice(0, 2).forEach((pid, i) => {
       pool.push(this._card('motive', motiveTemplates[i].replace(/\{X\}/g, this._label(pid))));
     });
 
-    const roomIds = shuffle(C.ROOMS.map((r) => r.id));
+    const roomIds = shuffle(this.L.ROOMS.map((r) => r.id));
     shuffle(pool).forEach((card, i) => g.decks[roomIds[i % roomIds.length]].push(card));
   }
 
@@ -315,24 +331,24 @@ class Game {
   _allForgeries() {
     const { g } = this;
     const list = [];
-    const w = byId(C.WEAPONS, g.weapon);
-    const r = byId(C.ROOMS, g.room);
-    list.push({ key: 'weapon', kind: 'weapon', text: w.clear, hint: `${w.name} را بی‌گناه جلوه بده` });
-    list.push({ key: 'room', kind: 'room', text: r.clear, hint: `${r.name} را پاک جلوه بده` });
+    const w = byId(this.L.WEAPONS, g.weapon);
+    const r = byId(this.L.ROOMS, g.room);
+    list.push({ key: 'weapon', kind: 'weapon', text: w.clear, hint: this._t('{w} را بی‌گناه جلوه بده', { w: w.name }) });
+    list.push({ key: 'room', kind: 'room', text: r.clear, hint: this._t('{r} را پاک جلوه بده', { r: r.name }) });
     const kt = this._killerTraits();
-    const innocentTraits = g.innocents.map((pid) => byId(C.CHARACTERS, g.chars[pid]).traits);
-    C.TRAITS.forEach((t, i) => {
+    const innocentTraits = g.innocents.map((pid) => byId(this.L.CHARACTERS, g.chars[pid]).traits);
+    this.L.TRAITS.forEach((t, i) => {
       if (!innocentTraits.some((it) => it[i] !== kt[i])) return; // no one to frame
       const framed = g.innocents
-        .filter((pid) => byId(C.CHARACTERS, g.chars[pid]).traits[i] !== kt[i])
-        .map((pid) => byId(C.CHARACTERS, g.chars[pid]).name);
+        .filter((pid) => byId(this.L.CHARACTERS, g.chars[pid]).traits[i] !== kt[i])
+        .map((pid) => byId(this.L.CHARACTERS, g.chars[pid]).name);
       list.push({
         key: `trait:${t.id}`, kind: 'trait', text: kt[i] ? t.noClue : t.yesClue,
-        hint: `شک را به ${framed.join('، ')} بینداز`,
+        hint: this._t('شک را به {names} بینداز', { names: framed.join(this._t('، ')) }),
       });
     });
-    const tpl = pick(C.ALIBI_TEMPLATES);
-    list.push({ key: 'alibi', kind: 'alibi', text: tpl.replace(/\{X\}/g, this._label(g.killerId)), hint: 'برای خودت شاهد دروغین بساز' });
+    const tpl = pick(this.L.ALIBI_TEMPLATES);
+    list.push({ key: 'alibi', kind: 'alibi', text: tpl.replace(/\{X\}/g, this._label(g.killerId)), hint: this._t('برای خودت شاهد دروغین بساز') });
     return list;
   }
 
@@ -358,9 +374,9 @@ class Game {
   }
 
   search(pid, roomId) {
-    if (this.phase !== 'search' || this._items() || !this._inGame(pid)) return { ok: false, error: 'الان وقت بازرسی نیست.' };
-    if (pid === this.g.killerId) return { ok: false, error: 'تو باید مدرک جعل کنی.' };
-    if (!byId(C.ROOMS, roomId)) return { ok: false, error: 'اتاق نامعتبر.' };
+    if (this.phase !== 'search' || this._items() || !this._inGame(pid)) return { ok: false, error: this._t('الان وقت بازرسی نیست.') };
+    if (pid === this.g.killerId) return { ok: false, error: this._t('تو باید مدرک جعل کنی.') };
+    if (!byId(this.L.ROOMS, roomId)) return { ok: false, error: this._t('اتاق نامعتبر.') };
     this.g.searchChoice[pid] = roomId;
     this._checkAllDone();
     this._changed();
@@ -369,9 +385,9 @@ class Game {
 
   forge(pid, key, roomId) {
     const { g } = this;
-    if (this.phase !== 'search' || this._items() || pid !== (g && g.killerId)) return { ok: false, error: 'اجازه نداری.' };
-    if (!g.forgeryOptions.some((f) => f.key === key)) return { ok: false, error: 'گزینه‌ی نامعتبر.' };
-    if (!byId(C.ROOMS, roomId)) return { ok: false, error: 'اتاق نامعتبر.' };
+    if (this.phase !== 'search' || this._items() || pid !== (g && g.killerId)) return { ok: false, error: this._t('اجازه نداری.') };
+    if (!g.forgeryOptions.some((f) => f.key === key)) return { ok: false, error: this._t('گزینه‌ی نامعتبر.') };
+    if (!byId(this.L.ROOMS, roomId)) return { ok: false, error: this._t('اتاق نامعتبر.') };
     g.forgeryChoice = { key, roomId };
     this._checkAllDone();
     this._changed();
@@ -381,7 +397,7 @@ class Game {
   _drawFrom(roomId) {
     const { g } = this;
     if (g.decks[roomId].length) return g.decks[roomId].shift();
-    const other = shuffle(C.ROOMS.map((r) => r.id)).find((rid) => g.decks[rid].length);
+    const other = shuffle(this.L.ROOMS.map((r) => r.id)).find((rid) => g.decks[rid].length);
     if (!other) return null;
     const card = g.decks[other].shift();
     card.hallway = true; // the phone says it was found in the hallway
@@ -390,7 +406,7 @@ class Game {
 
   _endSearch() {
     const { g } = this;
-    const rid = () => pick(C.ROOMS).id;
+    const rid = () => pick(this.L.ROOMS).id;
 
     // Killer plants first, so an innocent searching the same room this round
     // picks the fake up.
@@ -426,7 +442,7 @@ class Game {
         if (!card) break;
         found.push(card);
       }
-      if (!found.length) found.push(this._card('nothing', C.NOTHING_FOUND));
+      if (!found.length) found.push(this._card('nothing', this.L.NOTHING_FOUND));
       found.forEach((card) => {
         card.round = this.round;
         card.foundIn = card.foundIn || roomId;
@@ -445,12 +461,12 @@ class Game {
   pin(pid, cardId) {
     const { g } = this;
     if (!['discuss', 'vote', 'spotlight', 'final'].includes(this.phase) || this._items() || !this._inGame(pid)) {
-      return { ok: false, error: 'الان نمی‌شود مدرک نشان داد.' };
+      return { ok: false, error: this._t('الان نمی‌شود مدرک نشان داد.') };
     }
     const card = g.hands[pid].find((c) => c.id === cardId);
-    if (!card) return { ok: false, error: 'این کارت را نداری.' };
-    if (card.pinned) return { ok: false, error: 'قبلاً نشانش داده‌ای.' };
-    if (card.kind === 'nothing') return { ok: false, error: 'این کارت چیزی برای نشان دادن ندارد.' };
+    if (!card) return { ok: false, error: this._t('این کارت را نداری.') };
+    if (card.pinned) return { ok: false, error: this._t('قبلاً نشانش داده‌ای.') };
+    if (card.kind === 'nothing') return { ok: false, error: this._t('این کارت چیزی برای نشان دادن ندارد.') };
     card.pinned = true;
     g.pins[pid] += 1;
     g.board.push({ cardId, playerId: pid, text: card.text, kind: card.kind, round: card.round, at: Date.now() });
@@ -473,8 +489,8 @@ class Game {
   // ---------------------------------------------------------------- interrogation
 
   vote(pid, targetId) {
-    if (this.phase !== 'vote' || this._items() || !this._inGame(pid)) return { ok: false, error: 'الان وقت رأی نیست.' };
-    if (pid === targetId || !this._inGame(targetId)) return { ok: false, error: 'رأی نامعتبر.' };
+    if (this.phase !== 'vote' || this._items() || !this._inGame(pid)) return { ok: false, error: this._t('الان وقت رأی نیست.') };
+    if (pid === targetId || !this._inGame(targetId)) return { ok: false, error: this._t('رأی نامعتبر.') };
     this.g.votes[this.round][pid] = targetId;
     this._checkAllDone();
     this._changed();
@@ -511,9 +527,9 @@ class Game {
   // ---------------------------------------------------------------- final
 
   final(pid, { suspect, weapon, room } = {}) {
-    if (this.phase !== 'final' || this._items() || !this._inGame(pid)) return { ok: false, error: 'الان وقت اتهام نیست.' };
-    if (!this._inGame(suspect) || suspect === pid) return { ok: false, error: 'یک مظنون انتخاب کن.' };
-    if (!byId(C.WEAPONS, weapon) || !byId(C.ROOMS, room)) return { ok: false, error: 'سلاح و مکان را انتخاب کن.' };
+    if (this.phase !== 'final' || this._items() || !this._inGame(pid)) return { ok: false, error: this._t('الان وقت اتهام نیست.') };
+    if (!this._inGame(suspect) || suspect === pid) return { ok: false, error: this._t('یک مظنون انتخاب کن.') };
+    if (!byId(this.L.WEAPONS, weapon) || !byId(this.L.ROOMS, room)) return { ok: false, error: this._t('سلاح و مکان را انتخاب کن.') };
     this.g.finalVotes[pid] = { suspect, weapon, room };
     this._checkAllDone();
     this._changed();
@@ -551,7 +567,7 @@ class Game {
     const spotlit = g.spotlights.map((s) => s.playerId);
     const missionResults = g.innocents.map((pid) => {
       const m = g.missions[pid];
-      const def = byId(C.MISSIONS, m.id);
+      const def = byId(this.L.MISSIONS, m.id);
       const v = g.visits[pid];
       let success = false;
       switch (m.id) {
@@ -583,16 +599,16 @@ class Game {
     const points = ids.map((pid) => {
       const breakdown = [];
       if (pid === g.killerId) {
-        if (!caught) breakdown.push({ label: 'فرار از عدالت', pts: 5 });
+        if (!caught) breakdown.push({ label: this._t('فرار از عدالت'), pts: 5 });
         const fooled = g.plants.filter((p) => p.deliveredTo).length;
-        if (fooled) breakdown.push({ label: `${fooled.toLocaleString('fa-IR')} مدرک جعلی به دست بقیه رسید`, pts: fooled });
+        if (fooled) breakdown.push({ label: this._t('{n} مدرک جعلی به دست بقیه رسید', { n: fooled }), pts: fooled });
       } else {
         const v = fv[pid];
-        if (v && v.suspect === g.killerId) breakdown.push({ label: 'قاتل را درست حدس زد', pts: 3 });
-        if (v && v.weapon === g.weapon) breakdown.push({ label: 'سلاح درست', pts: 1 });
-        if (v && v.room === g.room) breakdown.push({ label: 'مکان درست', pts: 1 });
+        if (v && v.suspect === g.killerId) breakdown.push({ label: this._t('قاتل را درست حدس زد'), pts: 3 });
+        if (v && v.weapon === g.weapon) breakdown.push({ label: this._t('سلاح درست'), pts: 1 });
+        if (v && v.room === g.room) breakdown.push({ label: this._t('مکان درست'), pts: 1 });
         const mr = missionResults.find((m) => m.playerId === pid);
-        if (mr && mr.success) breakdown.push({ label: `مأموریت «${mr.title}»`, pts: 2 });
+        if (mr && mr.success) breakdown.push({ label: this._t('مأموریت «{title}»', { title: mr.title }), pts: 2 });
       }
       return { playerId: pid, total: breakdown.reduce((s, b) => s + b.pts, 0), breakdown };
     });
@@ -626,13 +642,13 @@ class Game {
   }
 
   next(byId_) {
-    if (!this._isVip(byId_)) return { ok: false, error: 'فقط میزبان می‌تواند.' };
+    if (!this._isVip(byId_)) return { ok: false, error: this._t('فقط میزبان می‌تواند.') };
     if (this.phase === 'reveal') { this._advanceReveal(); return { ok: true }; }
     return this.skip(byId_);
   }
 
   skip(byId_) {
-    if (!this._isVip(byId_)) return { ok: false, error: 'فقط میزبان می‌تواند.' };
+    if (!this._isVip(byId_)) return { ok: false, error: this._t('فقط میزبان می‌تواند.') };
     const enders = this._items() ? {
       intro: () => this._itStartGossip(),
       gossip: () => this._itEndGossip(),
@@ -650,7 +666,7 @@ class Game {
       reveal: () => this._advanceReveal(),
     };
     const fn = enders[this.phase];
-    if (!fn) return { ok: false, error: 'چیزی برای رد کردن نیست.' };
+    if (!fn) return { ok: false, error: this._t('چیزی برای رد کردن نیست.') };
     this._phaseToken += 1;
     this._clearTimer();
     fn();
@@ -659,8 +675,8 @@ class Game {
 
   // Host shortcut: jump past the remaining reveal steps to the scoreboard.
   skipReveal(byId_) {
-    if (!this._isVip(byId_)) return { ok: false, error: 'فقط میزبان می‌تواند.' };
-    if (this.phase !== 'reveal') return { ok: false, error: 'الان افشاگری نیست.' };
+    if (!this._isVip(byId_)) return { ok: false, error: this._t('فقط میزبان می‌تواند.') };
+    if (this.phase !== 'reveal') return { ok: false, error: this._t('الان افشاگری نیست.') };
     this._phaseToken += 1;
     this._clearTimer();
     this.phase = 'results';
@@ -669,7 +685,7 @@ class Game {
   }
 
   backToLobby(byId_) {
-    if (!this._isVip(byId_)) return { ok: false, error: 'فقط میزبان می‌تواند.' };
+    if (!this._isVip(byId_)) return { ok: false, error: this._t('فقط میزبان می‌تواند.') };
     this._clearTimer();
     this._phaseToken += 1;
     this.phase = 'lobby';
@@ -682,7 +698,7 @@ class Game {
   }
 
   resetScores(byId_) {
-    if (!this._isVip(byId_)) return { ok: false, error: 'فقط میزبان می‌تواند.' };
+    if (!this._isVip(byId_)) return { ok: false, error: this._t('فقط میزبان می‌تواند.') };
     this.players.forEach((p) => { p.score = 0; });
     this.gamesPlayed = 0;
     this._changed();
@@ -720,7 +736,7 @@ class Game {
   _missionText(pid) {
     const m = this.g.missions[pid];
     if (!m) return null;
-    const def = byId(C.MISSIONS, m.id);
+    const def = byId(this.L.MISSIONS, m.id);
     return m.targetId ? def.text.replace(/\{T\}/g, this._label(m.targetId)) : def.text;
   }
 
@@ -729,6 +745,7 @@ class Game {
     const state = {
       phase: this.phase,
       mode: g ? g.mode : this.settings.mode,
+      lang: this.lang(),
       round: this.round,
       totalRounds: g && g.mode === 'items' ? g.totalRounds : TOTAL_ROUNDS,
       timer: this.timer,
@@ -803,7 +820,7 @@ class Game {
       out.plants = g.plants.map((x) => ({ text: x.text, round: x.round, roomId: x.roomId, delivered: !!x.deliveredTo }));
     } else {
       const m = g.missions[pid];
-      out.mission = { id: m.id, title: byId(C.MISSIONS, m.id).title, text: this._missionText(pid) };
+      out.mission = { id: m.id, title: byId(this.L.MISSIONS, m.id).title, text: this._missionText(pid) };
       out.searchChoice = g.searchChoice[pid] || null;
     }
     if (this.phase === 'vote') out.myVote = (g.votes[this.round] || {})[pid] || null;

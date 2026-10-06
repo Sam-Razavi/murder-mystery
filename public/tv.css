@@ -172,12 +172,12 @@ body { overflow: hidden; }
 /* ---------- reveal ---------- */
 .reveal { height: 100%; display: grid; place-items: center; text-align: center; }
 .reveal-inner { width: min(78rem, 100%); }
-.tally { display: grid; gap: .6rem; text-align: right; margin-top: 1.6rem; }
+.tally { display: grid; gap: .6rem; text-align: start; margin-top: 1.6rem; }
 .tally-row { display: grid; grid-template-columns: 14rem 1fr 3rem; gap: 1rem; align-items: center; animation: rise .5s ease both; }
 .tally-row .who { display: flex; gap: .7rem; align-items: center; font-size: 1.35rem; font-weight: 700; }
 .tally-row .avatar { width: 2.6rem; height: 2.6rem; font-size: 1.3rem; }
 .bar { height: 2.6rem; border-radius: .5rem; background: rgba(240,208,138,.08); position: relative; overflow: hidden; }
-.bar i { position: absolute; inset: 0 0 0 auto; background: linear-gradient(90deg, var(--pom), var(--gold)); border-radius: .5rem; animation: grow 1.2s ease both; transform-origin: right; }
+.bar i { position: absolute; inset-block: 0; inset-inline-start: 0; background: linear-gradient(90deg, var(--pom), var(--gold)); border-radius: .5rem; animation: grow 1.2s ease both; transform-origin: right; }
 .bar span { position: absolute; inset: 0; display: flex; align-items: center; padding: 0 1rem; font-size: 1rem; color: var(--parchment); }
 .tally-row .n { font-family: var(--display); font-size: 2rem; color: var(--gold); text-align: center; }
 @keyframes grow { from { transform: scaleX(0); } to { transform: scaleX(1); } }
@@ -197,7 +197,7 @@ body { overflow: hidden; }
 .truth-card .tl { font-size: 1.1rem; color: #7a5a48; }
 .truth-card .right { font-size: 1.05rem; margin-top: .6rem; color: #2c6a49; font-weight: 700; min-height: 1.5rem; }
 
-.list { display: grid; gap: .8rem; text-align: right; margin-top: 1.6rem; }
+.list { display: grid; gap: .8rem; text-align: start; margin-top: 1.6rem; }
 .li { background: rgba(42,23,34,.85); border: 1px solid rgba(240,208,138,.16); border-radius: .9rem; padding: .9rem 1.2rem; display: grid; grid-template-columns: auto 1fr auto; gap: 1.2rem; align-items: center; animation: rise .5s ease both; }
 .li .avatar { width: 2.8rem; height: 2.8rem; font-size: 1.4rem; }
 .li .main { font-size: 1.2rem; line-height: 1.6; }
@@ -208,7 +208,7 @@ body { overflow: hidden; }
 .mini-killer .avatar { width: 2.2rem; height: 2.2rem; font-size: 1.1rem; }
 
 /* ---------- results ---------- */
-.scores { display: grid; gap: .65rem; margin-top: 1.6rem; text-align: right; }
+.scores { display: grid; gap: .65rem; margin-top: 1.6rem; text-align: start; }
 .score-row { display: grid; grid-template-columns: 3rem auto 1fr auto auto; gap: 1.1rem; align-items: center; background: rgba(42,23,34,.85);
   border: 1px solid rgba(240,208,138,.16); border-radius: .9rem; padding: .65rem 1.2rem; animation: rise .5s ease both; }
 .score-row.first { border-color: var(--gold); box-shadow: 0 0 2rem rgba(217,164,65,.25); }
@@ -255,7 +255,7 @@ ul.small { list-style: none; padding: 0; display: grid; gap: .35rem; line-height
 .qs span:nth-child(odd) { transform: rotate(-1deg); }
 
 .it-final { height: 100%; display: grid; place-items: center; text-align: center; }
-.rules3 { display: grid; gap: .8rem; margin-top: 2rem; text-align: right; }
+.rules3 { display: grid; gap: .8rem; margin-top: 2rem; text-align: start; }
 .rules3 div { background: rgba(42,23,34,.85); border: 1px solid rgba(240,208,138,.16); border-radius: .9rem; padding: .9rem 1.4rem; font-size: 1.45rem; display: flex; gap: 1rem; align-items: center; }
 .rules3 span { font-size: 2rem; }
 
@@ -268,7 +268,7 @@ ul.small { list-style: none; padding: 0; display: grid; gap: .35rem; line-height
 .kr .it { font-size: 3rem; }
 
 .reveal-inner.wide { width: min(96rem, 100%); }
-.timeline { display: grid; gap: .6rem; margin-top: 1rem; text-align: right; max-height: 70vh; overflow: hidden; }
+.timeline { display: grid; gap: .6rem; margin-top: 1rem; text-align: start; max-height: 70vh; overflow: hidden; }
 .timeline .list { margin-top: 0; gap: .45rem; }
 .timeline .li { padding: .45rem 1rem; }
 .timeline .li .main { font-size: 1.1rem; }
@@ -437,7 +437,7 @@ ul.small { list-style: none; padding: 0; display: grid; gap: .35rem; line-height
 .tr-head .th b { font-size: .85rem; font-weight: 700; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .tr-head .th.k .avatar { box-shadow: 0 0 0 .2rem var(--pom-bright), 0 0 1rem rgba(224, 51, 92, .6); }
 .tr-row { animation: rise .4s calc(var(--i) * .45s) both; }
-.tr-lbl { text-align: right; font-size: .85rem; line-height: 1.35; color: var(--muted); }
+.tr-lbl { text-align: start; font-size: .85rem; line-height: 1.35; color: var(--muted); }
 .tr-lbl b { color: var(--gold); font-family: var(--display); font-weight: 400; font-size: 1.05rem; margin-inline-end: .3rem; }
 .tc { height: 2.7rem; display: grid; place-items: center; border-radius: .55rem; background: rgba(42, 23, 34, .55); }
 .tc .art { width: 2rem; height: 2rem; }
@@ -468,7 +468,7 @@ ul.small { list-style: none; padding: 0; display: grid; gap: .35rem; line-height
 @keyframes ink-write { from { clip-path: inset(-20% 0 -20% 100%); } to { clip-path: inset(-20% 0 -20% 0); } }
 .g-progress { position: relative; height: 2.3rem; border-radius: 2rem; background: rgba(42, 23, 34, .75); border: 1px solid rgba(240, 208, 138, .2);
   overflow: hidden; margin-top: 1rem; max-width: 34rem; }
-.g-progress i { position: absolute; inset: 0 0 0 auto; width: var(--to); background: linear-gradient(90deg, var(--pom), var(--gold)); border-radius: 2rem;
+.g-progress i { position: absolute; inset-block: 0; inset-inline-start: 0; width: var(--to); background: linear-gradient(90deg, var(--pom), var(--gold)); border-radius: 2rem;
   animation: progress-grow .6s cubic-bezier(.3, 1.4, .5, 1) both; }
 @keyframes progress-grow { from { width: var(--from); } to { width: var(--to); } }
 .g-progress span { position: relative; display: flex; align-items: center; height: 100%; padding: 0 1.1rem; font-size: 1.1rem; font-weight: 700; color: var(--parchment); }
@@ -487,3 +487,17 @@ ul.small { list-style: none; padding: 0; display: grid; gap: .35rem; line-height
 .g-winner .avatar { width: 2.4rem; height: 2.4rem; font-size: 1.2rem; }
 .many .g-winner { font-size: 1.5rem; margin-top: .6rem; }
 @media (prefers-reduced-motion: reduce) { .g-q.ink, .g-progress i, .bar i, .g-winner, .tally-row .n { animation: none; } }
+
+/* ---------- English (left-to-right) ---------- */
+[dir="ltr"] .bar i { transform-origin: left; }
+[dir="ltr"] .how li::before { content: counter(how); }
+/* the gossip question inks itself in from the left */
+@keyframes ink-write-ltr { from { clip-path: inset(-20% 100% -20% 0); } to { clip-path: inset(-20% 0 -20% 0); } }
+[dir="ltr"] .g-q.ink { animation-name: ink-write-ltr; }
+/* evidence-card kind icon sits at the end of the line */
+[dir="ltr"] .card p { padding-left: 0; padding-right: 1.5rem; }
+[dir="ltr"] .card .kind { left: auto; right: .6rem; }
+[dir="ltr"] .board.denser .card p { padding-left: 0; padding-right: 1.2rem; }
+[dir="ltr"] .board.denser .card .kind { left: auto; right: .45rem; }
+/* Latin text in the display face reads better slightly tighter */
+[dir="ltr"] .display, [dir="ltr"] .h-big, [dir="ltr"] .title { letter-spacing: .01em; }

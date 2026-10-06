@@ -1,10 +1,11 @@
 /* Phone controller: each player's private screen. */
 (function () {
-  const { fa, esc, store, makeId, syncClock, setTimer } = window.Z;
+  const { num, t, setLang, esc, store, makeId, syncClock, setTimer } = window.Z;
   const socket = io();
   const $ = (id) => document.getElementById(id);
 
-  let C = null;
+  let ALL = null; // story content in both languages: { fa, en }
+  let C = null; // ...the bundle for the current language
   let S = null;
   let me = null;
   let myId = store.get('ziafat:id');
@@ -27,7 +28,7 @@
   const pl = (id) => S.players.find((p) => p.id === id);
   const room = (id) => C.rooms.find((r) => r.id === id);
   const weapon = (id) => C.weapons.find((w) => w.id === id);
-  const item = (id) => C.items.find((x) => x.id === id) || { icon: '❔', name: '؟' };
+  const item = (id) => C.items.find((x) => x.id === id) || { icon: '❔', name: t('؟') };
   // Illustrated item (public/art.js); `anim` only on big displays.
   const art = (id, anim = false) => (window.Art && Art.has(id) ? Art.item(id, { anim, title: item(id).name }) : item(id).icon);
   const itemTag = (id) => `<b class="itm">${art(id)} ${esc(item(id).name)}</b>`;
@@ -44,10 +45,10 @@
     const face = window.Art && (p.charId ? Art.character(p.charId) : p.portrait ? Art.portrait(p.portrait) : '');
     if (face) return `<span class="avatar has-face" style="background:${color}">${face}</span>`;
     if (!p.charId && p.portrait) return `<span class="avatar pt" style="background:${color}">${esc(p.portrait)}</span>`;
-    const letter = p.charId ? ch(p.charId).name.replace('دکتر ', '').replace('خانم‌جان', 'خ')[0] : (p.name || '؟')[0];
+    const letter = p.charId ? ch(p.charId).name.replace('دکتر ', '').replace('Dr. ', '').replace('خانم‌جان', 'خ')[0] : (p.name || t('؟'))[0];
     return `<span class="avatar" style="background:${color}">${esc(letter)}</span>`;
   }
-  const nameOf = (pid) => { const p = pl(pid); return p ? (p.charId ? `${ch(p.charId).name} (${p.name})` : p.name) : '؟'; };
+  const nameOf = (pid) => { const p = pl(pid); return p ? (p.charId ? `${ch(p.charId).name} (${p.name})` : p.name) : t('؟'); };
   const traitIcons = (charId) => C.traits.filter((t, i) => ch(charId).traits[i]).map((t) => artOf(t)).join('');
   const traitTags = (charId) => C.traits.map((t, i) => ch(charId).traits[i]
     ? `<span class="trait">${artOf(t)} ${esc(t.name)}</span>` : `<span class="trait no">${esc(t.name)}</span>`).join('');
@@ -95,60 +96,61 @@
     const tooMany = n > S.modeMax; // classic takes at most 8
     const allReady = n >= S.minPlayers && waiting === 0 && !tooMany;
     const meReady = !!(pl(me.id) && pl(me.id).ready);
-    let html = `<h2 class="prompt">${me ? 'به مهمانی خوش آمدی!' : ''}</h2>
-      <p class="sub">${n < S.minPlayers ? `منتظر بقیه‌ایم — دست‌کم ${fa(S.minPlayers)} نفر لازم است (الان ${fa(n)} نفر).`
-        : waiting ? `${fa(waiting)} نفر هنوز «آماده‌ام» را نزده‌اند.` : 'همه آماده‌اند. میزبان بازی را شروع می‌کند.'}</p>
-      ${meReady ? '' : `<div class="step-label">چهره‌ات را انتخاب کن</div>
+    let html = `<h2 class="prompt">${me ? t('به مهمانی خوش آمدی!') : ''}</h2>
+      <p class="sub">${n < S.minPlayers ? t('منتظر بقیه‌ایم — دست‌کم {min} نفر لازم است (الان {n} نفر).', { min: S.minPlayers, n })
+        : waiting ? t('{n} نفر هنوز «آماده‌ام» را نزده‌اند.', { n: waiting }) : t('همه آماده‌اند. میزبان بازی را شروع می‌کند.')}</p>
+      ${meReady ? '' : `<div class="step-label">${t('چهره‌ات را انتخاب کن')}</div>
       <div class="portraits">${C.portraits.map((x) => {
         const mine = pl(me.id) && pl(me.id).portrait === x;
         const taken = !mine && S.players.some((p) => p.portrait === x);
         return `<button class="pt-opt ${mine ? 'sel' : ''}" data-act="portrait" data-v="${esc(x)}" ${taken ? 'disabled' : ''}>${(window.Art && Art.portrait(x)) || esc(x)}</button>`;
       }).join('')}</div>`}
-      <button class="btn big ${meReady ? 'ready-on' : 'gold'}" data-act="ready" data-v="${meReady ? '0' : '1'}">${meReady ? '✓ آماده‌ای — برای لغو لمس کن' : 'آماده‌ام!'}</button>
+      <button class="btn big ${meReady ? 'ready-on' : 'gold'}" data-act="ready" data-v="${meReady ? '0' : '1'}">${meReady ? t('✓ آماده‌ای — برای لغو لمس کن') : t('آماده‌ام!')}</button>
       <div class="players-mini">${S.players.map((p) => `<span class="pm ${p.connected ? '' : 'off'} ${p.ready ? 'rdy' : ''}">${avatar(p)}${esc(p.name)}${p.id === S.vipId ? ' 👑' : ''}${p.ready ? ' ✓' : ''}
-        ${me && me.isVip && !p.connected && p.id !== me.id ? `<button data-act="kick" data-id="${esc(p.id)}">حذف</button>` : ''}</span>`).join('')}</div>`;
+        ${me && me.isVip && !p.connected && p.id !== me.id ? `<button data-act="kick" data-id="${esc(p.id)}">${t('حذف')}</button>` : ''}</span>`).join('')}</div>`;
     const mode = C.modes.find((m) => m.id === S.settings.mode) || C.modes[0];
     if (me && me.isVip) {
-      html += `<div class="step-label">👑 تو میزبانی</div>
-        <div class="sub">کدام بازی؟</div>
+      html += `<div class="step-label">${t('👑 تو میزبانی')}</div>
+        <div class="sub">${t('زبان بازی')}</div>${seg('lang', [['fa', 'فارسی'], ['en', 'English']])}
+        <div class="sub">${t('کدام بازی؟')}</div>
         <div class="seg">${C.modes.map((m) => `<button data-act="setMode" data-v="${m.id}" class="${mode.id === m.id ? 'sel' : ''}">${esc(m.name)}</button>`).join('')}</div>
         <div class="note">${esc(mode.text)}</div>
-        ${mode.id === 'items' ? `<div class="sub">تعداد دورهای پچ‌پچ (هر ۲ دور یک گفت‌وگو)</div>${seg('itemRounds', [[4, '۴ — کوتاه'], [6, '۶'], [8, '۸ — بلند']])}
-        <div class="sub">زمان جواب دادن در هر دور</div>${seg('gossipSeconds', [[30, '۳۰ ثانیه'], [40, '۴۰ ثانیه'], [60, '۶۰ ثانیه']])}
-        <div class="sub">دورهای بی‌صدا: گاهی هیچ‌کس کار مخفی نمی‌گیرد</div>${seg('quietRounds', [[false, 'خاموش'], [true, 'روشن']])}
-        <div class="sub">قاتل‌ها هم‌دیگر را می‌شناسند (از ۵ نفر به بالا)</div>${seg('killersKnow', [[false, 'خاموش'], [true, 'روشن']])}` : ''}
-        <div class="sub">زمان هر گفت‌وگو</div>${seg('discussSeconds', [[90, '۱:۳۰'], [150, '۲:۳۰'], [240, '۴:۰۰']])}
-        ${tooMany ? `<div class="note warn">${'بازی کلاسیک حداکثر ۸ نفره است — حالت دست‌به‌دست را انتخاب کنید.'}</div>` : ''}
-        <button class="btn primary big" data-act="start" ${allReady ? '' : 'disabled'}>${allReady ? 'شروع بازی' : tooMany ? 'برای بازی کلاسیک زیادیم' : 'منتظر آماده شدن همه…'}</button>`;
+        ${mode.id === 'items' ? `<div class="sub">${t('تعداد دورهای پچ‌پچ (هر ۲ دور یک گفت‌وگو)')}</div>${seg('itemRounds', [[4, t('{n} — کوتاه', { n: 4 })], [6, num(6)], [8, t('{n} — بلند', { n: 8 })]])}
+        <div class="sub">${t('زمان جواب دادن در هر دور')}</div>${seg('gossipSeconds', [30, 40, 60].map((v) => [v, t('{n} ثانیه', { n: v })]))}
+        <div class="sub">${t('دورهای بی‌صدا: گاهی هیچ‌کس کار مخفی نمی‌گیرد')}</div>${seg('quietRounds', [[false, t('خاموش')], [true, t('روشن')]])}
+        <div class="sub">${t('قاتل‌ها هم‌دیگر را می‌شناسند (از ۵ نفر به بالا)')}</div>${seg('killersKnow', [[false, t('خاموش')], [true, t('روشن')]])}` : ''}
+        <div class="sub">${t('زمان هر گفت‌وگو')}</div>${seg('discussSeconds', [[90, `${num(1)}:${num(30)}`], [150, `${num(2)}:${num(30)}`], [240, `${num(4)}:${num('00')}`]])}
+        ${tooMany ? `<div class="note warn">${t('بازی کلاسیک حداکثر ۸ نفره است — حالت دست‌به‌دست را انتخاب کنید.')}</div>` : ''}
+        <button class="btn primary big" data-act="start" ${allReady ? '' : 'disabled'}>${allReady ? t('شروع بازی') : tooMany ? t('برای بازی کلاسیک زیادیم') : t('منتظر آماده شدن همه…')}</button>`;
     }
-    else html += `<div class="note"><b>بازی: ${esc(mode.name)}</b> — ${esc(mode.text)}</div>`;
-    html += `<div class="note">📺 صفحه‌ی تلویزیون را ببینید. وقتی بازی شروع شد، نقش مخفی‌ات اینجا روی گوشی می‌آید — نگذار کسی ببیند!</div>`;
+    else html += `<div class="note"><b>${t('بازی: {name}', { name: esc(mode.name) })}</b> — ${esc(mode.text)}</div>`;
+    html += `<div class="note">${t('📺 صفحه‌ی تلویزیون را ببینید. وقتی بازی شروع شد، نقش مخفی‌ات اینجا روی گوشی می‌آید — نگذار کسی ببیند!')}</div>`;
     return html;
   }
 
   function roleCard() {
     const c = ch(me.charId);
     if (!ui.roleVisible) {
-      return `<button class="veil" data-act="showRole"><span class="big-ic">🤫</span>برای دیدن نقش مخفی‌ات لمس کن<br><span class="muted" style="font-weight:500;font-size:.9rem">مطمئن شو کسی گوشی‌ات را نمی‌بیند</span></button>`;
+      return `<button class="veil" data-act="showRole"><span class="big-ic">🤫</span>${t('برای دیدن نقش مخفی‌ات لمس کن')}<br><span class="muted" style="font-weight:500;font-size:.9rem">${t('مطمئن شو کسی گوشی‌ات را نمی‌بیند')}</span></button>`;
     }
     let secret;
     if (isKiller()) {
-      secret = `<div class="secret killer"><h4>🔪 تو قاتلی!</h4>
-        <p>آقابزرگ را با <b>${esc(weapon(me.truth.weapon).name)}</b> در <b>${esc(room(me.truth.room).name)}</b> کشتی.</p>
-        <p style="margin-top:.5rem">هر دور یک مدرک جعلی می‌کاری. وانمود کن بی‌گناهی، دروغ بگو و شک را به سمت دیگران ببر. اگر در رأی نهایی بیشترین رأی را نگیری، فرار کرده‌ای.</p></div>`;
+      secret = `<div class="secret killer"><h4>${t('🔪 تو قاتلی!')}</h4>
+        <p>${t('آقابزرگ را با <b>{w}</b> در <b>{r}</b> کشتی.', { w: esc(weapon(me.truth.weapon).name), r: esc(room(me.truth.room).name) })}</p>
+        <p style="margin-top:.5rem">${t('هر دور یک مدرک جعلی می‌کاری. وانمود کن بی‌گناهی، دروغ بگو و شک را به سمت دیگران ببر. اگر در رأی نهایی بیشترین رأی را نگیری، فرار کرده‌ای.')}</p></div>`;
     } else {
-      secret = `<div class="secret innocent"><h4>🕊️ تو بی‌گناهی</h4>
-        <p>قاتل، سلاح و مکان را پیدا کن. بعضی مدارک جعلی‌اند — همه را باور نکن.</p>
-        <p style="margin-top:.6rem"><b>مأموریت مخفی: «${esc(me.mission.title)}»</b><br>${esc(me.mission.text)} <span class="muted">(<span class="num">+۲</span> امتیاز)</span></p></div>`;
+      secret = `<div class="secret innocent"><h4>${t('🕊️ تو بی‌گناهی')}</h4>
+        <p>${t('قاتل، سلاح و مکان را پیدا کن. بعضی مدارک جعلی‌اند — همه را باور نکن.')}</p>
+        <p style="margin-top:.6rem"><b>${t('مأموریت مخفی: «{title}»', { title: esc(me.mission.title) })}</b><br>${esc(me.mission.text)} <span class="muted">(${t('{p} امتیاز', { p: `<span class="num">+${num(2)}</span>` })})</span></p></div>`;
     }
     return `<div class="role-card" style="--c:${c.color}">
       <div class="role-head">${avatar(pl(me.id))}<div><div class="cn">${esc(c.name)}</div><div class="cr">${esc(c.role)}</div></div></div>
       <div class="role-body"><p class="bio">${esc(c.bio)}</p><div class="traits">${traitTags(me.charId)}</div>${secret}
-      <button class="btn ghost" data-act="hideRole">پنهان کن</button></div></div>`;
+      <button class="btn ghost" data-act="hideRole">${t('پنهان کن')}</button></div></div>`;
   }
 
   function actionIntro() {
-    return `<h2 class="prompt">شب حادثه</h2><p class="sub">داستان را روی تلویزیون ببین. این شخصیت توست:</p>${roleCard()}`;
+    return `<h2 class="prompt">${esc(C.phaseTitles.intro)}</h2><p class="sub">${t('داستان را روی تلویزیون ببین. این شخصیت توست:')}</p>${roleCard()}`;
   }
 
   function roomGrid(selected, act) {
@@ -159,28 +161,28 @@
     if (isKiller()) {
       if (me.forgeryChoice && ui.lieKey == null) {
         const f = me.forgeryChoice;
-        return `<h2 class="prompt">مدرک جعلی کاشته شد</h2>
-          <div class="done-box"><b>✓ در ${esc(room(f.roomId).name)}</b>منتظر بقیه…</div>
-          <div class="note warn">تو امشب در ${esc(room(f.roomId).name)} دیده شده‌ای. اگر بازجویی شوی، این اتاق لو می‌رود — داستانت را آماده کن.</div>
-          <button class="btn ghost" data-act="reforge">تغییر انتخاب</button>`;
+        return `<h2 class="prompt">${t('مدرک جعلی کاشته شد')}</h2>
+          <div class="done-box"><b>${t('✓ در {r}', { r: esc(room(f.roomId).name) })}</b>${t('منتظر بقیه…')}</div>
+          <div class="note warn">${t('تو امشب در {r} دیده شده‌ای. اگر بازجویی شوی، این اتاق لو می‌رود — داستانت را آماده کن.', { r: esc(room(f.roomId).name) })}</div>
+          <button class="btn ghost" data-act="reforge">${t('تغییر انتخاب')}</button>`;
       }
       const opts = me.forgeryOptions.map((o) => `<button class="opt lie ${ui.lieKey === o.key ? 'sel' : ''}" data-act="lie" data-key="${esc(o.key)}"><p>«${esc(o.text)}»</p><span class="hint">🎭 ${esc(o.hint)}</span></button>`).join('');
-      return `<h2 class="prompt">🔪 وقت جعل مدرک</h2>
-        <p class="sub">بقیه دارند اتاق‌ها را می‌گردند. یک دروغ انتخاب کن و جایی بکار. اولین کسی که آن اتاق را بگردد، آن را به‌جای مدرک واقعی پیدا می‌کند.</p>
-        <div class="step-label">۱. کدام دروغ؟</div>${opts}
-        <div class="step-label">۲. کجا بکاری؟ (تو هم آنجا دیده می‌شوی)</div>${roomGrid(ui.lieRoom, 'lieRoom')}
-        <button class="btn primary big" data-act="forge" ${ui.lieKey && ui.lieRoom ? '' : 'disabled'}>بکار</button>`;
+      return `<h2 class="prompt">${t('🔪 وقت جعل مدرک')}</h2>
+        <p class="sub">${t('بقیه دارند اتاق‌ها را می‌گردند. یک دروغ انتخاب کن و جایی بکار. اولین کسی که آن اتاق را بگردد، آن را به‌جای مدرک واقعی پیدا می‌کند.')}</p>
+        <div class="step-label">${t('۱. کدام دروغ؟')}</div>${opts}
+        <div class="step-label">${t('۲. کجا بکاری؟ (تو هم آنجا دیده می‌شوی)')}</div>${roomGrid(ui.lieRoom, 'lieRoom')}
+        <button class="btn primary big" data-act="forge" ${ui.lieKey && ui.lieRoom ? '' : 'disabled'}>${t('بکار')}</button>`;
     }
     const sel = me.searchChoice;
-    return `<h2 class="prompt">کدام اتاق را می‌گردی؟</h2>
-      <p class="sub">${sel ? `✓ ${esc(room(sel).name)} — تا وقت تمام نشده می‌توانی عوضش کنی.` : 'یک اتاق انتخاب کن. مدرکی که پیدا می‌کنی فقط برای خودت است.'}</p>
+    return `<h2 class="prompt">${t('کدام اتاق را می‌گردی؟')}</h2>
+      <p class="sub">${sel ? t('✓ {r} — تا وقت تمام نشده می‌توانی عوضش کنی.', { r: esc(room(sel).name) }) : t('یک اتاق انتخاب کن. مدرکی که پیدا می‌کنی فقط برای خودت است.')}</p>
       ${roomGrid(sel, 'search')}`;
   }
 
   function actionDiscuss() {
     const fresh = me.hand.filter((c) => c.isNew).length;
-    return `<h2 class="prompt">گفت‌وگو</h2>
-      <p class="sub">${fresh ? `${fa(fresh)} مدرک تازه پیدا کردی — پایین ببین.` : 'مدارکت پایین است.'} حرف بزن، سؤال کن، و هر مدرکی را که خواستی با «نشان بده» روی تلویزیون بفرست.${isKiller() ? ' <b class="gold">مدارک تو جعلی‌اند؛ با احتیاط نشانشان بده.</b>' : ''}</p>`;
+    return `<h2 class="prompt">${esc(C.phaseTitles.discuss)}</h2>
+      <p class="sub">${fresh ? t('{n} مدرک تازه پیدا کردی — پایین ببین.', { n: fresh }) : t('مدارکت پایین است.')} ${t('حرف بزن، سؤال کن، و هر مدرکی را که خواستی با «نشان بده» روی تلویزیون بفرست.')}${isKiller() ? ` <b class="gold">${t('مدارک تو جعلی‌اند؛ با احتیاط نشانشان بده.')}</b>` : ''}</p>`;
   }
 
   function playerList(selected, act) {
@@ -191,53 +193,54 @@
   }
 
   function actionVote() {
-    return `<h2 class="prompt">چه کسی بازجویی شود؟</h2>
-      <p class="sub">${me.myVote ? `✓ رأی تو: ${esc(nameOf(me.myVote))} — می‌توانی عوضش کنی.` : 'مشکوک‌ترین نفر را انتخاب کن. اتاق‌هایی که گشته روی تلویزیون لو می‌رود.'}</p>
+    return `<h2 class="prompt">${t('چه کسی بازجویی شود؟')}</h2>
+      <p class="sub">${me.myVote ? t('✓ رأی تو: {name} — می‌توانی عوضش کنی.', { name: esc(nameOf(me.myVote)) }) : t('مشکوک‌ترین نفر را انتخاب کن. اتاق‌هایی که گشته روی تلویزیون لو می‌رود.')}</p>
       ${playerList(me.myVote, 'vote')}`;
   }
 
   function actionSpotlight() {
     const sp = S.game.spotlight;
     if (sp.playerId === me.id) {
-      return `<h2 class="prompt" style="color:var(--pom-bright)">تو زیر نور چراغی!</h2>
-        <p class="sub">${fa(sp.votes)} نفر به تو رأی دادند. اتاق‌هایی که گشته‌ای روی تلویزیون است. از خودت دفاع کن!</p>`;
+      return `<h2 class="prompt" style="color:var(--pom-bright)">${t('تو زیر نور چراغی!')}</h2>
+        <p class="sub">${t('{n} نفر به تو رأی دادند. اتاق‌هایی که گشته‌ای روی تلویزیون است. از خودت دفاع کن!', { n: sp.votes })}</p>`;
     }
-    return `<h2 class="prompt">${esc(nameOf(sp.playerId))} بازجویی می‌شود</h2><p class="sub">به تلویزیون نگاه کن و سؤال‌پیچش کن.</p>`;
+    return `<h2 class="prompt">${t('{name} بازجویی می‌شود', { name: esc(nameOf(sp.playerId)) })}</h2><p class="sub">${t('به تلویزیون نگاه کن و سؤال‌پیچش کن.')}</p>`;
   }
 
   function actionFinal() {
     const f = ui.final;
     const submitted = me.myFinal;
     const head = submitted
-      ? `<div class="done-box"><b>✓ اتهام ثبت شد</b>${esc(nameOf(submitted.suspect))} <i class="sep"></i> ${esc(weapon(submitted.weapon).name)} <i class="sep"></i> ${esc(room(submitted.room).name)}<br><span class="muted">تا وقت تمام نشده می‌توانی عوضش کنی.</span></div>` : '';
-    return `<h2 class="prompt">اتهام نهایی</h2>
-      <p class="sub">${isKiller() ? 'تو هم باید رأی بدهی — یک بی‌گناه را متهم کن.' : 'قاتل درست: <span class="num">+۳</span> <i class="sep"></i> سلاح درست: <span class="num">+۱</span> <i class="sep"></i> مکان درست: <span class="num">+۱</span>'}</p>
+      ? `<div class="done-box"><b>${t('✓ اتهام ثبت شد')}</b>${esc(nameOf(submitted.suspect))} <i class="sep"></i> ${esc(weapon(submitted.weapon).name)} <i class="sep"></i> ${esc(room(submitted.room).name)}<br><span class="muted">${t('تا وقت تمام نشده می‌توانی عوضش کنی.')}</span></div>` : '';
+    const pts = (n) => `<span class="num">+${num(n)}</span>`;
+    return `<h2 class="prompt">${esc(C.phaseTitles.final)}</h2>
+      <p class="sub">${isKiller() ? t('تو هم باید رأی بدهی — یک بی‌گناه را متهم کن.') : `${t('قاتل درست:')} ${pts(3)} <i class="sep"></i> ${t('سلاح درست:')} ${pts(1)} <i class="sep"></i> ${t('مکان درست:')} ${pts(1)}`}</p>
       ${head}
-      <div class="step-label">قاتل کیست؟</div>${playerList(f.suspect, 'fSuspect')}
-      <div class="step-label">با چه سلاحی؟</div>
+      <div class="step-label">${t('قاتل کیست؟')}</div>${playerList(f.suspect, 'fSuspect')}
+      <div class="step-label">${t('با چه سلاحی؟')}</div>
       <div class="grid2">${C.weapons.map((w) => `<button class="opt ${f.weapon === w.id ? 'sel' : ''}" data-act="fWeapon" data-id="${w.id}"><span class="oi">${artOf(w)}</span><span class="on">${esc(w.name)}</span></button>`).join('')}</div>
-      <div class="step-label">کجا؟</div>${roomGrid(f.room, 'fRoom')}
-      <button class="btn primary big" data-act="final" ${f.suspect && f.weapon && f.room ? '' : 'disabled'}>${submitted ? 'به‌روزرسانی اتهام' : 'ثبت اتهام'}</button>`;
+      <div class="step-label">${t('کجا؟')}</div>${roomGrid(f.room, 'fRoom')}
+      <button class="btn primary big" data-act="final" ${f.suspect && f.weapon && f.room ? '' : 'disabled'}>${submitted ? t('به‌روزرسانی اتهام') : t('ثبت اتهام')}</button>`;
   }
 
   function actionReveal() {
-    return `<div class="tv-look"><div class="big-ic">📺</div><h2 class="prompt">به تلویزیون نگاه کن!</h2><p class="sub">حقیقت دارد آشکار می‌شود…</p></div>`;
+    return `<div class="tv-look"><div class="big-ic">📺</div><h2 class="prompt">${t('به تلویزیون نگاه کن!')}</h2><p class="sub">${t('حقیقت دارد آشکار می‌شود…')}</p></div>`;
   }
 
   function actionResults() {
     const pts = me.myPoints;
-    let html = '<h2 class="prompt">نتیجه‌ی تو</h2>';
+    let html = `<h2 class="prompt">${t('نتیجه‌ی تو')}</h2>`;
     if (pts) {
-      html += `<div class="points"><div class="total"><span class="num">+${fa(pts.total)}</span></div>${pts.breakdown.length
-        ? pts.breakdown.map((b) => `<div class="row"><span>${esc(b.label)}</span><b class="num">+${fa(b.pts)}</b></div>`).join('')
-        : '<div class="row"><span>این بار امتیازی نگرفتی.</span><b></b></div>'}</div>`;
+      html += `<div class="points"><div class="total"><span class="num">+${num(pts.total)}</span></div>${pts.breakdown.length
+        ? pts.breakdown.map((b) => `<div class="row"><span>${esc(b.label)}</span><b class="num">+${num(b.pts)}</b></div>`).join('')
+        : `<div class="row"><span>${t('این بار امتیازی نگرفتی.')}</span><b></b></div>`}</div>`;
     }
     if (me.isVip) {
-      html += `<button class="btn primary big" data-act="start">بازی دوباره با همین جمع</button>
-        <div class="grid2"><button class="btn" data-act="lobby">سالن انتظار</button><button class="btn" data-act="resetScores">صفر کردن امتیازها</button></div>
-        <p class="sub">برای اضافه شدن نفر جدید، به سالن انتظار برگرد.</p>`;
+      html += `<button class="btn primary big" data-act="start">${t('بازی دوباره با همین جمع')}</button>
+        <div class="grid2"><button class="btn" data-act="lobby">${t('سالن انتظار')}</button><button class="btn" data-act="resetScores">${t('صفر کردن امتیازها')}</button></div>
+        <p class="sub">${t('برای اضافه شدن نفر جدید، به سالن انتظار برگرد.')}</p>`;
     } else {
-      html += '<p class="sub">میزبان دور بعد را شروع می‌کند.</p>';
+      html += `<p class="sub">${t('میزبان دور بعد را شروع می‌کند.')}</p>`;
     }
     return html;
   }
@@ -246,79 +249,79 @@
   function tabHand() {
     let html = '';
     if (isKiller() && me.plants && me.plants.length) {
-      html += `<div class="sec-title">مدارکی که کاشتی</div>${me.plants.map((p) => `<div class="note warn">دور ${fa(p.round)} <i class="sep"></i> ${esc(room(p.roomId).name)} — ${p.delivered ? '<b>کسی برداشتش!</b>' : 'هنوز همان‌جاست'}</div>`).join('')}
-        <div class="note">⚠️ کپی هر مدرک جعلی در دست توست. اگر تو و کسی که پیدایش کرده هر دو یک مدرک را نشان دهید، تکراری بودنش لوت می‌دهد.</div>`;
+      html += `<div class="sec-title">${t('مدارکی که کاشتی')}</div>${me.plants.map((p) => `<div class="note warn">${t('دور {n}', { n: p.round })} <i class="sep"></i> ${esc(room(p.roomId).name)} — ${p.delivered ? `<b>${t('کسی برداشتش!')}</b>` : t('هنوز همان‌جاست')}</div>`).join('')}
+        <div class="note">${t('⚠️ کپی هر مدرک جعلی در دست توست. اگر تو و کسی که پیدایش کرده هر دو یک مدرک را نشان دهید، تکراری بودنش لوت می‌دهد.')}</div>`;
     }
     const hand = me.hand.slice().reverse();
-    if (!hand.length) return `${html}<div class="empty">هنوز مدرکی نداری.<br>در مرحله‌ی بازرسی یک اتاق را بگرد.</div>`;
+    if (!hand.length) return `${html}<div class="empty">${t('هنوز مدرکی نداری.')}<br>${t('در مرحله‌ی بازرسی یک اتاق را بگرد.')}</div>`;
     const canPin = ['discuss', 'vote', 'spotlight', 'final'].includes(S.phase);
-    html += '<div class="sec-title">مدارک من</div>';
+    html += `<div class="sec-title">${t('مدارک من')}</div>`;
     html += hand.map((c) => {
       const nothing = c.kind === 'nothing';
-      const tag = c.forged ? '<span class="tag fake">جعلی — فقط تو می‌دانی</span>' : (c.isNew ? '<span class="tag">تازه</span>' : '');
+      const tag = c.forged ? `<span class="tag fake">${t('جعلی — فقط تو می‌دانی')}</span>` : (c.isNew ? `<span class="tag">${t('تازه')}</span>` : '');
       const btn = nothing ? '' : (c.pinned
-        ? '<button class="pinbtn" disabled>✓ روی تلویزیون</button>'
-        : `<button class="pinbtn" data-act="pin" data-id="${esc(c.id)}" ${canPin ? '' : 'disabled style="opacity:.4"'}>📺 نشان بده</button>`);
+        ? `<button class="pinbtn" disabled>${t('✓ روی تلویزیون')}</button>`
+        : `<button class="pinbtn" data-act="pin" data-id="${esc(c.id)}" ${canPin ? '' : 'disabled style="opacity:.4"'}>${t('📺 نشان بده')}</button>`);
       const hall = c.hallway ? `<div class="hall">🚶 ${esc(C.hallwayNote)}</div>` : '';
       return `<div class="clue ${c.isNew && !nothing ? 'new' : ''} ${nothing ? 'nothing' : ''}" data-cid="${esc(c.id)}">${tag}${hall}<p>${esc(c.text)}</p>
-        <div class="meta"><span>دور ${fa(c.round)} <i class="sep"></i> ${esc(room(c.foundIn) ? room(c.foundIn).name : '')}</span>${btn}</div></div>`;
+        <div class="meta"><span>${t('دور {n}', { n: c.round })} <i class="sep"></i> ${esc(room(c.foundIn) ? room(c.foundIn).name : '')}</span>${btn}</div></div>`;
     }).join('');
     return html;
   }
 
   function tabNotes() {
     const nb = nbGet();
-    const mark = (k) => (nb[k] === 'x' ? '✕' : nb[k] === 'q' ? '؟' : '');
+    const mark = (k) => (nb[k] === 'x' ? '✕' : nb[k] === 'q' ? t('؟') : '');
     const row = (k, inner) => `<button class="nb-row ${nb[k] || ''}" data-act="nb" data-k="${esc(k)}">${inner}<span class="mark">${mark(k)}</span></button>`;
     const suspects = S.players.filter((p) => p.charId).map((p) => row(`p:${p.id}`,
       `${avatar(p)}<span class="nm">${esc(ch(p.charId).name)}<small>${esc(p.name)}</small></span><span class="ti">${traitIcons(p.charId)}</span>`)).join('');
     const ws = C.weapons.map((w) => row(`w:${w.id}`, `<span class="oi">${artOf(w)}</span><span class="nm">${esc(w.name)}</span>`)).join('');
     const rs = C.rooms.map((r) => row(`r:${r.id}`, `<span class="oi">${artOf(r)}</span><span class="nm">${esc(r.name)}</span>`)).join('');
     const legend = C.traits.map((t) => `${artOf(t)} ${esc(t.name)}`).join(' <i class="sep"></i> ');
-    return `<div class="nb-help">لمس کن: ✕ = رد شد <i class="sep"></i> ؟ = مشکوک <i class="sep"></i> دوباره = پاک</div>
-      <div class="sec-title">مظنون‌ها</div><div class="nb">${suspects}</div><div class="nb-help">${legend}</div>
-      <div class="sec-title">سلاح‌ها</div><div class="nb">${ws}</div>
-      <div class="sec-title">اتاق‌ها</div><div class="nb">${rs}</div>`;
+    return `<div class="nb-help">${t('لمس کن: ✕ = رد شد')} <i class="sep"></i> ${t('؟ = مشکوک')} <i class="sep"></i> ${t('دوباره = پاک')}</div>
+      <div class="sec-title">${t('مظنون‌ها')}</div><div class="nb">${suspects}</div><div class="nb-help">${legend}</div>
+      <div class="sec-title">${t('سلاح‌ها')}</div><div class="nb">${ws}</div>
+      <div class="sec-title">${t('اتاق‌ها')}</div><div class="nb">${rs}</div>`;
   }
 
   function tabRole() { return roleCard(); }
 
 
   // ------------------------------------------------------------ items mode («دست‌به‌دست»)
-  const shortName = (pid) => esc(pl(pid) ? pl(pid).name : '؟');
+  const shortName = (pid) => esc(pl(pid) ? pl(pid).name : t('؟'));
 
   function itemCard() {
     if (!ui.roleVisible) {
-      return `<button class="veil" data-act="showRole"><span class="big-ic">🤫</span>برای دیدن چیزی که دستت است لمس کن<br><span class="muted" style="font-weight:500;font-size:.9rem">مطمئن شو کسی گوشی‌ات را نمی‌بیند</span></button>`;
+      return `<button class="veil" data-act="showRole"><span class="big-ic">🤫</span>${t('برای دیدن چیزی که دستت است لمس کن')}<br><span class="muted" style="font-weight:500;font-size:.9rem">${t('مطمئن شو کسی گوشی‌ات را نمی‌بیند')}</span></button>`;
     }
     const killer = isKiller();
     const moved = me.item !== me.startItem;
     const secret = killer
-      ? `<div class="secret killer"><h4>🔪 تو قاتلی!</h4><p>شب را با چاقو شروع کردی. ${me.partners && me.partners.length
+      ? `<div class="secret killer"><h4>${t('🔪 تو قاتلی!')}</h4><p>${t('شب را با چاقو شروع کردی.')} ${me.partners && me.partners.length
         ? (me.partners.length > 1
-          ? `شریک‌های جرمت <b>${me.partners.map(shortName).join(' و ')}</b> هستند — آن‌ها هم تو را می‌شناسند.`
-          : `شریک جرمت <b>${shortName(me.partners[0])}</b> است — او هم تو را می‌شناسد.`)
-        : S.game.killerCount > 1 ? `${fa(S.game.killerCount - 1)} قاتل دیگر هم هست — اما نمی‌دانی کیست.` : ''}
-         کاری کن در رأی نهایی بیشترین رأی به تو نرسد. بگذار ردّ چاقو گم شود.</p></div>`
-      : `<div class="secret innocent"><h4>🕊️ تو بی‌گناهی</h4><p>شب را با ${itemTag(me.startItem)} شروع کردی.
-         بفهم چه کسی شب را با چاقو شروع کرد و در رأی نهایی همه با هم به او رأی بدهید.</p></div>`;
+          ? t('شریک‌های جرمت <b>{names}</b> هستند — آن‌ها هم تو را می‌شناسند.', { names: me.partners.map(shortName).join(t(' و ')) })
+          : t('شریک جرمت <b>{name}</b> است — او هم تو را می‌شناسد.', { name: shortName(me.partners[0]) }))
+        : S.game.killerCount > 1 ? t('{n} قاتل دیگر هم هست — اما نمی‌دانی کیست.', { n: S.game.killerCount - 1 }) : ''}
+         ${t('کاری کن در رأی نهایی بیشترین رأی به تو نرسد. بگذار ردّ چاقو گم شود.')}</p></div>`
+      : `<div class="secret innocent"><h4>${t('🕊️ تو بی‌گناهی')}</h4><p>${t('شب را با {item} شروع کردی.', { item: itemTag(me.startItem) })}
+         ${t('بفهم چه کسی شب را با چاقو شروع کرد و در رأی نهایی همه با هم به او رأی بدهید.')}</p></div>`;
     return `<div class="role-card item-card">
-      <div class="item-now"><div class="lbl">الان دستت است</div><div class="big flip">${art(me.item, true)}</div><div class="nm">${esc(item(me.item).name)}</div>
-        ${moved ? `<div class="was">شروع شب: ${itemTag(me.startItem)}</div>` : ''}</div>
+      <div class="item-now"><div class="lbl">${t('الان دستت است')}</div><div class="big flip">${art(me.item, true)}</div><div class="nm">${esc(item(me.item).name)}</div>
+        ${moved ? `<div class="was">${t('شروع شب:')} ${itemTag(me.startItem)}</div>` : ''}</div>
       <div class="role-body">${secret}
-      <div class="note">⚠️ نقشت را چیزِ <b>اولِ شب</b> تعیین می‌کند، نه چیزی که الان دستت است.</div>
-      <button class="btn ghost" data-act="hideRole">پنهان کن</button></div></div>`;
+      <div class="note">${t('⚠️ نقشت را چیزِ <b>اولِ شب</b> تعیین می‌کند، نه چیزی که الان دستت است.')}</div>
+      <button class="btn ghost" data-act="hideRole">${t('پنهان کن')}</button></div></div>`;
   }
 
   function noteText(n) {
-    const auto = n.auto ? ' <span class="muted">(وقت تمام شد؛ بازی خودش انتخاب کرد)</span>' : '';
+    const auto = n.auto ? ` <span class="muted">${t('(وقت تمام شد؛ بازی خودش انتخاب کرد)')}</span>` : '';
     switch (n.type) {
-      case 'start': return `شب را با ${itemTag(n.item)} شروع کردی.`;
-      case 'snoop': return `🕵️ سرک کشیدی: دستِ <b>${shortName(n.targetId)}</b> ${itemTag(n.item)} بود.${auto}`;
-      case 'swap': return `🔄 با <b>${shortName(n.targetId)}</b> معاوضه شدی: ${itemTag(n.gave)} دادی و ${itemTag(n.got)} گرفتی.${auto}`;
-      case 'steal': return `🫳 از <b>${shortName(n.targetId)}</b> دزدیدی: ${itemTag(n.got)} را برداشتی و ${itemTag(n.gave)} را جایش گذاشتی.${auto}`;
-      case 'shuffle': return `🔀 چیزهای <b>${shortName(n.a)}</b> و <b>${shortName(n.b)}</b> را با هم جابه‌جا کردی.${auto}`;
-      case 'changed': return `❗ چیزت عوض شد! ${itemTag(n.from)} رفت و ${itemTag(n.to)} آمد. نمی‌دانی کار چه کسی بود.`;
+      case 'start': return t('شب را با {item} شروع کردی.', { item: itemTag(n.item) });
+      case 'snoop': return t('🕵️ سرک کشیدی: دستِ <b>{name}</b> {item} بود.', { name: shortName(n.targetId), item: itemTag(n.item) }) + auto;
+      case 'swap': return t('🔄 با <b>{name}</b> معاوضه شدی: {gave} دادی و {got} گرفتی.', { name: shortName(n.targetId), gave: itemTag(n.gave), got: itemTag(n.got) }) + auto;
+      case 'steal': return t('🫳 از <b>{name}</b> دزدیدی: {got} را برداشتی و {gave} را جایش گذاشتی.', { name: shortName(n.targetId), gave: itemTag(n.gave), got: itemTag(n.got) }) + auto;
+      case 'shuffle': return t('🔀 چیزهای <b>{a}</b> و <b>{b}</b> را با هم جابه‌جا کردی.', { a: shortName(n.a), b: shortName(n.b) }) + auto;
+      case 'changed': return t('❗ چیزت عوض شد! {from} رفت و {to} آمد. نمی‌دانی کار چه کسی بود.', { from: itemTag(n.from), to: itemTag(n.to) });
       default: return '';
     }
   }
@@ -329,10 +332,10 @@
   function tabJournal() {
     if (!ui.roleVisible) return itemCard();
     store.set(journalKey(), me.notes.length);
-    return `<div class="sec-title">دفترچه‌ی مخفی</div>
-      <div class="nb-help">فقط تو این‌ها را می‌بینی. می‌توانی راستش را بگویی، پنهانش کنی، یا دروغ بگویی.</div>
-      ${me.notes.slice().reverse().map((n) => `<div class="jn ${n.type}"><span class="r">${n.round ? `دور ${fa(n.round)}` : 'شروع'}</span><p>${noteText(n)}</p></div>`).join('')}
-      <button class="btn ghost" data-act="hideRole">پنهان کن</button>`;
+    return `<div class="sec-title">${t('دفترچه‌ی مخفی')}</div>
+      <div class="nb-help">${t('فقط تو این‌ها را می‌بینی. می‌توانی راستش را بگویی، پنهانش کنی، یا دروغ بگویی.')}</div>
+      ${me.notes.slice().reverse().map((n) => `<div class="jn ${n.type}"><span class="r">${n.round ? t('دور {n}', { n: n.round }) : t('شروع')}</span><p>${noteText(n)}</p></div>`).join('')}
+      <button class="btn ghost" data-act="hideRole">${t('پنهان کن')}</button>`;
   }
 
   function tabTracker() {
@@ -340,59 +343,59 @@
     const mark = (k) => (nb[k] === 'x' ? '✕' : nb[k] === 'q' ? '🔪' : '');
     const rows = S.players.filter((p) => p.inGame).map((p) => {
       const k = `p:${p.id}`;
-      return `<button class="nb-row ${nb[k] || ''}" data-act="nb" data-k="${esc(k)}">${avatar(p)}<span class="nm">${esc(p.name)}${p.id === me.id ? '<small>(خودت)</small>' : ''}</span><span class="mark">${mark(k)}</span></button>`;
+      return `<button class="nb-row ${nb[k] || ''}" data-act="nb" data-k="${esc(k)}">${avatar(p)}<span class="nm">${esc(p.name)}${p.id === me.id ? `<small>${t('(خودت)')}</small>` : ''}</span><span class="mark">${mark(k)}</span></button>`;
     }).join('');
-    return `<div class="nb-help">لمس کن: 🔪 = فکر می‌کنم با چاقو شروع کرد <i class="sep"></i> ✕ = بی‌گناه <i class="sep"></i> دوباره = پاک</div>
-      <div class="sec-title">چه کسی شب را با چاقو شروع کرد؟</div><div class="nb">${rows}</div>
-      <div class="note">در این بازی ${fa(S.game.killerCount)} قاتل هست. چیزهای در بازی: ${S.game.items.map((x) => art(x)).join(' ')}</div>`;
+    return `<div class="nb-help">${t('لمس کن: 🔪 = فکر می‌کنم با چاقو شروع کرد')} <i class="sep"></i> ${t('✕ = بی‌گناه')} <i class="sep"></i> ${t('دوباره = پاک')}</div>
+      <div class="sec-title">${t('چه کسی شب را با چاقو شروع کرد؟')}</div><div class="nb">${rows}</div>
+      <div class="note">${t('در این بازی {n} قاتل هست. چیزهای در بازی:', { n: S.game.killerCount })} ${S.game.items.map((x) => art(x)).join(' ')}</div>`;
   }
 
   function secretBlock() {
-    const t = me.turn;
-    const a = C.secretActions[t.type];
-    const head = `<div class="secret-box"><div class="sb-head"><span class="sb-ic">${a.icon}</span><div><div class="sb-t">کار مخفی: ${esc(a.name)}</div><div class="sb-d">${esc(a.text)}</div></div></div>`;
-    if (t.done) {
+    const tn = me.turn;
+    const a = C.secretActions[tn.type];
+    const head = `<div class="secret-box"><div class="sb-head"><span class="sb-ic">${a.icon}</span><div><div class="sb-t">${t('کار مخفی: {name}', { name: esc(a.name) })}</div><div class="sb-d">${esc(a.text)}</div></div></div>`;
+    if (tn.done) {
       let body;
-      if (t.type === 'snoop' && t.result) body = `<div class="done-box"><b>دستِ ${shortName(t.result.targetId)}:</b><span class="big-item flip">${art(t.result.item, true)}</span> ${esc(item(t.result.item).name)}</div>`;
-      else body = '<div class="done-box"><b>✓ انجام شد</b>در پایان همین دور اعمال می‌شود. نتیجه در دفترچه‌ی مخفی‌ات می‌آید.</div>';
+      if (tn.type === 'snoop' && tn.result) body = `<div class="done-box"><b>${t('دستِ {name}:', { name: shortName(tn.result.targetId) })}</b><span class="big-item flip">${art(tn.result.item, true)}</span> ${esc(item(tn.result.item).name)}</div>`;
+      else body = `<div class="done-box"><b>${t('✓ انجام شد')}</b>${t('در پایان همین دور اعمال می‌شود. نتیجه در دفترچه‌ی مخفی‌ات می‌آید.')}</div>`;
       return `${head}${body}</div>`;
     }
-    const need = t.type === 'shuffle' ? 2 : t.type === 'swap' ? 0 : 1;
+    const need = tn.type === 'shuffle' ? 2 : tn.type === 'swap' ? 0 : 1;
     const ready = ui.secret.length === need;
-    const label = { snoop: 'سرک بکش', swap: 'معاوضه کن', steal: 'بدزد', shuffle: 'جابه‌جا کن' }[t.type];
-    const pickText = need === 2 ? `دو نفر را انتخاب کن (${fa(ui.secret.length)} از ۲)` : need === 1 ? 'یک نفر را انتخاب کن' : 'طرف معاوضه را بازی تصادفی انتخاب می‌کند.';
+    const label = t({ snoop: 'سرک بکش', swap: 'معاوضه کن', steal: 'بدزد', shuffle: 'جابه‌جا کن' }[tn.type]);
+    const pickText = need === 2 ? t('دو نفر را انتخاب کن ({n} از ۲)', { n: ui.secret.length }) : need === 1 ? t('یک نفر را انتخاب کن') : t('طرف معاوضه را بازی تصادفی انتخاب می‌کند.');
     return `${head}<div class="sub">${pickText}</div>${need ? playerList(ui.secret, 'secretPick') : ''}
       <button class="btn gold big" data-act="secretGo" ${ready ? '' : 'disabled'}>${a.icon} ${label}</button>
-      <div class="note warn">🤫 پنهانی! بقیه نباید بفهمند این دور کار مخفی به تو رسیده. بعدش به سؤال پایین هم جواب بده.</div></div>`;
+      <div class="note warn">${t('🤫 پنهانی! بقیه نباید بفهمند این دور کار مخفی به تو رسیده. بعدش به سؤال پایین هم جواب بده.')}</div></div>`;
   }
 
   function itActionIntro() {
-    return `<h2 class="prompt">آغاز شب</h2><p class="sub">قوانین روی تلویزیون است. این چیزی است که شب را با آن شروع می‌کنی:</p>${itemCard()}`;
+    return `<h2 class="prompt">${esc(C.itemPhaseTitles.intro)}</h2><p class="sub">${t('قوانین روی تلویزیون است. این چیزی است که شب را با آن شروع می‌کنی:')}</p>${itemCard()}`;
   }
 
   function itActionGossip() {
     let html = me.turn ? secretBlock() : '';
     html += `<h2 class="prompt">${esc(S.game.question)}</h2>
-      <p class="sub">${me.gossipAnswer ? `✓ جوابت: ${shortName(me.gossipAnswer)} — می‌توانی عوضش کنی.` : 'یک نفر را انتخاب کن.'}</p>
+      <p class="sub">${me.gossipAnswer ? t('✓ جوابت: {name} — می‌توانی عوضش کنی.', { name: shortName(me.gossipAnswer) }) : t('یک نفر را انتخاب کن.')}</p>
       ${playerList(me.gossipAnswer, 'answer')}`;
     return html;
   }
 
   function itActionGossipResult() {
     const fresh = unseenNotes();
-    return `<div class="tv-look"><div class="big-ic">📺</div><h2 class="prompt">به تلویزیون نگاه کن!</h2>
-      <p class="sub">${fresh ? `<b class="gold">چیز تازه‌ای در دفترچه‌ی مخفی‌ات هست.</b>` : 'جواب‌ها روی تلویزیون است.'}</p></div>`;
+    return `<div class="tv-look"><div class="big-ic">📺</div><h2 class="prompt">${t('به تلویزیون نگاه کن!')}</h2>
+      <p class="sub">${fresh ? `<b class="gold">${t('چیز تازه‌ای در دفترچه‌ی مخفی‌ات هست.')}</b>` : t('جواب‌ها روی تلویزیون است.')}</p></div>`;
   }
 
   function itActionDiscuss() {
-    return `<h2 class="prompt">گفت‌وگو</h2>
-      <p class="sub">بپرسید: «چه کسی اول چاقو داشت؟»، «کِی چیزت عوض شد؟»، «به چه کسی سرک کشیدی؟». دفترچه‌ی مخفی‌ات پایین است — راست بگو یا بلوف بزن.</p>`;
+    return `<h2 class="prompt">${esc(C.itemPhaseTitles.discuss)}</h2>
+      <p class="sub">${t('بپرسید: «چه کسی اول چاقو داشت؟»، «کِی چیزت عوض شد؟»، «به چه کسی سرک کشیدی؟». دفترچه‌ی مخفی‌ات پایین است — راست بگو یا بلوف بزن.')}</p>`;
   }
 
   function itActionFinal() {
-    return `<h2 class="prompt">رأی نهایی</h2>
-      <p class="sub">${isKiller() ? 'تو هم رأی می‌دهی. رأی را از خودت دور کن.' : 'به کسی رأی بده که فکر می‌کنی شب را با چاقو <b>شروع</b> کرد. رأی‌ها را پخش نکنید — تساوی یعنی بُرد قاتل‌ها.'}</p>
-      ${me.myFinal ? `<div class="done-box"><b>✓ رأی تو: ${shortName(me.myFinal)}</b>تا وقت تمام نشده می‌توانی عوضش کنی.</div>` : ''}
+    return `<h2 class="prompt">${esc(C.itemPhaseTitles.final)}</h2>
+      <p class="sub">${isKiller() ? t('تو هم رأی می‌دهی. رأی را از خودت دور کن.') : t('به کسی رأی بده که فکر می‌کنی شب را با چاقو <b>شروع</b> کرد. رأی‌ها را پخش نکنید — تساوی یعنی بُرد قاتل‌ها.')}</p>
+      ${me.myFinal ? `<div class="done-box"><b>${t('✓ رأی تو: {name}', { name: shortName(me.myFinal) })}</b>${t('تا وقت تمام نشده می‌توانی عوضش کنی.')}</div>` : ''}
       ${playerList(me.myFinal, 'accuse')}`;
   }
 
@@ -409,22 +412,23 @@
   function vipBar() {
     const bar = $('vipBar');
     const labels = itemsMode()
-      ? { intro: 'رد کردن مقدمه', gossip: 'پایان پچ‌پچ', gossipResult: 'ادامه', discuss: 'پایان گفت‌وگو', final: 'پایان رأی‌گیری', reveal: 'بعدی' }
-      : { intro: 'رد کردن مقدمه', search: 'پایان بازرسی', discuss: 'پایان گفت‌وگو', vote: 'پایان رأی‌گیری', spotlight: 'دور بعد', final: 'پایان اتهام', reveal: 'بعدی' };
+      ? { intro: t('رد کردن مقدمه'), gossip: t('پایان پچ‌پچ'), gossipResult: t('ادامه'), discuss: t('پایان گفت‌وگو'), final: t('پایان رأی‌گیری'), reveal: t('بعدی') }
+      : { intro: t('رد کردن مقدمه'), search: t('پایان بازرسی'), discuss: t('پایان گفت‌وگو'), vote: t('پایان رأی‌گیری'), spotlight: t('دور بعد'), final: t('پایان اتهام'), reveal: t('بعدی') };
     if (!me || !me.isVip || !labels[S.phase]) { bar.classList.add('hidden'); return; }
     bar.classList.remove('hidden');
     const confirming = ui.vipConfirm === S.phase;
-    const toResults = S.phase === 'reveal' ? '<button class="btn" data-act="vipSkipReveal">⏩ نتیجه</button>' : '';
-    setHTML(bar, `<span class="lbl">👑 میزبان</span><button class="btn ${confirming ? 'confirm' : ''}" data-act="vipSkip">${confirming ? 'مطمئنی؟ دوباره بزن' : `⏭ ${labels[S.phase]}`}</button>${toResults}`);
+    const toResults = S.phase === 'reveal' ? `<button class="btn" data-act="vipSkipReveal">${t('⏩ نتیجه')}</button>` : '';
+    setHTML(bar, `<span class="lbl">${t('👑 میزبان')}</span><button class="btn ${confirming ? 'confirm' : ''}" data-act="vipSkip">${confirming ? t('مطمئنی؟ دوباره بزن') : `⏭ ${labels[S.phase]}`}</button>${toResults}`);
   }
 
   function render() {
     if (!C || !S) return;
     const joined = !!me;
     $('join').classList.toggle('hidden', joined);
+    $('joinTitle').textContent = (S.settings.mode === 'items' ? C.itemsStory : C.story).title;
     $('game').classList.toggle('hidden', !joined);
     if (!joined) {
-      $('joinError').textContent = S.phase !== 'lobby' ? 'بازی در جریان است. صبر کن تا دور بعد شروع شود.' : '';
+      $('joinError').textContent = S.phase !== 'lobby' ? t('بازی در جریان است. صبر کن تا دور بعد شروع شود.') : '';
       return;
     }
 
@@ -445,24 +449,24 @@
 
     const meP = pl(me.id);
     const c = me.charId ? ch(me.charId) : null;
-    setHTML($('meChip'), `${avatar(meP)}<div style="min-width:0"><div class="t1">${esc(me.name)}${me.isVip ? ' 👑' : ''}</div><div class="t2">${c ? esc(c.name) : `${fa(meP ? meP.score : 0)} امتیاز`}</div></div>`);
+    setHTML($('meChip'), `${avatar(meP)}<div style="min-width:0"><div class="t1">${esc(me.name)}${me.isVip ? ' 👑' : ''}</div><div class="t2">${c ? esc(c.name) : t('{n} امتیاز', { n: meP ? meP.score : 0 })}</div></div>`);
     $('phPhase').textContent = phaseTitles()[S.phase] || '';
-    $('phRound').textContent = S.round ? `دور ${fa(S.round)} از ${fa(S.totalRounds)}` : '';
+    $('phRound').textContent = S.round ? t('دور {n} از {total}', { n: S.round, total: S.totalRounds }) : '';
 
     const playing = inGame();
-    setHTML($('action'), (playing || S.phase === 'lobby') ? (itemsMode() ? IT_ACTIONS : ACTIONS)[S.phase]() : '<p class="sub">بازی در جریان است…</p>');
+    setHTML($('action'), (playing || S.phase === 'lobby') ? (itemsMode() ? IT_ACTIONS : ACTIONS)[S.phase]() : `<p class="sub">${t('بازی در جریان است…')}</p>`);
 
     if (playing && S.phase !== 'intro' && itemsMode()) {
       if (!['item', 'journal', 'notes'].includes(ui.tab)) ui.tab = 'item';
       const body = ui.tab === 'notes' ? tabTracker() : ui.tab === 'journal' ? tabJournal() : itemCard();
       const fresh = unseenNotes();
-      setHTML($('tabs'), [['item', 'چیزِ من'], ['journal', `دفترچه‌ی مخفی${fresh ? `<span class="badge">${fa(fresh)}</span>` : ''}`], ['notes', 'ردیابی']]
+      setHTML($('tabs'), [['item', t('چیزِ من')], ['journal', `${t('دفترچه‌ی مخفی')}${fresh ? `<span class="badge">${num(fresh)}</span>` : ''}`], ['notes', t('ردیابی')]]
         .map(([k, l]) => `<button data-act="tab" data-id="${k}" class="${ui.tab === k ? 'sel' : ''}">${l}</button>`).join(''));
       setHTML($('tabBody'), body);
     } else if (playing && S.phase !== 'intro') {
       if (!['hand', 'notes', 'role'].includes(ui.tab)) ui.tab = 'hand';
       const fresh = me.hand.filter((x) => x.isNew).length;
-      setHTML($('tabs'), [['hand', `مدارک${fresh ? `<span class="badge">${fa(fresh)}</span>` : ''}`], ['notes', 'دفترچه'], ['role', 'نقش من']]
+      setHTML($('tabs'), [['hand', `${t('مدارک')}${fresh ? `<span class="badge">${num(fresh)}</span>` : ''}`], ['notes', t('دفترچه')], ['role', t('نقش من')]]
         .map(([k, l]) => `<button data-act="tab" data-id="${k}" class="${ui.tab === k ? 'sel' : ''}">${l}</button>`).join(''));
       setHTML($('tabBody'), ui.tab === 'notes' ? tabNotes() : ui.tab === 'role' ? tabRole() : tabHand());
       // Entrance animation once per card, applied to the DOM so the markup
@@ -548,10 +552,10 @@
   $('joinForm').addEventListener('submit', (e) => {
     e.preventDefault();
     const name = $('nameInput').value.trim();
-    if (!name) { $('joinError').textContent = 'اسمت را بنویس.'; return; }
+    if (!name) { $('joinError').textContent = t('اسمت را بنویس.'); return; }
     store.set('ziafat:name', name);
     socket.emit('player:join', { id: myId, name }, (res) => {
-      if (!res || !res.ok) $('joinError').textContent = (res && res.error) || 'خطا';
+      if (!res || !res.ok) $('joinError').textContent = (res && res.error) || t('خطا');
     });
   });
 
@@ -560,9 +564,11 @@
     socket.emit('player:hello', { id: myId }, () => {});
   });
   socket.on('disconnect', () => $('offline').classList.remove('hidden'));
-  socket.on('content', (c) => { C = c; render(); });
+  socket.on('content', (c) => { ALL = c; C = ALL[(S && S.lang) || 'fa']; render(); });
   socket.on('state', (s) => {
     S = s; me = s.me;
+    setLang(s.lang || 'fa');
+    if (ALL) C = ALL[s.lang || 'fa'];
     syncClock(s.serverNow); setTimer(s.timer);
     // When the final vote is already on the server, mirror it so "update" works.
     if (me && me.myFinal && S.phase === 'final' && S.mode !== 'items' && !ui.final.suspect) ui.final = { ...me.myFinal };

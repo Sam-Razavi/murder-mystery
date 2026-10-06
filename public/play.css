@@ -17,10 +17,10 @@ button { font-family: inherit; }
 .join-eyebrow { color: var(--gold); font-size: .95rem; }
 .join-title { font-size: 4.2rem; line-height: 1.05; margin: .4rem 0 .2rem; color: var(--gold-soft); text-shadow: 0 0 1.6rem rgba(217,164,65,.35), 0 .18rem 0 rgba(163,18,58,.7); }
 .join-tag { color: var(--pom-bright); font-size: 1.15rem; margin: 0 0 2.4rem; }
-.join form { display: grid; gap: .9rem; text-align: right; }
+.join form { display: grid; gap: .9rem; text-align: start; }
 .join label { font-weight: 700; color: var(--parchment); }
 .join input { font: inherit; font-size: 1.3rem; padding: .9rem 1rem; border-radius: .9rem; border: 2px solid rgba(240,208,138,.3);
-  background: rgba(29,16,24,.9); color: var(--text); outline: none; text-align: right; }
+  background: rgba(29,16,24,.9); color: var(--text); outline: none; text-align: start; }
 .join input:focus { border-color: var(--gold); }
 .error { color: var(--bad); min-height: 1.4rem; font-weight: 700; text-align: center; }
 
@@ -36,7 +36,7 @@ button { font-family: inherit; }
 .ph-phase .muted { font-size: .78rem; }
 .ph-timer { --p: 1; min-width: 3.1rem; height: 2.1rem; border-radius: 2rem; display: grid; place-items: center; font-family: var(--display); font-size: 1.15rem;
   background: rgba(240,208,138,.1); border: 1px solid rgba(240,208,138,.25); position: relative; overflow: hidden; }
-.ph-timer::before { content: ''; position: absolute; inset: 0 0 0 auto; width: calc(var(--p) * 100%); background: rgba(217,164,65,.22); }
+.ph-timer::before { content: ''; position: absolute; inset-block: 0; inset-inline-start: 0; width: calc(var(--p) * 100%); background: rgba(217,164,65,.22); }
 .ph-timer span { position: relative; padding: 0 .6rem; }
 .ph-timer.urgent { border-color: var(--pom-bright); color: #fff; }
 .ph-timer.urgent::before { background: rgba(224,51,92,.4); }
@@ -55,7 +55,7 @@ button { font-family: inherit; }
 .tv-look .big-ic { font-size: 3.4rem; }
 
 .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: .6rem; }
-.opt { appearance: none; font: inherit; color: var(--text); text-align: right; background: rgba(42,23,34,.9); border: 2px solid rgba(240,208,138,.16);
+.opt { appearance: none; font: inherit; color: var(--text); text-align: start; background: rgba(42,23,34,.9); border: 2px solid rgba(240,208,138,.16);
   border-radius: .9rem; padding: .8rem .85rem; display: flex; align-items: center; gap: .6rem; cursor: pointer; transition: transform .1s, border-color .15s; min-height: 3.6rem; }
 .opt:active { transform: scale(.97); }
 .opt .oi { font-size: 1.55rem; line-height: 1; }
@@ -104,7 +104,7 @@ button { font-family: inherit; }
 /* ---------- notebook ---------- */
 .nb { display: grid; gap: .45rem; }
 .nb-row { appearance: none; font: inherit; color: var(--text); display: flex; align-items: center; gap: .6rem; background: rgba(42,23,34,.85); border: 1px solid rgba(240,208,138,.12);
-  border-radius: .75rem; padding: .55rem .75rem; text-align: right; width: 100%; }
+  border-radius: .75rem; padding: .55rem .75rem; text-align: start; width: 100%; }
 .nb-row .avatar { width: 1.9rem; height: 1.9rem; font-size: .9rem; }
 .nb-row .nm { flex: 1; font-weight: 700; font-size: .98rem; }
 .nb-row .nm small { color: var(--muted); font-weight: 500; font-size: .8rem; margin-inline-start: .3rem; }
@@ -200,3 +200,9 @@ button { font-family: inherit; }
 .opt .oi .art, .nb-row .oi .art { width: 1.3em; height: 1.3em; vertical-align: -.25em; }
 .trait .art, .opt .os .art, .nb-row .ti .art, .nb-help .art { width: 1.35em; height: 1.35em; vertical-align: -.35em; }
 .pt-opt .art { width: 82%; height: 82%; display: block; margin: auto; }
+
+/* Long phase titles (English) shrink before the player's name does. */
+.ph-top { grid-template-columns: minmax(6rem, 1fr) minmax(0, auto) auto; }
+.ph-phase { min-width: 0; }
+.ph-phase .display { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+[dir="ltr"] .ph-phase .display { font-size: 1.15rem; }

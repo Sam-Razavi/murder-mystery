@@ -1,7 +1,10 @@
 // Plays many random «دست‌به‌دست» (items mode) games against the engine and checks invariants.
 // Run: node test/items.js
 const { Game } = require('../game');
-const C = require('../content');
+const CF = require('../content');
+const CE = require('../content.en');
+const PERSIAN = /[\u0600-\u06FF]/;
+let C = CF;
 const { killersFor } = require('../items');
 
 let pass = 0;
@@ -17,7 +20,8 @@ const sorted = (o) => Object.values(o).slice().sort().join(',');
 const shuffleArr = (a) => a.map((x) => [Math.random(), x]).sort((p, q) => p[0] - q[0]).map((p) => p[1]);
 const KNIFE = C.KNIFE.id;
 
-async function playOne(n) {
+async function playOne(n, lang = 'fa') {
+  C = lang === 'en' ? CE : CF;
   const game = new Game({ timeScale: 1000, minPlayers: 4, durations: { gossipResult: 5000 } });
   const ids = Array.from({ length: n }, (_, i) => `p${i}`);
   ids.forEach((id, i) => game.join(id, `Bot${i}`));
@@ -34,10 +38,12 @@ async function playOne(n) {
   check(`[${n}] quiet rounds setting`, game.setSetting('p0', 'quietRounds', String(quiet)).ok && game.settings.quietRounds === quiet);
   check(`[${n}] killers-know setting`, game.setSetting('p0', 'killersKnow', know).ok && game.settings.killersKnow === know);
   check(`[${n}] bad boolean rejected`, !game.setSetting('p0', 'killersKnow', 'yes').ok);
+  if (lang === 'en') check(`[${n}] set English`, game.setSetting('p0', 'lang', 'en').ok);
   ids.forEach((id) => game.setReady(id, true));
   check(`[${n}] start ok`, game.start('p0').ok);
   check(`[${n}] cannot change mode mid-game`, !game.setSetting('p0', 'mode', 'classic').ok);
 
+  if (lang === 'en') check(`[${n}] English not settable by non-host`, !game.setSetting('p1', 'lang', 'en').ok);
   const g = game.g;
   const k = killersFor(n);
   check(`[${n}] killer count`, g.killers.length === k && k === (n === 4 ? 1 : n <= 8 ? 2 : 3));
@@ -56,6 +62,10 @@ async function playOne(n) {
   const leakCheck = (label) => {
     const pub = JSON.stringify(game.publicState());
     check(`[${n}] ${label}: public hides holdings/roles`, !/"(killers|start|hold|finalHold|turn|turns|actorId|answers|partners)"/.test(pub));
+    if (lang === 'en') {
+      const all = JSON.stringify([game.publicState(), ...ids.map((id) => game.privateState(id))]);
+      check(`[${n}] en ${label}: no Persian`, !PERSIAN.test(all));
+    }
   };
   leakCheck('intro');
   check(`[${n}] public knows killer count`, game.publicState().game.killerCount === k);
@@ -199,6 +209,7 @@ async function playOne(n) {
   res.points.forEach((p) => check(`[${n}] breakdown sums`, p.total === p.breakdown.reduce((s, b) => s + b.pts, 0)));
   check(`[${n}] scores applied`, game.players.reduce((s, p) => s + p.score, 0) === res.points.reduce((s, p) => s + p.total, 0));
   check(`[${n}] every phone gets its points`, ids.every((id) => game.privateState(id).myPoints));
+  if (lang === 'en') check(`[${n}] en results: no Persian`, !PERSIAN.test(JSON.stringify([game.publicState(), ...ids.map((id) => game.privateState(id))])));
 
   check(`[${n}] play again stays in items mode`, game.start('p0').ok && game.g.mode === 'items');
   game.dispose();
@@ -229,7 +240,7 @@ function verdictCases() {
   let games = 0;
   for (let i = 0; i < 25; i++) {
     for (const n of [4, 5, 6, 7, 8, 9, 10, 11, 12]) {
-      if (await playOne(n)) innocentWins += 1;
+      if (await playOne(n, i % 2 ? 'en' : 'fa')) innocentWins += 1;
       games += 1;
     }
   }

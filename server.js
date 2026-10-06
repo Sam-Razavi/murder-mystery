@@ -6,6 +6,8 @@ const { Server } = require('socket.io');
 const QRCode = require('qrcode');
 const { Game } = require('./game');
 const C = require('./content');
+const CE = require('./content.en');
+const { tr } = require('./public/i18n');
 
 const PORT = Number(process.env.PORT) || 3100;
 const TIME_SCALE = Number(process.env.TIME_SCALE) || 1; // >1 = faster clock (testing)
@@ -46,12 +48,15 @@ const playerSockets = new Map();
 
 const game = new Game({ timeScale: TIME_SCALE, minPlayers: MIN_PLAYERS, onChange: broadcast });
 
-const CONTENT = {
-  story: C.STORY, traits: C.TRAITS, characters: C.CHARACTERS,
-  weapons: C.WEAPONS, rooms: C.ROOMS, phaseTitles: C.PHASE_TITLES, hallwayNote: C.HALLWAY_NOTE, joinUrl: JOIN_URL,
-  modes: C.MODES, itemsStory: C.ITEMS_STORY, items: [C.KNIFE, ...C.ITEMS], knifeId: C.KNIFE.id,
-  secretActions: C.SECRET_ACTIONS, itemPhaseTitles: C.ITEM_PHASE_TITLES, portraits: C.PORTRAITS,
-};
+// Story content for the screens, in both languages: { fa: {...}, en: {...} }.
+// Each screen picks the bundle matching state.lang.
+const bundle = (L) => ({
+  story: L.STORY, traits: L.TRAITS, characters: L.CHARACTERS,
+  weapons: L.WEAPONS, rooms: L.ROOMS, phaseTitles: L.PHASE_TITLES, hallwayNote: L.HALLWAY_NOTE, joinUrl: JOIN_URL,
+  modes: L.MODES, itemsStory: L.ITEMS_STORY, items: [L.KNIFE, ...L.ITEMS], knifeId: L.KNIFE.id,
+  secretActions: L.SECRET_ACTIONS, itemPhaseTitles: L.ITEM_PHASE_TITLES, portraits: L.PORTRAITS,
+});
+const CONTENT = { fa: bundle(C), en: bundle(CE) };
 
 let broadcastQueued = false;
 function broadcast() {
@@ -98,7 +103,7 @@ io.on('connection', (socket) => {
   });
 
   socket.on('player:join', ({ id, name } = {}, cb) => {
-    if (!id || typeof id !== 'string' || id.length > 64) return reply(cb, { ok: false, error: 'شناسه نامعتبر.' });
+    if (!id || typeof id !== 'string' || id.length > 64) return reply(cb, { ok: false, error: tr(game.lang(), 'شناسه نامعتبر.') });
     const result = game.join(id, name);
     if (result.ok) {
       socket.leave('guests');
@@ -111,12 +116,12 @@ io.on('connection', (socket) => {
   });
 
   const guarded = (fn) => (payload, cb) => {
-    if (!playerId) return reply(cb, { ok: false, error: 'اول وارد بازی شو.' });
+    if (!playerId) return reply(cb, { ok: false, error: tr(game.lang(), 'اول وارد بازی شو.') });
     try {
       reply(cb, fn(payload || {}));
     } catch (err) {
       console.error(err);
-      reply(cb, { ok: false, error: 'خطای سرور.' });
+      reply(cb, { ok: false, error: tr(game.lang(), 'خطای سرور.') });
     }
   };
 
