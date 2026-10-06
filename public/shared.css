@@ -75,3 +75,23 @@ body {
 @keyframes pulse { 0%, 100% { box-shadow: 0 0 0 0 rgba(224, 51, 92, .45); } 50% { box-shadow: 0 0 0 12px rgba(224, 51, 92, 0); } }
 /* Emoji portraits sit a little smaller than letters inside the same circle. */
 .avatar.pt { font-size: .82em; line-height: 1; }
+
+/* ---------- item art (public/art.js) ---------- */
+.art { width: 1.25em; height: 1.25em; display: inline-block; vertical-align: -.3em; overflow: visible; }
+.art * { transform-box: fill-box; }
+.art.anim .a-flame { transform-origin: 50% 100%; animation: art-flame 1.3s ease-in-out infinite; }
+.art.anim .a-glow { transform-origin: center; animation: art-glow 1.3s ease-in-out infinite; }
+.art.anim .a-steam { animation: art-steam 2.8s ease-in infinite; }
+.art.anim .a-steam.d2 { animation-delay: 1.4s; }
+.art.anim .a-glint { animation: art-glint 3.6s ease-in-out infinite; }
+.art.anim .a-shine { animation: art-shine 3s ease-in-out infinite; }
+.art.anim .a-sway { transform-origin: 50% 0%; animation: art-sway 3.4s ease-in-out infinite; }
+.art.anim .a-blink { animation: art-blink 1.8s steps(1) infinite; }
+@keyframes art-flame { 0%, 100% { transform: scale(1, 1) rotate(0); } 30% { transform: scale(.92, 1.08) rotate(-3deg); } 60% { transform: scale(1.06, .95) rotate(2deg); } }
+@keyframes art-glow { 0%, 100% { opacity: .9; } 50% { opacity: .55; } }
+@keyframes art-steam { 0% { transform: translateY(6px); opacity: 0; } 30% { opacity: .75; } 100% { transform: translateY(-8px); opacity: 0; } }
+@keyframes art-glint { 0%, 55% { transform: skewX(-25deg) translateX(0); } 85%, 100% { transform: skewX(-25deg) translateX(80px); } }
+@keyframes art-shine { 0%, 100% { opacity: .85; } 50% { opacity: .25; } }
+@keyframes art-sway { 0%, 100% { transform: rotate(-4deg); } 50% { transform: rotate(4deg); } }
+@keyframes art-blink { 0%, 60% { opacity: 1; } 61%, 100% { opacity: 0; } }
+@media (prefers-reduced-motion: reduce) { .art.anim * { animation: none !important; } }

@@ -64,6 +64,8 @@
   const weapon = (id) => C.weapons.find((w) => w.id === id);
   const room = (id) => C.rooms.find((r) => r.id === id);
   const item = (id) => C.items.find((x) => x.id === id) || { icon: '❔', name: '؟' };
+  // Illustrated item (public/art.js); `anim` only on big displays.
+  const art = (id, anim = false) => (window.Art && Art.has(id) ? Art.item(id, { anim, title: item(id).name }) : item(id).icon);
   const itemsMode = () => S && S.mode === 'items';
   const SEAT_COLORS = ['#c9a227', '#e0335c', '#2fb3a6', '#7b6fd0', '#d77ab3', '#6a9a4b', '#d9823b', '#4a9fb5'];
   const KIND_ICON = { weapon: '🗡️', room: '🚪', trait: '🔍', alibi: '🕰️', motive: '✉️' };
@@ -297,8 +299,8 @@
 
   // ------------------------------------------------------------ items mode («دست‌به‌دست»)
   const name = (pid) => esc(pl(pid) ? pl(pid).name : '؟');
-  const itemChip = (id) => `<span class="itm-chip">${item(id).icon} ${esc(item(id).name)}</span>`;
-  const itemsInPlay = () => `<div class="box"><h3>چیزهای در بازی</h3><div class="itm-row">${S.game.items.map((x) => `<span title="${esc(item(x).name)}">${item(x).icon}</span>`).join('')}</div>
+  const itemChip = (id) => `<span class="itm-chip">${art(id)} ${esc(item(id).name)}</span>`;
+  const itemsInPlay = () => `<div class="box"><h3>چیزهای در بازی</h3><div class="itm-row">${S.game.items.map((x) => `<span title="${esc(item(x).name)}">${art(x)}</span>`).join('')}</div>
     <p class="small">${fa(S.game.killerCount)} قاتل <i class="sep"></i> فقط چاقو تکراری است</p></div>`;
 
   // Hidden when quiet rounds are on: the count would show which rounds were quiet.
@@ -322,7 +324,7 @@
     return `<section class="it-intro stage-in">
       <div class="story">${C.itemsStory.intro.map((l, i) => `<p style="animation-delay:${i * 0.35}s">${esc(l)}</p>`).join('')}</div>
       <div class="it-cols">
-        <div class="box"><h3>امشب</h3><div class="itm-row big">${S.game.items.map((x) => `<span>${item(x).icon}</span>`).join('')}</div>
+        <div class="box"><h3>امشب</h3><div class="itm-row big">${S.game.items.map((x, i) => `<span style="animation-delay:${0.6 + i * 0.08}s">${art(x, true)}</span>`).join('')}</div>
           <p class="lead">${fa(S.players.filter((p) => p.inGame).length)} نفر <i class="sep"></i> <b class="pom">${fa(S.game.killerCount)} چاقو = ${fa(S.game.killerCount)} قاتل</b></p></div>
         <div class="box"><h3>کارهای مخفی</h3><div class="acts">${actionCards()}</div></div>
       </div>
@@ -404,7 +406,7 @@
     else if (e.type === 'swap') what = `با <b>${name(e.targets[0])}</b> معاوضه شد`;
     else if (e.type === 'steal') what = `از <b>${name(e.targets[0])}</b> دزدید`;
     else what = `چیزهای <b>${name(e.targets[0])}</b> و <b>${name(e.targets[1])}</b> را جابه‌جا کرد`;
-    const moves = e.moves.map((m) => `<span class="mv">${name(m.playerId)}: ${item(m.from).icon} ← ${item(m.to).icon}</span>`).join('');
+    const moves = e.moves.map((m) => `<span class="mv">${name(m.playerId)}: ${art(m.from)} ← ${art(m.to)}</span>`).join('');
     return `<div class="li tl ${e.moves.some((m) => m.from === C.knifeId || m.to === C.knifeId) ? 'fake' : ''}">
       <span class="ok">${a.icon}</span>
       <div><div class="main"><b>${name(e.actorId)}</b> ${what}${e.auto ? ' <span class="muted">(خودکار)</span>' : ''}</div>
@@ -446,8 +448,8 @@
         ${itVerdict(r)}`;
     } else {
       const ids = S.players.filter((p) => p.inGame).map((p) => p.id);
-      const startRow = ids.map((id) => `<span class="st ${r.start[id] === C.knifeId ? 'k' : ''}">${name(id)} ${item(r.start[id]).icon}</span>`).join('');
-      const endRow = ids.map((id) => `<span class="st ${r.finalHold[id] === C.knifeId ? 'k' : ''}">${name(id)} ${item(r.finalHold[id]).icon}</span>`).join('');
+      const startRow = ids.map((id) => `<span class="st ${r.start[id] === C.knifeId ? 'k' : ''}">${name(id)} ${art(r.start[id])}</span>`).join('');
+      const endRow = ids.map((id) => `<span class="st ${r.finalHold[id] === C.knifeId ? 'k' : ''}">${name(id)} ${art(r.finalHold[id])}</span>`).join('');
       inner = `${itMini(r)}<h2 class="h-big">ردّ چاقو</h2>
         <div class="timeline"><div class="tl-row"><b>شروع شب</b>${startRow}</div>
         <div class="list">${roundsOf(r.log).map(([round, es]) => `<div class="tl-round"><span class="rn">دور ${fa(round)}</span>
@@ -481,6 +483,27 @@
     discuss: itViewDiscuss, final: itViewFinal, reveal: itViewReveal, results: viewResults,
   };
 
+  // Title card shown on the curtain when a new phase starts.
+  function curtainText() {
+    const title = (itemsMode() ? C.itemPhaseTitles : C.phaseTitles)[S.phase] || '';
+    const round = S.round ? `دور ${fa(S.round)} از ${fa(S.totalRounds)}` : '';
+    const story = itemsMode() ? C.itemsStory : C.story;
+    switch (S.phase) {
+      case 'intro': return [story.title, story.subtitle];
+      case 'discuss': return [title, itemsMode() ? 'چه کسی شب را با چاقو شروع کرد؟' : round];
+      case 'spotlight': return [title, plainWho(S.game.spotlight.playerId)];
+      case 'final': return [title, 'آخرین فرصت'];
+      case 'reveal': return [title, 'حقیقت آشکار می‌شود…'];
+      case 'results': return [title, ''];
+      default: return [title, round];
+    }
+  }
+  // No curtain for the lobby, the very first paint, the short gossip result,
+  // or the steps inside the reveal (those have their own staging).
+  const wantsCurtain = (firstPaint) => !Scene.reduced && !firstPaint && S.phase !== 'lobby' && S.phase !== 'gossipResult'
+    && !(S.phase === 'reveal' && S.game.revealStep > 0);
+  let replayEntrance = false;
+
   function render() {
     if (!C || !S) return;
     const key = `${S.phase}:${S.round}:${S.game ? S.game.revealStep : ''}:${S.game && S.game.spotlight ? S.game.spotlight.playerId : ''}`;
@@ -494,7 +517,19 @@
       : '';
 
     stage.innerHTML = (itemsMode() ? IT_VIEWS : VIEWS)[S.phase]();
-    stage.classList.toggle('settled', !phaseChanged);
+    stage.classList.toggle('settled', !phaseChanged && !replayEntrance);
+    if (phaseChanged && wantsCurtain(lastKey === '')) {
+      // Hide the new screen behind the drapes, then repaint it as they part
+      // so its entrance animations play in view.
+      stage.classList.add('behind');
+      Scene.transition(...curtainText(), () => {
+        stage.classList.remove('behind');
+        replayEntrance = true;
+        render();
+        replayEntrance = false;
+      });
+    }
+    Scene.setDim(S.phase === 'reveal' || S.phase === 'results');
     // Big tables (9–12) switch the TV to a denser layout.
     const tableSize = S.phase === 'lobby' ? Math.max(S.players.length, S.modeMax) : S.players.filter((p) => p.inGame).length;
     $('app').classList.toggle('many', tableSize > 8);

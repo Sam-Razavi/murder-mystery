@@ -327,3 +327,63 @@ ul.small { list-style: none; padding: 0; display: grid; gap: .35rem; line-height
 .many .reveal-inner.wide .h-big { font-size: 2.6rem; }
 .many .seat > div { min-width: 0; }
 .many .seat .tag { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+/* ---------- living backdrop (public/scene.js) ---------- */
+.tv.backdrop { background: transparent; position: relative; z-index: 1; }
+.scene { position: fixed; inset: 0; z-index: 0; overflow: hidden; pointer-events: none; }
+.scene .sky { position: absolute; inset: 0;
+  background:
+    radial-gradient(ellipse 60% 50% at 75% 0%, rgba(224, 51, 92, .16), transparent 70%),
+    radial-gradient(ellipse 50% 45% at 10% 100%, rgba(217, 164, 65, .12), transparent 70%),
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120' viewBox='0 0 120 120'%3E%3Cg fill='none' stroke='%23d9a441' stroke-opacity='0.05' stroke-width='1.2'%3E%3Cpath d='M60 8l14 34 34 14-34 14-14 34-14-34-34-14 34-14z'/%3E%3Cpath d='M60 30l9 21 21 9-21 9-9 21-9-21-21-9 21-9z'/%3E%3C/g%3E%3C/svg%3E"),
+    linear-gradient(#08040b 0%, #140913 55%, #24101b 100%); }
+.scene .moon { position: absolute; top: 15vh; left: 33vw; width: 5.4vw; height: 5.4vw; border-radius: 50%; opacity: .72;
+  background: radial-gradient(circle at 38% 36%, #fff8e6 0%, #f0d08a 55%, #c9923a 100%);
+  box-shadow: 0 0 3vw 1vw rgba(240, 208, 138, .28), 0 0 9vw 3vw rgba(240, 208, 138, .1); animation: moon-glow 9s ease-in-out infinite; transition: opacity 1s; }
+.scene .sky-canvas { position: absolute; inset: 0; width: 100%; height: 100%; }
+.scene .skyline { position: absolute; left: 0; right: 0; bottom: 0; height: 34vh; transition: opacity 1s; }
+.scene .skyline svg { width: 100%; height: 100%; display: block; }
+.manor .body { fill: #0b060d; }
+.manor .iwan { fill: #150a13; }
+.manor .slits rect { fill: #f0b54a; opacity: .2; }
+.manor .lit .win { fill: #f0b54a; opacity: .5; filter: drop-shadow(0 0 6px rgba(240, 181, 74, .85)); animation: win-flicker 5.5s ease-in-out infinite; }
+.manor .lit .door { opacity: .42; }
+.scene .haze { position: absolute; left: 0; right: 0; bottom: 0; height: 42vh; background: linear-gradient(to top, rgba(18, 9, 15, .82), rgba(18, 9, 15, .3) 55%, transparent); }
+.scene.dim .skyline { opacity: .35; }
+.scene.dim .moon { opacity: .25; }
+@keyframes win-flicker { 0%, 100% { opacity: .5; } 38% { opacity: .32; } 42% { opacity: .58; } 70% { opacity: .42; } }
+@keyframes moon-glow { 0%, 100% { box-shadow: 0 0 3vw 1vw rgba(240, 208, 138, .28), 0 0 9vw 3vw rgba(240, 208, 138, .1); } 50% { box-shadow: 0 0 3.6vw 1.3vw rgba(240, 208, 138, .36), 0 0 10vw 3.5vw rgba(240, 208, 138, .14); } }
+
+/* ---------- curtain transition between phases ---------- */
+.curtain { position: fixed; inset: 0; z-index: 50; pointer-events: none; visibility: hidden; overflow: hidden; }
+.curtain.play { visibility: visible; }
+.curtain .drape { position: absolute; top: 0; bottom: 0; width: 50.5vw;
+  background:
+    linear-gradient(to bottom, transparent 92%, rgba(0, 0, 0, .35)),
+    repeating-linear-gradient(90deg, #5c0820 0 1.1vw, #8f1034 1.1vw 2.6vw, #b5173f 2.6vw 3.2vw, #8f1034 3.2vw 4.2vw, #5c0820 4.2vw 5.2vw); }
+.curtain .drape::after { content: ''; position: absolute; left: 0; right: 0; bottom: 0; height: 2.2vh;
+  background: repeating-linear-gradient(90deg, #d9a441 0 .45vw, #8a5d1a .45vw .7vw); box-shadow: 0 -.25vh 0 #f0d08a; }
+.curtain .drape.l { left: 0; transform: translateX(-102%); box-shadow: inset -2.5vw 0 3vw rgba(0, 0, 0, .55); }
+.curtain .drape.r { right: 0; transform: translateX(102%); box-shadow: inset 2.5vw 0 3vw rgba(0, 0, 0, .55); }
+.curtain.play .drape.l { animation: drape-l 1.9s cubic-bezier(.6, 0, .3, 1) both; }
+.curtain.play .drape.r { animation: drape-r 1.9s cubic-bezier(.6, 0, .3, 1) both; }
+@keyframes drape-l { 0% { transform: translateX(-102%); } 22%, 60% { transform: translateX(0); } 100% { transform: translateX(-102%); } }
+@keyframes drape-r { 0% { transform: translateX(102%); } 22%, 60% { transform: translateX(0); } 100% { transform: translateX(102%); } }
+.curtain .cur-card { position: absolute; inset: 0; display: grid; place-content: center; justify-items: center; gap: .8rem; text-align: center; opacity: 0; }
+.curtain.play .cur-card { animation: curtain-card 1.9s ease both; }
+@keyframes curtain-card { 0%, 16% { opacity: 0; transform: scale(.92); } 28%, 56% { opacity: 1; transform: scale(1); } 66%, 100% { opacity: 0; transform: scale(1.04); } }
+.curtain .t { font-family: var(--display); font-size: 6.4rem; line-height: 1.1; color: var(--gold-soft);
+  text-shadow: 0 0 2.4rem rgba(240, 208, 138, .45), 0 .3rem 0 rgba(42, 20, 24, .8); }
+.curtain .s { font-size: 1.8rem; color: var(--parchment); min-height: 1rem; }
+.curtain .orn { width: 26rem; height: 1.4rem; position: relative;
+  background: linear-gradient(90deg, transparent, var(--gold) 20%, var(--gold) 80%, transparent) center / 100% 2px no-repeat; }
+.curtain .orn::before { content: ''; position: absolute; left: 50%; top: 50%; width: 1rem; height: 1rem; background: var(--gold);
+  transform: translate(-50%, -50%) rotate(45deg); box-shadow: 0 0 0 .3rem rgba(18, 9, 15, .9), 0 0 0 .45rem var(--gold); }
+#stage.behind { visibility: hidden; }
+
+/* ---------- item illustrations on the TV ---------- */
+.itm-row .art { width: 1.15em; height: 1.15em; }
+.itm-row.big .art { width: 1.35em; height: 1.35em; }
+.itm-row.big span { display: inline-block; animation: pop .6s ease both; filter: drop-shadow(0 .4rem .6rem rgba(0, 0, 0, .45)); }
+.many .itm-row.big { font-size: 3.2rem; }
+.itm-chip .art, .st .art, .mv .art { width: 1.6em; height: 1.6em; vertical-align: -.45em; }

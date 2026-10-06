@@ -28,7 +28,9 @@
   const room = (id) => C.rooms.find((r) => r.id === id);
   const weapon = (id) => C.weapons.find((w) => w.id === id);
   const item = (id) => C.items.find((x) => x.id === id) || { icon: '❔', name: '؟' };
-  const itemTag = (id) => `<b class="itm">${item(id).icon} ${esc(item(id).name)}</b>`;
+  // Illustrated item (public/art.js); `anim` only on big displays.
+  const art = (id, anim = false) => (window.Art && Art.has(id) ? Art.item(id, { anim, title: item(id).name }) : item(id).icon);
+  const itemTag = (id) => `<b class="itm">${art(id)} ${esc(item(id).name)}</b>`;
   const itemsMode = () => S && S.mode === 'items';
   const phaseTitles = () => (itemsMode() ? C.itemPhaseTitles : C.phaseTitles);
   const SEAT_COLORS = ['#c9a227', '#e0335c', '#2fb3a6', '#7b6fd0', '#d77ab3', '#6a9a4b', '#d9823b', '#4a9fb5'];
@@ -296,7 +298,7 @@
       : `<div class="secret innocent"><h4>🕊️ تو بی‌گناهی</h4><p>شب را با ${itemTag(me.startItem)} شروع کردی.
          بفهم چه کسی شب را با چاقو شروع کرد و در رأی نهایی همه با هم به او رأی بدهید.</p></div>`;
     return `<div class="role-card item-card">
-      <div class="item-now"><div class="lbl">الان دستت است</div><div class="big">${item(me.item).icon}</div><div class="nm">${esc(item(me.item).name)}</div>
+      <div class="item-now"><div class="lbl">الان دستت است</div><div class="big flip">${art(me.item, true)}</div><div class="nm">${esc(item(me.item).name)}</div>
         ${moved ? `<div class="was">شروع شب: ${itemTag(me.startItem)}</div>` : ''}</div>
       <div class="role-body">${secret}
       <div class="note">⚠️ نقشت را چیزِ <b>اولِ شب</b> تعیین می‌کند، نه چیزی که الان دستت است.</div>
@@ -337,7 +339,7 @@
     }).join('');
     return `<div class="nb-help">لمس کن: 🔪 = فکر می‌کنم با چاقو شروع کرد <i class="sep"></i> ✕ = بی‌گناه <i class="sep"></i> دوباره = پاک</div>
       <div class="sec-title">چه کسی شب را با چاقو شروع کرد؟</div><div class="nb">${rows}</div>
-      <div class="note">در این بازی ${fa(S.game.killerCount)} قاتل هست. چیزهای در بازی: ${S.game.items.map((x) => item(x).icon).join(' ')}</div>`;
+      <div class="note">در این بازی ${fa(S.game.killerCount)} قاتل هست. چیزهای در بازی: ${S.game.items.map((x) => art(x)).join(' ')}</div>`;
   }
 
   function secretBlock() {
@@ -346,7 +348,7 @@
     const head = `<div class="secret-box"><div class="sb-head"><span class="sb-ic">${a.icon}</span><div><div class="sb-t">کار مخفی: ${esc(a.name)}</div><div class="sb-d">${esc(a.text)}</div></div></div>`;
     if (t.done) {
       let body;
-      if (t.type === 'snoop' && t.result) body = `<div class="done-box"><b>دستِ ${shortName(t.result.targetId)}:</b><span class="big-item">${item(t.result.item).icon}</span> ${esc(item(t.result.item).name)}</div>`;
+      if (t.type === 'snoop' && t.result) body = `<div class="done-box"><b>دستِ ${shortName(t.result.targetId)}:</b><span class="big-item flip">${art(t.result.item, true)}</span> ${esc(item(t.result.item).name)}</div>`;
       else body = '<div class="done-box"><b>✓ انجام شد</b>در پایان همین دور اعمال می‌شود. نتیجه در دفترچه‌ی مخفی‌ات می‌آید.</div>';
       return `${head}${body}</div>`;
     }
@@ -536,6 +538,7 @@
     if (fn) fn(el);
   });
 
+  if (window.Art) $('join').insertAdjacentHTML('beforeend', `<div class="join-skyline" aria-hidden="true">${window.Art.mansion()}</div>`);
   $('nameInput').value = store.get('ziafat:name', '') || '';
   $('joinForm').addEventListener('submit', (e) => {
     e.preventDefault();

@@ -177,3 +177,21 @@ button { font-family: inherit; }
 .pt-opt { appearance: none; font-size: 1.5rem; line-height: 1; aspect-ratio: 1; border-radius: .7rem; border: 2px solid rgba(240,208,138,.16); background: rgba(42,23,34,.9); padding: 0; }
 .pt-opt.sel { border-color: var(--gold); background: rgba(217,164,65,.22); }
 .pt-opt:disabled { opacity: .2; }
+
+/* ---------- item illustrations on the phone ---------- */
+.item-now { perspective: 40rem; }
+.item-now .big .art { width: 1.1em; height: 1.1em; filter: drop-shadow(0 .4rem .8rem rgba(0, 0, 0, .5)); }
+.big-item .art { width: 1.1em; height: 1.1em; }
+.flip { display: inline-block; animation: card-flip .75s cubic-bezier(.2, .8, .3, 1.2) both; }
+@keyframes card-flip { 0% { transform: rotateY(90deg) scale(.8); opacity: 0; } 60% { opacity: 1; } 100% { transform: rotateY(0) scale(1); } }
+.itm .art, .jn .art { width: 1.35em; height: 1.35em; vertical-align: -.35em; }
+@media (prefers-reduced-motion: reduce) { .flip { animation: none; } }
+
+/* mansion skyline under the join form */
+.join-skyline { margin: 2.4rem -1.4rem -2rem; height: 9rem; position: relative; }
+.join-skyline svg { width: 100%; height: 100%; display: block; }
+.join-skyline .manor .body { fill: #0b060d; }
+.join-skyline .manor .iwan { fill: #150a13; }
+.join-skyline .manor .slits rect { fill: #f0b54a; opacity: .2; }
+.join-skyline .manor .lit .win { fill: #f0b54a; opacity: .55; animation: join-win 5.5s ease-in-out infinite; }
+@keyframes join-win { 0%, 100% { opacity: .55; } 40% { opacity: .3; } 45% { opacity: .62; } }
