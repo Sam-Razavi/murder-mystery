@@ -2,6 +2,7 @@
 // The server calls the action methods and re-broadcasts on onChange().
 
 const C = require('./content');
+const Items = require('./items');
 
 const TOTAL_ROUNDS = 3;
 
@@ -12,7 +13,11 @@ const DEFAULT_DURATIONS = {
   spotlight: 35,
   final: 90,
   revealStep: 8,
+  gossip: 40, // items mode: answer the gossip question (+ secret action)
+  gossipResult: 8,
 };
+
+const MODES = ['classic', 'items'];
 
 const shuffle = (arr) => {
   const a = arr.slice();
@@ -36,7 +41,7 @@ class Game {
     this.vipId = null;
     this.phase = 'lobby';
     this.round = 0;
-    this.settings = { discussSeconds: 150 };
+    this.settings = { discussSeconds: 150, mode: 'classic' };
     this.g = null; // per-game state
     this.timer = null; // {endsAt, duration}
     this._timerHandle = null;
@@ -51,9 +56,11 @@ class Game {
 
   player(id) { return this.players.find((p) => p.id === id); }
 
-  _inGame(id) { return !!(this.g && this.g.chars[id]); }
+  _inGame(id) { return !!(this.g && this.g.ids.includes(id)); }
 
-  _gamePlayers() { return this.g ? this.players.filter((p) => this.g.chars[p.id]) : []; }
+  _gamePlayers() { return this.g ? this.players.filter((p) => this._inGame(p.id)) : []; }
+
+  _items() { return !!(this.g && this.g.mode === 'items'); }
 
   _label(pid) {
     const p = this.player(pid);
@@ -152,6 +159,12 @@ class Game {
       this._changed();
       return { ok: true };
     }
+    if (key === 'mode' && MODES.includes(value)) {
+      if (!['lobby', 'results'].includes(this.phase)) return { ok: false, error: 'وسط بازی نمی‌شود حالت را عوض کرد.' };
+      this.settings.mode = value;
+      this._changed();
+      return { ok: true };
+    }
     return { ok: false, error: 'تنظیم نامعتبر.' };
   }
 
@@ -162,6 +175,11 @@ class Game {
     if (!['lobby', 'results'].includes(this.phase)) return { ok: false, error: 'بازی در جریان است.' };
     if (this.players.length < this.minPlayers) {
       return { ok: false, error: `دست‌کم ${this.minPlayers.toLocaleString('fa-IR')} نفر لازم است.` };
+    }
+    if (this.settings.mode === 'items') {
+      this._itStart();
+      this._changed();
+      return { ok: true };
     }
     this._setupGame();
     this.phase = 'intro';
@@ -190,7 +208,9 @@ class Game {
     });
 
     this.g = {
+      mode: 'classic',
       id: `${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`,
+      ids,
       killerId, weapon, room, chars, missions, innocents,
       decks: {}, planted: {}, hands: {}, visits: {}, newCards: {},
       board: [], pins: {}, searchChoice: {}, forgeryChoice: null,
@@ -294,7 +314,7 @@ class Game {
   }
 
   search(pid, roomId) {
-    if (this.phase !== 'search' || !this._inGame(pid)) return { ok: false, error: 'الان وقت بازرسی نیست.' };
+    if (this.phase !== 'search' || this._items() || !this._inGame(pid)) return { ok: false, error: 'الان وقت بازرسی نیست.' };
     if (pid === this.g.killerId) return { ok: false, error: 'تو باید مدرک جعل کنی.' };
     if (!byId(C.ROOMS, roomId)) return { ok: false, error: 'اتاق نامعتبر.' };
     this.g.searchChoice[pid] = roomId;
@@ -305,7 +325,7 @@ class Game {
 
   forge(pid, key, roomId) {
     const { g } = this;
-    if (this.phase !== 'search' || pid !== (g && g.killerId)) return { ok: false, error: 'اجازه نداری.' };
+    if (this.phase !== 'search' || this._items() || pid !== (g && g.killerId)) return { ok: false, error: 'اجازه نداری.' };
     if (!g.forgeryOptions.some((f) => f.key === key)) return { ok: false, error: 'گزینه‌ی نامعتبر.' };
     if (!byId(C.ROOMS, roomId)) return { ok: false, error: 'اتاق نامعتبر.' };
     g.forgeryChoice = { key, roomId };
@@ -380,7 +400,7 @@ class Game {
 
   pin(pid, cardId) {
     const { g } = this;
-    if (!['discuss', 'vote', 'spotlight', 'final'].includes(this.phase) || !this._inGame(pid)) {
+    if (!['discuss', 'vote', 'spotlight', 'final'].includes(this.phase) || this._items() || !this._inGame(pid)) {
       return { ok: false, error: 'الان نمی‌شود مدرک نشان داد.' };
     }
     const card = g.hands[pid].find((c) => c.id === cardId);
@@ -409,7 +429,7 @@ class Game {
   // ---------------------------------------------------------------- interrogation
 
   vote(pid, targetId) {
-    if (this.phase !== 'vote' || !this._inGame(pid)) return { ok: false, error: 'الان وقت رأی نیست.' };
+    if (this.phase !== 'vote' || this._items() || !this._inGame(pid)) return { ok: false, error: 'الان وقت رأی نیست.' };
     if (pid === targetId || !this._inGame(targetId)) return { ok: false, error: 'رأی نامعتبر.' };
     this.g.votes[this.round][pid] = targetId;
     this._checkAllDone();
@@ -447,7 +467,7 @@ class Game {
   // ---------------------------------------------------------------- final
 
   final(pid, { suspect, weapon, room } = {}) {
-    if (this.phase !== 'final' || !this._inGame(pid)) return { ok: false, error: 'الان وقت اتهام نیست.' };
+    if (this.phase !== 'final' || this._items() || !this._inGame(pid)) return { ok: false, error: 'الان وقت اتهام نیست.' };
     if (!this._inGame(suspect) || suspect === pid) return { ok: false, error: 'یک مظنون انتخاب کن.' };
     if (!byId(C.WEAPONS, weapon) || !byId(C.ROOMS, room)) return { ok: false, error: 'سلاح و مکان را انتخاب کن.' };
     this.g.finalVotes[pid] = { suspect, weapon, room };
@@ -548,7 +568,7 @@ class Game {
   }
 
   _advanceReveal() {
-    const LAST = 4;
+    const LAST = this._items() ? Items.ITEM_REVEAL_LAST : 4;
     if (this.g.revealStep < LAST) {
       this.g.revealStep += 1;
       this._scheduleReveal();
@@ -567,7 +587,14 @@ class Game {
 
   skip(byId_) {
     if (!this._isVip(byId_)) return { ok: false, error: 'فقط میزبان می‌تواند.' };
-    const enders = {
+    const enders = this._items() ? {
+      intro: () => this._itStartGossip(),
+      gossip: () => this._itEndGossip(),
+      gossipResult: () => this._itAfterGossipResult(),
+      discuss: () => this._itEndDiscuss(),
+      final: () => this._itEndFinal(),
+      reveal: () => this._advanceReveal(),
+    } : {
       intro: () => this._startSearch(),
       search: () => this._endSearch(),
       discuss: () => this._endDiscuss(),
@@ -610,6 +637,7 @@ class Game {
   _hasActed(pid) {
     const { g } = this;
     if (!g) return false;
+    if (this._items()) return this._itHasActed(pid);
     switch (this.phase) {
       case 'search': return pid === g.killerId ? !!g.forgeryChoice : !!g.searchChoice[pid];
       case 'vote': return !!(g.votes[this.round] && g.votes[this.round][pid]);
@@ -619,10 +647,13 @@ class Game {
   }
 
   _checkAllDone() {
-    if (!['search', 'vote', 'final'].includes(this.phase)) return;
+    const items = this._items();
+    if (!(items ? ['gossip', 'final'] : ['search', 'vote', 'final']).includes(this.phase)) return;
     const active = this._gamePlayers().filter((p) => p.connected);
     if (!active.length || !active.every((p) => this._hasActed(p.id))) return;
-    const enders = { search: () => this._endSearch(), vote: () => this._endVote(), final: () => this._endFinal() };
+    const enders = items
+      ? { gossip: () => this._itEndGossip(), final: () => this._itEndFinal() }
+      : { search: () => this._endSearch(), vote: () => this._endVote(), final: () => this._endFinal() };
     const phase = this.phase;
     this._advanceSoon(() => { if (this.phase === phase) enders[phase](); });
   }
@@ -640,8 +671,9 @@ class Game {
     const { g } = this;
     const state = {
       phase: this.phase,
+      mode: g ? g.mode : this.settings.mode,
       round: this.round,
-      totalRounds: TOTAL_ROUNDS,
+      totalRounds: g && g.mode === 'items' ? g.totalRounds : TOTAL_ROUNDS,
       timer: this.timer,
       serverNow: Date.now(),
       settings: this.settings,
@@ -651,12 +683,17 @@ class Game {
       vipId: this.vipId,
       players: this.players.map((p) => ({
         id: p.id, name: p.name, score: p.score, connected: p.connected,
-        charId: g ? g.chars[p.id] || null : null,
+        charId: g && g.chars ? g.chars[p.id] || null : null,
+        inGame: this._inGame(p.id),
         done: this._hasActed(p.id),
       })),
       game: null,
     };
     if (!g) return state;
+    if (g.mode === 'items') {
+      state.game = this._itPublicGame();
+      return state;
+    }
 
     state.game = {
       id: g.id,
@@ -686,7 +723,8 @@ class Game {
     if (!p) return null;
     const out = { id: pid, name: p.name, isVip: this._isVip(pid), inGame: this._inGame(pid) };
     const { g } = this;
-    if (!g || !g.chars[pid]) return out;
+    if (!g || !this._inGame(pid)) return out;
+    if (g.mode === 'items') return this._itPrivate(pid, out);
 
     const isKiller = pid === g.killerId;
     out.charId = g.chars[pid];
@@ -719,5 +757,7 @@ class Game {
 
   dispose() { this._clearTimer(); this._phaseToken += 1; }
 }
+
+Object.assign(Game.prototype, Items.methods);
 
 module.exports = { Game, TOTAL_ROUNDS, DEFAULT_DURATIONS };

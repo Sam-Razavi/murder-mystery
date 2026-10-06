@@ -39,7 +39,24 @@ Requires Node 18+. The phones and the PC have to be on the same Wi-Fi/LAN. The g
 
 **Deduction hooks:** True clues never contradict each other. Forged clues do. The killer is "seen" in whichever room they plant in, and interrogation exposes those rooms. The killer also holds a copy of each forgery. If both copies end up on the board, the duplicate gives away who planted it.
 
-### Scoring (accumulates across games)
+## Second mode: «دست‌به‌دست» (Hand to Hand)
+
+The host chooses the mode in the lobby on their phone. This mode follows the item-passing social-deduction rules (in the spirit of *Dead Man's Party*). It uses the same Yalda-night setting and has no characters, clues or rooms.
+
+- **Starting items:** Everyone secretly gets one item. **Whoever starts with 🔪 is a killer.** With 4 players there is 1 knife, and with 5–8 players there are 2. The knife is the only item that can be duplicated. Everyone can see which items are in play, but not who holds them.
+- **6 gossip rounds:** The TV asks a gossip question ("Who has the most suspicious laugh?") and everyone answers on their phone. At the same time, one random player also gets a **secret action** on their phone. Everyone gets an action once before anyone gets a second one. The actions are:
+  - 🕵️ **Snoop:** see another player's current item.
+  - 🔄 **Swap:** exchange items with a *random* player. You find out who it was.
+  - 🫳 **Steal:** take a chosen player's item and give them yours.
+  - 🔀 **Shuffle:** exchange the items of two other players. Your own item stays put.
+
+  Moves take effect when the round ends. A victim is told only that their item changed, not who changed it. A knife-for-knife exchange looks like no change at all. If the actor runs out of time, the game picks for them, so a frozen player doesn't give themselves away.
+- **Discussion** after every 2 rounds. Each phone keeps a private journal of everything its owner saw or did, plus a tracker for marking suspects.
+- **Final vote:** If one player has the most votes and that player **started** with a knife, the innocents win. If an innocent gets the most votes, the killers win. A tie also goes to the killers, unless the tie is only between the two killers.
+- **Reveal:** The TV shows the tally, then the verdict, then who started with the knives, then the full item timeline (every action and every move).
+- **Scoring:** If the killers win, each killer gets **+3**. If the innocents win, each innocent gets **+2**. Every innocent who voted for a killer gets **+1** either way.
+
+### Scoring — classic mode (accumulates across games)
 - Innocent: correct killer **+3**, correct weapon **+1**, correct room **+1**, secret mission completed **+2**
 - Killer: escapes, i.e. does not get the most votes in the final accusation (a tie for most still counts as caught) **+5**; plus **+1** for each forged clue that reached another player
 
@@ -53,13 +70,15 @@ All Persian text lives in **`content.js`**: story, characters, traits, weapons, 
 ```bash
 npm test
 ```
+- `test/items.js` plays 150 random «دست‌به‌دست» games. It checks that killers are exactly the starting knives, that items are conserved, that each action's exchange is correct, that victim notices are accurate, that the TV never sees holdings, and every tie/verdict rule.
 - `test/engine.js` plays 200 random games (4–8 players) directly against the engine. It checks that every genuine clue is true, every forged clue is a lie, the TV never sees private data, scoring adds up, and the lobby edge cases behave.
-- `test/e2e.js` boots the real server and plays two full games with socket bots, including a phone that drops and reconnects mid-game.
+- `test/e2e.js` boots the real server and plays two classic games and one «دست‌به‌دست» game with socket bots, including a phone that drops and reconnects mid-game.
 
 ## Project layout
 ```
 server.js        Express + Socket.IO, QR code, per-player private state
 game.js          Game engine / state machine (no networking)
+items.js         «دست‌به‌دست» mode, mixed into the engine
 content.js       All Persian game text
 public/tv.*      TV screen (public info only)
 public/play.*    Phone controller (/)

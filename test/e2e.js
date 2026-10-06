@@ -91,6 +91,70 @@ async function playGame(bots, tv, gameNo) {
   check(`g${gameNo} three forgeries recorded`, rev.forgeries.length === 3);
 }
 
+
+async function playItemsGame(bots, tv) {
+  const vip = bots[0];
+  check('items: non-vip cannot set mode', !(await bots[1].emit('vip:setting', { key: 'mode', value: 'items' })).ok);
+  check('items: vip sets mode', (await vip.emit('vip:setting', { key: 'mode', value: 'items' })).ok);
+  await waitFor(() => tv.state.settings.mode === 'items', 'tv sees items mode');
+  check('items: vip starts', (await vip.emit('vip:start')).ok);
+  await waitFor(() => bots.every((b) => b.state.phase === 'intro' && b.state.me && b.state.me.startItem), 'items intro');
+  const knife = vip.content.knifeId;
+  const killers = bots.filter((b) => b.state.me.role === 'killer');
+  check('items: 5 players → 2 killers', killers.length === 2 && tv.state.game.killerCount === 2);
+  check('items: killers started with knives', bots.every((b) => (b.state.me.startItem === knife) === (b.state.me.role === 'killer')));
+  const leak = () => /"(killers|start|hold|turn|startItem|role)"/.test(JSON.stringify(tv.state));
+  check('items: TV gets no private data', tv.state.me === null && !leak());
+  await vip.emit('vip:skip');
+
+  const total = tv.state.totalRounds;
+  for (let round = 1; round <= total; round++) {
+    await waitFor(() => bots.every((b) => b.state.phase === 'gossip' && b.state.round === round), `gossip r${round}`);
+    const actors = bots.filter((b) => b.state.me.turn);
+    check(`items r${round}: exactly one secret action`, actors.length === 1);
+    check(`items r${round}: TV shows the question, not the actor`, !!tv.state.game.question && !leak());
+    const a = actors[0];
+    const others = a.state.players.filter((p) => p.id !== a.id).map((p) => p.id);
+    const type = a.state.me.turn.type;
+    const targets = type === 'shuffle' ? others.slice(0, 2) : type === 'swap' ? [] : [pick(others)];
+    check(`items r${round}: ${type} accepted`, (await a.emit('act:secret', { targets })).ok);
+    for (const b of bots) {
+      const opts = b.state.players.filter((p) => p.id !== b.id);
+      await b.emit('act:answer', { targetId: pick(opts).id });
+    }
+    await waitFor(() => tv.state.phase === 'gossipResult', `gossip result r${round}`);
+    check(`items r${round}: actor sees result in journal`, a.state.me.notes.some((x) => x.round === round && x.type === type));
+    const held = bots.map((b) => b.state.me.item).sort().join();
+    check(`items r${round}: two knives still in play`, held.split(',').filter((x) => x === knife).length === 2);
+    await vip.emit('vip:skip');
+    if (round % 2 === 0) {
+      await waitFor(() => tv.state.phase === 'discuss', `discuss r${round}`);
+      await vip.emit('vip:skip');
+    }
+  }
+  await waitFor(() => bots.every((b) => b.state.phase === 'final'), 'items final');
+  // Everyone piles onto one killer → innocents must win.
+  const target = killers[0].id;
+  for (const b of bots) {
+    const t = b.id === target ? killers[1].id : target;
+    await b.emit('act:accuse', { targetId: t });
+  }
+  await waitFor(() => tv.state.phase === 'reveal', 'items reveal');
+  for (let i = 0; i < 4; i++) { await vip.emit('vip:next'); await sleep(30); }
+  await waitFor(() => tv.state.phase === 'results', 'items results');
+  const rev = tv.state.game.reveal;
+  check('items: majority on a killer → innocents win', rev.innocentsWin === true && rev.accusedId === target);
+  check('items: reveal names both killers', rev.killers.length === 2 && killers.every((k) => rev.killers.includes(k.id)));
+  check('items: timeline has every round', rev.log.length === total);
+  check('items: every phone has points', bots.every((b) => b.state.me.myPoints));
+  await vip.emit('vip:setting', { key: 'mode', value: 'classic' });
+}
+
+async function backToLobby(bots) {
+  await bots[0].emit('vip:lobby');
+  await waitFor(() => bots.every((b) => b.state.phase === 'lobby'), 'lobby before items game');
+}
+
 (async () => {
   const tv = makeBot('tv', 'tv');
   tv.sock.on('connect', () => tv.sock.emit('tv:hello'));
@@ -129,6 +193,8 @@ async function playGame(bots, tv, gameNo) {
   check('scores survive back-to-lobby', tv.state.players.some((p) => p.score > 0) || true);
 
   await playGame(bots, tv, 2);
+  await backToLobby(bots);
+  await playItemsGame(bots, tv);
 
   [tv, ...bots].forEach((b) => b.sock.close());
   server.close();

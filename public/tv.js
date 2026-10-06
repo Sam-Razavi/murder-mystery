@@ -45,6 +45,8 @@
   const pl = (id) => S.players.find((p) => p.id === id);
   const weapon = (id) => C.weapons.find((w) => w.id === id);
   const room = (id) => C.rooms.find((r) => r.id === id);
+  const item = (id) => C.items.find((x) => x.id === id) || { icon: '❔', name: '؟' };
+  const itemsMode = () => S && S.mode === 'items';
   const SEAT_COLORS = ['#c9a227', '#e0335c', '#2fb3a6', '#7b6fd0', '#d77ab3', '#6a9a4b', '#d9823b', '#4a9fb5'];
   const KIND_ICON = { weapon: '🗡️', room: '🚪', trait: '🔍', alibi: '🕰️', motive: '✉️' };
 
@@ -89,15 +91,21 @@
     const foot = n < S.minPlayers
       ? `دست‌کم ${fa(S.minPlayers)} نفر لازم است — ${fa(S.minPlayers - n)} نفر دیگر`
       : 'همه آماده‌اند؟ میزبان (👑) از روی گوشی‌اش بازی را شروع می‌کند.';
+    const items = S.settings.mode === 'items';
+    const story = items ? C.itemsStory : C.story;
+    const how = items ? `
+          <li><span><b>هر کس پنهانی یک چیز می‌گیرد.</b> هر کس شب را با 🔪 چاقو شروع کند قاتل است (۴ نفر: ۱ قاتل، ۵ تا ۸ نفر: ۲ قاتل).</span></li>
+          <li><span><b>به سؤال‌های پچ‌پچ جواب می‌دهید</b> — و همان موقع یک نفر پنهانی سرک می‌کشد، معاوضه می‌کند، می‌دزدد یا جابه‌جا می‌کند.</span></li>
+          <li><span><b>ردّ چاقو را بگیرید.</b> در رأی نهایی به کسی رأی بدهید که چاقو را <u>اول</u> داشت.</span></li>` : `
+          <li><span><b>هر کدام نقشی مخفی می‌گیرید.</b> یکی از شما قاتل است و خودش می‌داند.</span></li>
+          <li><span><b>سه دور اتاق‌های عمارت را می‌گردید</b> و مدرک پیدا می‌کنید — اما قاتل مدرک جعلی می‌کارد.</span></li>
+          <li><span><b>بحث کنید، بازجویی کنید،</b> و در آخر بگویید قاتل کیست، با چه سلاحی و کجا.</span></li>`;
     return `<section class="lobby stage-in">
       <div>
         <div class="eyebrow">شب یلدا <i class="sep"></i> شیراز <i class="sep"></i> عمارت فرهمند</div>
-        <h1 class="display title">${esc(C.story.title)}</h1>
-        <p class="subtitle">${esc(C.story.subtitle)}</p>
-        <ol class="how">
-          <li><span><b>هر کدام نقشی مخفی می‌گیرید.</b> یکی از شما قاتل است و خودش می‌داند.</span></li>
-          <li><span><b>سه دور اتاق‌های عمارت را می‌گردید</b> و مدرک پیدا می‌کنید — اما قاتل مدرک جعلی می‌کارد.</span></li>
-          <li><span><b>بحث کنید، بازجویی کنید،</b> و در آخر بگویید قاتل کیست، با چه سلاحی و کجا.</span></li>
+        <h1 class="display title">${esc(story.title)}</h1>
+        <p class="subtitle">${esc(story.subtitle)}</p>
+        <ol class="how">${how}
         </ol>
       </div>
       <div class="join-card"><img src="/qr.svg" alt="QR"><div class="scan">با گوشی اسکن کنید</div><div class="url">${esc(C.joinUrl)}</div></div>
@@ -252,25 +260,164 @@
     const delta = (pid) => { const x = r && r.points ? r.points.find((p) => p.playerId === pid) : null; return x ? x.total : 0; };
     const ranked = S.players.slice().sort((a, b) => b.score - a.score);
     return `<section class="reveal stage-in"><div class="reveal-inner">
-      ${r ? miniKiller(r) : ''}
+      ${r ? (itemsMode() ? itMini(r) : miniKiller(r)) : ''}
       <h2 class="h-big">جدول امتیاز</h2>
       <div class="scores">${ranked.map((p, i) => `<div class="score-row ${i === 0 ? 'first' : ''}" style="animation-delay:${i * 0.1}s">
         <div class="rank">${i === 0 ? '👑' : fa(i + 1)}</div>${avatar(p)}
-        <div class="nm">${esc(p.name)}${p.charId ? `<small>${esc(ch(p.charId).name)}${r && r.killerId === p.id ? ' <i class="sep"></i> قاتل' : ''}</small>` : ''}</div>
+        <div class="nm">${esc(p.name)}${p.charId ? `<small>${esc(ch(p.charId).name)}${r && r.killerId === p.id ? ' <i class="sep"></i> قاتل' : ''}</small>` : ''}${r && r.killers && r.killers.includes(p.id) ? '<small>🔪 قاتل</small>' : ''}</div>
         <div class="delta">${delta(p.id) ? `<span class="num">+${fa(delta(p.id))}</span>` : ''}</div>
         <div class="tot">${fa(p.score)}</div></div>`).join('')}</div>
       <p class="lead">میزبان می‌تواند از روی گوشی دور بعد را شروع کند.</p>
     </div></section>`;
   }
 
+
+  // ------------------------------------------------------------ items mode («دست‌به‌دست»)
+  const name = (pid) => esc(pl(pid) ? pl(pid).name : '؟');
+  const itemChip = (id) => `<span class="itm-chip">${item(id).icon} ${esc(item(id).name)}</span>`;
+  const itemsInPlay = () => `<div class="box"><h3>چیزهای در بازی</h3><div class="itm-row">${S.game.items.map((x) => `<span title="${esc(item(x).name)}">${item(x).icon}</span>`).join('')}</div>
+    <p class="small">${fa(S.game.killerCount)} قاتل <i class="sep"></i> فقط چاقو تکراری است</p></div>`;
+
+  function actionCards() {
+    return Object.entries(C.secretActions).map(([k, a]) => `<div class="act-card"><span class="ai">${a.icon}</span><div><b>${esc(a.name)}</b><p>${esc(a.text)}</p></div></div>`).join('');
+  }
+
+  function itViewIntro() {
+    return `<section class="it-intro stage-in">
+      <div class="story">${C.itemsStory.intro.map((l, i) => `<p style="animation-delay:${i * 0.35}s">${esc(l)}</p>`).join('')}</div>
+      <div class="it-cols">
+        <div class="box"><h3>امشب</h3><div class="itm-row big">${S.game.items.map((x) => `<span>${item(x).icon}</span>`).join('')}</div>
+          <p class="lead">${fa(S.players.filter((p) => p.inGame).length)} نفر <i class="sep"></i> <b class="pom">${fa(S.game.killerCount)} چاقو = ${fa(S.game.killerCount)} قاتل</b></p></div>
+        <div class="box"><h3>کارهای مخفی</h3><div class="acts">${actionCards()}</div></div>
+      </div>
+      <div class="look">📱 به گوشی‌تان نگاه کنید — چیزی که دستتان است آنجاست. مواظب باشید کسی نبیند!</div>
+    </section>`;
+  }
+
+  function itViewGossip() {
+    return `<section class="gossip stage-in">
+      <div class="g-main">
+        <div class="eyebrow">پچ‌پچ <i class="sep"></i> دور ${fa(S.round)} از ${fa(S.totalRounds)}</div>
+        <h2 class="g-q display">${esc(S.game.question)}</h2>
+        <p class="lead">روی گوشی یک نفر را انتخاب کنید.</p>
+        <p class="whisper">…و همین حالا، یک نفر پنهانی کاری مخفی انجام می‌دهد.</p>
+      </div>
+      <aside class="side">${itemsInPlay()}<div class="box"><h3>کارهای مخفی تا حالا</h3><div class="big-n">${fa(S.game.actionsSoFar)}</div></div></aside>
+    </section>`;
+  }
+
+  function tallyHtml(tally) {
+    const max = Math.max(1, ...tally.map((t) => t.votes));
+    return `<div class="tally">${tally.map((t, i) => `<div class="tally-row" style="animation-delay:${i * 0.12}s">
+      <div class="who">${avatar(pl(t.playerId))}<span>${name(t.playerId)}</span></div>
+      <div class="bar">${t.votes ? `<i style="width:${(t.votes / max) * 100}%"></i>` : ''}<span>${t.voters.map(name).join('، ')}</span></div>
+      <div class="n">${fa(t.votes)}</div></div>`).join('')}</div>`;
+  }
+
+  function itViewGossipResult() {
+    const r = S.game.gossipResult;
+    return `<section class="reveal stage-in"><div class="reveal-inner">
+      <div class="eyebrow">دور ${fa(r.round)}</div><h2 class="h-big">${esc(r.question)}</h2>${tallyHtml(r.tally)}</div></section>`;
+  }
+
+  function itViewDiscuss() {
+    const qs = ['چه کسی اول چه چیزی داشت؟', 'کسی چاقو دیده؟ کِی؟', 'به چه کسی سرک کشیدی؟', 'چیزت کِی عوض شد؟',
+      'قبلاً چه چیزی دستت بود؟', 'چه کسی حرفت را تأیید می‌کند؟', 'این چاقو قبل از تو دست چه کسی بود؟', 'چرا داستانت عوض شد؟'];
+    const hist = S.game.gossips.slice(-6).reverse().map((g) => `<li><span class="muted">دور ${fa(g.round)}:</span> ${esc(g.question)} ${g.top.length ? `← <b>${g.top.map(name).join('، ')}</b>` : ''}</li>`).join('');
+    return `<section class="discuss stage-in">
+      <div class="it-talk">
+        <div class="eyebrow">گفت‌وگو <i class="sep"></i> بعد از دور ${fa(S.round)} از ${fa(S.totalRounds)}</div>
+        <h2 class="h-big">نپرسید «چاقو الان دست کیست؟»<br><span class="pom">بپرسید «چه کسی شب را با چاقو شروع کرد؟»</span></h2>
+        <div class="qs">${qs.map((q) => `<span>${esc(q)}</span>`).join('')}</div>
+        <p class="lead">چاقو جابه‌جا می‌شود؛ تاریخچه‌اش مدرک است. قاتل‌ها می‌خواهند این تاریخچه گم شود — شما باید دوباره بسازیدش.</p>
+      </div>
+      <aside class="side">${itemsInPlay()}<div class="box"><h3>کارهای مخفی تا حالا</h3><div class="big-n">${fa(S.game.actionsSoFar)}</div></div>
+        ${hist ? `<div class="box"><h3>پچ‌پچ‌ها</h3><ul class="small">${hist}</ul></div>` : ''}</aside>
+    </section>`;
+  }
+
+  function itViewFinal() {
+    return `<section class="it-final stage-in"><div class="reveal-inner">
+      <div class="eyebrow">آخرین فرصت</div><h2 class="h-big">رأی نهایی</h2>
+      <p class="lead">روی گوشی به کسی رأی بدهید که فکر می‌کنید شب را <b>با چاقو شروع کرد</b>.</p>
+      <div class="rules3">
+        <div><span>✅</span>بیشترین رأی به یک قاتل ← <b>بی‌گناه‌ها می‌برند</b>${S.game.killerCount > 1 ? ' (یکی از دو قاتل کافی است)' : ''}</div>
+        <div><span>🔪</span>بیشترین رأی به یک بی‌گناه ← <b>قاتل‌ها می‌برند</b></div>
+        <div><span>⚖️</span>تساوی ← <b>قاتل‌ها می‌برند</b>${S.game.killerCount > 1 ? ' — مگر اینکه تساوی فقط بین خودِ دو قاتل باشد' : ''}</div>
+      </div></div></section>`;
+  }
+
+  function itVerdict(r) {
+    if (r.innocentsWin) return '<div class="verdict caught">بی‌گناه‌ها بردند!</div>';
+    return '<div class="verdict escaped">قاتل‌ها بردند!</div>';
+  }
+
+  function itMini(r) {
+    if (!r.killers) return '';
+    return `<div class="mini-killer">${r.killers.map((k) => avatar(pl(k))).join('')} قاتل‌ها: ${r.killers.map(name).join(' و ')} — ${r.innocentsWin ? 'گیر افتادند' : 'فرار کردند'}</div>`;
+  }
+
+  function logLine(e) {
+    const a = C.secretActions[e.type];
+    let what;
+    if (e.type === 'snoop') what = `به <b>${name(e.targets[0])}</b> سرک کشید و ${itemChip(e.seen)} دید`;
+    else if (e.type === 'swap') what = `با <b>${name(e.targets[0])}</b> معاوضه شد`;
+    else if (e.type === 'steal') what = `از <b>${name(e.targets[0])}</b> دزدید`;
+    else what = `چیزهای <b>${name(e.targets[0])}</b> و <b>${name(e.targets[1])}</b> را جابه‌جا کرد`;
+    const moves = e.moves.map((m) => `<span class="mv">${name(m.playerId)}: ${item(m.from).icon} ← ${item(m.to).icon}</span>`).join('');
+    return `<div class="li tl ${e.moves.some((m) => m.from === C.knifeId || m.to === C.knifeId) ? 'fake' : ''}">
+      <span class="ok">${a.icon}</span>
+      <div><div class="main"><span class="muted">دور ${fa(e.round)}:</span> <b>${name(e.actorId)}</b> ${what}${e.auto ? ' <span class="muted">(خودکار)</span>' : ''}</div>
+      <div class="meta">${moves || (e.type === 'snoop' ? 'چیزی جابه‌جا نشد' : 'هر دو یک‌جور چیز داشتند — ظاهراً چیزی عوض نشد')}</div></div><span></span></div>`;
+  }
+
+  function itViewReveal() {
+    const r = S.game.reveal;
+    const step = S.game.revealStep;
+    let inner = '';
+    if (step === 0) {
+      inner = `<h2 class="h-big">رأی‌ها شمرده شد…</h2>${tallyHtml(r.tally)}`;
+    } else if (step === 1) {
+      if (r.accusedId) {
+        const k = r.topKiller[0];
+        inner = `<div class="killer-reveal">${avatar(pl(r.accusedId))}<div class="k1">بیشترین رأی به…</div>
+          <div class="k2">${name(r.accusedId)}</div>
+          <div class="k1">${k ? 'شب را با 🔪 چاقو شروع کرده بود!' : 'شب را با چاقو شروع نکرده بود.'}</div>${itVerdict(r)}</div>`;
+      } else if (r.tie) {
+        inner = `<div class="killer-reveal"><div class="tie-row">${r.top.map((id) => avatar(pl(id))).join('')}</div>
+          <div class="k1">تساوی بین</div><div class="k2">${r.top.map(name).join(' و ')}</div>
+          <div class="k1">${r.innocentsWin ? 'تساوی فقط بین قاتل‌هاست — پس بی‌گناه‌ها می‌برند.' : 'تساوی یعنی بُرد قاتل‌ها.'}</div>${itVerdict(r)}</div>`;
+      } else {
+        inner = `<div class="killer-reveal"><div class="k2">کسی رأی نداد!</div>${itVerdict(r)}</div>`;
+      }
+    } else if (step === 2) {
+      inner = `<h2 class="h-big">چه کسی شب را با چاقو شروع کرد؟</h2>
+        <div class="killers-row">${r.killers.map((id, i) => `<div class="kr" style="animation-delay:${i * 0.5}s">${avatar(pl(id))}<div class="nm">${name(id)}</div><div class="it">🔪</div></div>`).join('')}</div>
+        ${itVerdict(r)}`;
+    } else {
+      const ids = S.players.filter((p) => p.inGame).map((p) => p.id);
+      const startRow = ids.map((id) => `<span class="st ${r.start[id] === C.knifeId ? 'k' : ''}">${name(id)} ${item(r.start[id]).icon}</span>`).join('');
+      const endRow = ids.map((id) => `<span class="st ${r.finalHold[id] === C.knifeId ? 'k' : ''}">${name(id)} ${item(r.finalHold[id]).icon}</span>`).join('');
+      inner = `${itMini(r)}<h2 class="h-big">ردّ چاقو</h2>
+        <div class="timeline"><div class="tl-row"><b>شروع شب</b>${startRow}</div>
+        <div class="list">${r.log.map(logLine).join('')}</div>
+        <div class="tl-row"><b>آخر شب</b>${endRow}</div></div>`;
+    }
+    return `<section class="reveal stage-in"><div class="reveal-inner ${step === 3 ? 'wide' : ''}">${inner}</div></section>`;
+  }
+
   function stripHtml() {
-    if (S.phase === 'lobby' || S.phase === 'results' || S.phase === 'reveal' || S.phase === 'intro') return '';
-    const showDone = ['search', 'vote', 'final'].includes(S.phase);
-    return S.players.filter((p) => p.charId).map((p) => {
+    if (['lobby', 'results', 'reveal', 'intro', 'gossipResult'].includes(S.phase)) return '';
+    const showDone = ['search', 'vote', 'final', 'gossip'].includes(S.phase);
+    return S.players.filter((p) => p.inGame).map((p) => {
+      const done = showDone && p.done ? '<span class="done">✓</span>' : '';
+      if (!p.charId) {
+        return `<div class="chip ${p.connected ? '' : 'off'}" style="--c:${colorOf(p)}">${avatar(p)}<div><div class="t1">${esc(p.name)}</div></div>${done}</div>`;
+      }
       const c = ch(p.charId);
       return `<div class="chip ${p.connected ? '' : 'off'}" style="--c:${c.color}">${avatar(p)}
         <div><div class="t1">${esc(c.name)} <span class="ic">${traitIcons(p.charId)}</span></div><div class="t2">${esc(p.name)}</div></div>
-        ${showDone && p.done ? '<span class="done">✓</span>' : ''}</div>`;
+        ${done}</div>`;
     }).join('');
   }
 
@@ -278,19 +425,24 @@
     lobby: viewLobby, intro: viewIntro, search: viewSearch, discuss: viewDiscuss,
     vote: viewVote, spotlight: viewSpotlight, final: viewFinal, reveal: viewReveal, results: viewResults,
   };
+  const IT_VIEWS = {
+    lobby: viewLobby, intro: itViewIntro, gossip: itViewGossip, gossipResult: itViewGossipResult,
+    discuss: itViewDiscuss, final: itViewFinal, reveal: itViewReveal, results: viewResults,
+  };
 
   function render() {
     if (!C || !S) return;
     const key = `${S.phase}:${S.round}:${S.game ? S.game.revealStep : ''}:${S.game && S.game.spotlight ? S.game.spotlight.playerId : ''}`;
     const phaseChanged = key !== lastKey;
     if (S.phase === 'lobby') { seenCards.clear(); lastBoardLen = 0; }
+    $('app').querySelector('.brand').textContent = (S.settings.mode === 'items' ? C.itemsStory : C.story).title;
 
-    $('phaseTitle').textContent = C.phaseTitles[S.phase] || '';
+    $('phaseTitle').textContent = (itemsMode() ? C.itemPhaseTitles : C.phaseTitles)[S.phase] || '';
     $('roundPips').innerHTML = S.round
       ? Array.from({ length: S.totalRounds }, (_, i) => `<span class="pip ${i + 1 < S.round ? 'on' : ''} ${i + 1 === S.round ? 'now' : ''}"></span>`).join('')
       : '';
 
-    stage.innerHTML = VIEWS[S.phase]();
+    stage.innerHTML = (itemsMode() ? IT_VIEWS : VIEWS)[S.phase]();
     stage.classList.toggle('settled', !phaseChanged);
     $('strip').innerHTML = stripHtml();
 
@@ -299,7 +451,7 @@
       else if (S.phase === 'results') Sound.win();
       else if (S.phase !== 'lobby') Sound.gong();
     }
-    const boardLen = S.game ? S.game.board.length : 0;
+    const boardLen = S.game && S.game.board ? S.game.board.length : 0;
     if (boardLen > lastBoardLen && !phaseChanged) Sound.pin();
     lastBoardLen = boardLen;
     lastKey = key;

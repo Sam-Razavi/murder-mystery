@@ -5,7 +5,7 @@
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
-    "test": "node test/engine.js && node test/e2e.js"
+    "test": "node test/engine.js && node test/items.js && node test/e2e.js"
   },
   "license": "UNLICENSED",
   "dependencies": {

@@ -20,12 +20,17 @@
     final: { suspect: null, weapon: null, room: null },
     lastPhaseKey: '',
     vipConfirm: null,
+    secret: [], // items mode: targets picked for the secret action
   };
 
   const ch = (id) => C.characters.find((c) => c.id === id);
   const pl = (id) => S.players.find((p) => p.id === id);
   const room = (id) => C.rooms.find((r) => r.id === id);
   const weapon = (id) => C.weapons.find((w) => w.id === id);
+  const item = (id) => C.items.find((x) => x.id === id) || { icon: '❔', name: '؟' };
+  const itemTag = (id) => `<b class="itm">${item(id).icon} ${esc(item(id).name)}</b>`;
+  const itemsMode = () => S && S.mode === 'items';
+  const phaseTitles = () => (itemsMode() ? C.itemPhaseTitles : C.phaseTitles);
   const SEAT_COLORS = ['#c9a227', '#e0335c', '#2fb3a6', '#7b6fd0', '#d77ab3', '#6a9a4b', '#d9823b', '#4a9fb5'];
 
   function avatar(p) {
@@ -78,13 +83,18 @@
       <p class="sub">${n < S.minPlayers ? `منتظر بقیه‌ایم — دست‌کم ${fa(S.minPlayers)} نفر لازم است (الان ${fa(n)} نفر).` : `${fa(n)} نفر آماده‌اند. میزبان بازی را شروع می‌کند.`}</p>
       <div class="players-mini">${S.players.map((p) => `<span class="pm ${p.connected ? '' : 'off'}">${avatar(p)}${esc(p.name)}${p.id === S.vipId ? ' 👑' : ''}
         ${me && me.isVip && !p.connected && p.id !== me.id ? `<button data-act="kick" data-id="${esc(p.id)}">حذف</button>` : ''}</span>`).join('')}</div>`;
+    const mode = C.modes.find((m) => m.id === S.settings.mode) || C.modes[0];
     if (me && me.isVip) {
       const d = S.settings.discussSeconds;
       html += `<div class="step-label">👑 تو میزبانی</div>
+        <div class="sub">کدام بازی؟</div>
+        <div class="seg">${C.modes.map((m) => `<button data-act="setMode" data-v="${m.id}" class="${mode.id === m.id ? 'sel' : ''}">${esc(m.name)}</button>`).join('')}</div>
+        <div class="note">${esc(mode.text)}</div>
         <div class="sub">زمان گفت‌وگو در هر دور</div>
         <div class="seg">${[[90, '۱:۳۰'], [150, '۲:۳۰'], [240, '۴:۰۰']].map(([v, l]) => `<button data-act="setting" data-v="${v}" class="${d === v ? 'sel' : ''}">${l}</button>`).join('')}</div>
         <button class="btn primary big" data-act="start" ${n < S.minPlayers ? 'disabled' : ''}>شروع بازی</button>`;
     }
+    else html += `<div class="note"><b>بازی: ${esc(mode.name)}</b> — ${esc(mode.text)}</div>`;
     html += `<div class="note">📺 صفحه‌ی تلویزیون را ببینید. وقتی بازی شروع شد، نقش مخفی‌ات اینجا روی گوشی می‌آید — نگذار کسی ببیند!</div>`;
     return html;
   }
@@ -147,7 +157,10 @@
   }
 
   function playerList(selected, act) {
-    return `<div class="grid2">${S.players.filter((p) => p.charId && p.id !== me.id).map((p) => `<button class="opt ${selected === p.id ? 'sel' : ''}" data-act="${act}" data-id="${esc(p.id)}">${avatar(p)}<span class="on">${esc(ch(p.charId).name)}<span class="os">${esc(p.name)} <i class="sep"></i> ${traitIcons(p.charId)}</span></span></button>`).join('')}</div>`;
+    const sel = [].concat(selected || []);
+    return `<div class="grid2">${S.players.filter((p) => p.inGame && p.id !== me.id).map((p) => `<button class="opt ${sel.includes(p.id) ? 'sel' : ''}" data-act="${act}" data-id="${esc(p.id)}">${avatar(p)}<span class="on">${p.charId
+      ? `${esc(ch(p.charId).name)}<span class="os">${esc(p.name)} <i class="sep"></i> ${traitIcons(p.charId)}</span>`
+      : esc(p.name)}</span></button>`).join('')}</div>`;
   }
 
   function actionVote() {
@@ -243,15 +256,130 @@
 
   function tabRole() { return roleCard(); }
 
+
+  // ------------------------------------------------------------ items mode («دست‌به‌دست»)
+  const shortName = (pid) => esc(pl(pid) ? pl(pid).name : '؟');
+
+  function itemCard() {
+    if (!ui.roleVisible) {
+      return `<button class="veil" data-act="showRole"><span class="big-ic">🤫</span>برای دیدن چیزی که دستت است لمس کن<br><span class="muted" style="font-weight:500;font-size:.9rem">مطمئن شو کسی گوشی‌ات را نمی‌بیند</span></button>`;
+    }
+    const killer = isKiller();
+    const moved = me.item !== me.startItem;
+    const secret = killer
+      ? `<div class="secret killer"><h4>🔪 تو قاتلی!</h4><p>شب را با چاقو شروع کردی. ${S.game.killerCount > 1 ? 'یک قاتل دیگر هم هست — اما نمی‌دانی کیست.' : ''}
+         کاری کن در رأی نهایی بیشترین رأی به تو نرسد. بگذار ردّ چاقو گم شود.</p></div>`
+      : `<div class="secret innocent"><h4>🕊️ تو بی‌گناهی</h4><p>شب را با ${itemTag(me.startItem)} شروع کردی.
+         بفهم چه کسی شب را با چاقو شروع کرد و در رأی نهایی همه با هم به او رأی بدهید.</p></div>`;
+    return `<div class="role-card item-card">
+      <div class="item-now"><div class="lbl">الان دستت است</div><div class="big">${item(me.item).icon}</div><div class="nm">${esc(item(me.item).name)}</div>
+        ${moved ? `<div class="was">شروع شب: ${itemTag(me.startItem)}</div>` : ''}</div>
+      <div class="role-body">${secret}
+      <div class="note">⚠️ نقشت را چیزِ <b>اولِ شب</b> تعیین می‌کند، نه چیزی که الان دستت است.</div>
+      <button class="btn ghost" data-act="hideRole">پنهان کن</button></div></div>`;
+  }
+
+  function noteText(n) {
+    const auto = n.auto ? ' <span class="muted">(وقت تمام شد؛ بازی خودش انتخاب کرد)</span>' : '';
+    switch (n.type) {
+      case 'start': return `شب را با ${itemTag(n.item)} شروع کردی.`;
+      case 'snoop': return `🕵️ سرک کشیدی: دستِ <b>${shortName(n.targetId)}</b> ${itemTag(n.item)} بود.${auto}`;
+      case 'swap': return `🔄 با <b>${shortName(n.targetId)}</b> معاوضه شدی: ${itemTag(n.gave)} دادی و ${itemTag(n.got)} گرفتی.${auto}`;
+      case 'steal': return `🫳 از <b>${shortName(n.targetId)}</b> دزدیدی: ${itemTag(n.got)} را برداشتی و ${itemTag(n.gave)} را جایش گذاشتی.${auto}`;
+      case 'shuffle': return `🔀 چیزهای <b>${shortName(n.a)}</b> و <b>${shortName(n.b)}</b> را با هم جابه‌جا کردی.${auto}`;
+      case 'changed': return `❗ چیزت عوض شد! ${itemTag(n.from)} رفت و ${itemTag(n.to)} آمد. نمی‌دانی کار چه کسی بود.`;
+      default: return '';
+    }
+  }
+
+  const journalKey = () => `ziafat:seen:${S.game ? S.game.id : 'x'}`;
+  const unseenNotes = () => Math.max(0, (me.notes || []).length - store.get(journalKey(), 1));
+
+  function tabJournal() {
+    if (!ui.roleVisible) return itemCard();
+    store.set(journalKey(), me.notes.length);
+    return `<div class="sec-title">دفترچه‌ی مخفی</div>
+      <div class="nb-help">فقط تو این‌ها را می‌بینی. می‌توانی راستش را بگویی، پنهانش کنی، یا دروغ بگویی.</div>
+      ${me.notes.slice().reverse().map((n) => `<div class="jn ${n.type}"><span class="r">${n.round ? `دور ${fa(n.round)}` : 'شروع'}</span><p>${noteText(n)}</p></div>`).join('')}
+      <button class="btn ghost" data-act="hideRole">پنهان کن</button>`;
+  }
+
+  function tabTracker() {
+    const nb = nbGet();
+    const mark = (k) => (nb[k] === 'x' ? '✕' : nb[k] === 'q' ? '🔪' : '');
+    const rows = S.players.filter((p) => p.inGame).map((p) => {
+      const k = `p:${p.id}`;
+      return `<button class="nb-row ${nb[k] || ''}" data-act="nb" data-k="${esc(k)}">${avatar(p)}<span class="nm">${esc(p.name)}${p.id === me.id ? '<small>(خودت)</small>' : ''}</span><span class="mark">${mark(k)}</span></button>`;
+    }).join('');
+    return `<div class="nb-help">لمس کن: 🔪 = فکر می‌کنم با چاقو شروع کرد <i class="sep"></i> ✕ = بی‌گناه <i class="sep"></i> دوباره = پاک</div>
+      <div class="sec-title">چه کسی شب را با چاقو شروع کرد؟</div><div class="nb">${rows}</div>
+      <div class="note">در این بازی ${fa(S.game.killerCount)} قاتل هست. چیزهای در بازی: ${S.game.items.map((x) => item(x).icon).join(' ')}</div>`;
+  }
+
+  function secretBlock() {
+    const t = me.turn;
+    const a = C.secretActions[t.type];
+    const head = `<div class="secret-box"><div class="sb-head"><span class="sb-ic">${a.icon}</span><div><div class="sb-t">کار مخفی: ${esc(a.name)}</div><div class="sb-d">${esc(a.text)}</div></div></div>`;
+    if (t.done) {
+      let body;
+      if (t.type === 'snoop' && t.result) body = `<div class="done-box"><b>دستِ ${shortName(t.result.targetId)}:</b><span class="big-item">${item(t.result.item).icon}</span> ${esc(item(t.result.item).name)}</div>`;
+      else body = '<div class="done-box"><b>✓ انجام شد</b>در پایان همین دور اعمال می‌شود. نتیجه در دفترچه‌ی مخفی‌ات می‌آید.</div>';
+      return `${head}${body}</div>`;
+    }
+    const need = t.type === 'shuffle' ? 2 : t.type === 'swap' ? 0 : 1;
+    const ready = ui.secret.length === need;
+    const label = { snoop: 'سرک بکش', swap: 'معاوضه کن', steal: 'بدزد', shuffle: 'جابه‌جا کن' }[t.type];
+    const pickText = need === 2 ? `دو نفر را انتخاب کن (${fa(ui.secret.length)} از ۲)` : need === 1 ? 'یک نفر را انتخاب کن' : 'طرف معاوضه را بازی تصادفی انتخاب می‌کند.';
+    return `${head}<div class="sub">${pickText}</div>${need ? playerList(ui.secret, 'secretPick') : ''}
+      <button class="btn gold big" data-act="secretGo" ${ready ? '' : 'disabled'}>${a.icon} ${label}</button>
+      <div class="note warn">🤫 پنهانی! بقیه نباید بفهمند این دور کار مخفی به تو رسیده. بعدش به سؤال پایین هم جواب بده.</div></div>`;
+  }
+
+  function itActionIntro() {
+    return `<h2 class="prompt">آغاز شب</h2><p class="sub">قوانین روی تلویزیون است. این چیزی است که شب را با آن شروع می‌کنی:</p>${itemCard()}`;
+  }
+
+  function itActionGossip() {
+    let html = me.turn ? secretBlock() : '';
+    html += `<h2 class="prompt">${esc(S.game.question)}</h2>
+      <p class="sub">${me.gossipAnswer ? `✓ جوابت: ${shortName(me.gossipAnswer)} — می‌توانی عوضش کنی.` : 'یک نفر را انتخاب کن.'}</p>
+      ${playerList(me.gossipAnswer, 'answer')}`;
+    return html;
+  }
+
+  function itActionGossipResult() {
+    const fresh = unseenNotes();
+    return `<div class="tv-look"><div class="big-ic">📺</div><h2 class="prompt">به تلویزیون نگاه کن!</h2>
+      <p class="sub">${fresh ? `<b class="gold">چیز تازه‌ای در دفترچه‌ی مخفی‌ات هست.</b>` : 'جواب‌ها روی تلویزیون است.'}</p></div>`;
+  }
+
+  function itActionDiscuss() {
+    return `<h2 class="prompt">گفت‌وگو</h2>
+      <p class="sub">بپرسید: «چه کسی اول چاقو داشت؟»، «کِی چیزت عوض شد؟»، «به چه کسی سرک کشیدی؟». دفترچه‌ی مخفی‌ات پایین است — راست بگو یا بلوف بزن.</p>`;
+  }
+
+  function itActionFinal() {
+    return `<h2 class="prompt">رأی نهایی</h2>
+      <p class="sub">${isKiller() ? 'تو هم رأی می‌دهی. رأی را از خودت دور کن.' : 'به کسی رأی بده که فکر می‌کنی شب را با چاقو <b>شروع</b> کرد. رأی‌ها را پخش نکنید — تساوی یعنی بُرد قاتل‌ها.'}</p>
+      ${me.myFinal ? `<div class="done-box"><b>✓ رأی تو: ${shortName(me.myFinal)}</b>تا وقت تمام نشده می‌توانی عوضش کنی.</div>` : ''}
+      ${playerList(me.myFinal, 'accuse')}`;
+  }
+
   // ------------------------------------------------------------ render
   const ACTIONS = {
     lobby: actionLobby, intro: actionIntro, search: actionSearch, discuss: actionDiscuss, vote: actionVote,
     spotlight: actionSpotlight, final: actionFinal, reveal: actionReveal, results: actionResults,
   };
+  const IT_ACTIONS = {
+    lobby: actionLobby, intro: itActionIntro, gossip: itActionGossip, gossipResult: itActionGossipResult,
+    discuss: itActionDiscuss, final: itActionFinal, reveal: actionReveal, results: actionResults,
+  };
 
   function vipBar() {
     const bar = $('vipBar');
-    const labels = { intro: 'رد کردن مقدمه', search: 'پایان بازرسی', discuss: 'پایان گفت‌وگو', vote: 'پایان رأی‌گیری', spotlight: 'دور بعد', final: 'پایان اتهام', reveal: 'بعدی' };
+    const labels = itemsMode()
+      ? { intro: 'رد کردن مقدمه', gossip: 'پایان پچ‌پچ', gossipResult: 'ادامه', discuss: 'پایان گفت‌وگو', final: 'پایان رأی‌گیری', reveal: 'بعدی' }
+      : { intro: 'رد کردن مقدمه', search: 'پایان بازرسی', discuss: 'پایان گفت‌وگو', vote: 'پایان رأی‌گیری', spotlight: 'دور بعد', final: 'پایان اتهام', reveal: 'بعدی' };
     if (!me || !me.isVip || !labels[S.phase]) { bar.classList.add('hidden'); return; }
     bar.classList.remove('hidden');
     const confirming = ui.vipConfirm === S.phase;
@@ -272,11 +400,13 @@
     if (phaseKey !== ui.lastPhaseKey) {
       // Reset per-phase UI and point the player at what matters now.
       if (S.phase === 'search') { ui.lieKey = null; ui.lieRoom = null; }
+      if (S.phase === 'gossip') ui.secret = [];
       if (S.phase === 'final') ui.final = { suspect: null, weapon: null, room: null };
-      if (S.phase === 'discuss') ui.tab = 'hand';
-      if (S.phase === 'intro') { ui.roleVisible = false; ui.tab = 'role'; }
+      if (S.phase === 'discuss') ui.tab = itemsMode() ? 'journal' : 'hand';
+      if (S.phase === 'intro') { ui.roleVisible = false; ui.tab = itemsMode() ? 'item' : 'role'; }
       ui.vipConfirm = null;
-      if (['search', 'vote', 'final'].includes(S.phase) || (S.phase === 'spotlight' && S.game.spotlight.playerId === me.id)) buzz(120);
+      // Every phone buzzes the same at gossip start, so the secret actor can't be heard.
+      if (['search', 'vote', 'final', 'gossip'].includes(S.phase) || (S.phase === 'spotlight' && S.game.spotlight.playerId === me.id)) buzz(120);
       ui.lastPhaseKey = phaseKey;
       window.scrollTo(0, 0);
     }
@@ -284,13 +414,21 @@
     const meP = pl(me.id);
     const c = me.charId ? ch(me.charId) : null;
     setHTML($('meChip'), `${avatar(meP)}<div style="min-width:0"><div class="t1">${esc(me.name)}${me.isVip ? ' 👑' : ''}</div><div class="t2">${c ? esc(c.name) : `${fa(meP ? meP.score : 0)} امتیاز`}</div></div>`);
-    $('phPhase').textContent = C.phaseTitles[S.phase] || '';
+    $('phPhase').textContent = phaseTitles()[S.phase] || '';
     $('phRound').textContent = S.round ? `دور ${fa(S.round)} از ${fa(S.totalRounds)}` : '';
 
     const playing = inGame();
-    setHTML($('action'), (playing || S.phase === 'lobby') ? ACTIONS[S.phase]() : '<p class="sub">بازی در جریان است…</p>');
+    setHTML($('action'), (playing || S.phase === 'lobby') ? (itemsMode() ? IT_ACTIONS : ACTIONS)[S.phase]() : '<p class="sub">بازی در جریان است…</p>');
 
-    if (playing && S.phase !== 'intro') {
+    if (playing && S.phase !== 'intro' && itemsMode()) {
+      if (!['item', 'journal', 'notes'].includes(ui.tab)) ui.tab = 'item';
+      const body = ui.tab === 'notes' ? tabTracker() : ui.tab === 'journal' ? tabJournal() : itemCard();
+      const fresh = unseenNotes();
+      setHTML($('tabs'), [['item', 'چیزِ من'], ['journal', `دفترچه‌ی مخفی${fresh ? `<span class="badge">${fa(fresh)}</span>` : ''}`], ['notes', 'ردیابی']]
+        .map(([k, l]) => `<button data-act="tab" data-id="${k}" class="${ui.tab === k ? 'sel' : ''}">${l}</button>`).join(''));
+      setHTML($('tabBody'), body);
+    } else if (playing && S.phase !== 'intro') {
+      if (!['hand', 'notes', 'role'].includes(ui.tab)) ui.tab = 'hand';
       const fresh = me.hand.filter((x) => x.isNew).length;
       setHTML($('tabs'), [['hand', `مدارک${fresh ? `<span class="badge">${fa(fresh)}</span>` : ''}`], ['notes', 'دفترچه'], ['role', 'نقش من']]
         .map(([k, l]) => `<button data-act="tab" data-id="${k}" class="${ui.tab === k ? 'sel' : ''}">${l}</button>`).join(''));
@@ -333,7 +471,18 @@
       render();
     },
     hideRole: () => { ui.roleVisible = false; render(); },
-    tab: (el) => { ui.tab = el.dataset.id; if (ui.tab !== 'role') ui.roleVisible = false; render(); },
+    tab: (el) => { ui.tab = el.dataset.id; if (!['role', 'item', 'journal'].includes(ui.tab)) ui.roleVisible = false; render(); },
+    setMode: (el) => send('vip:setting', { key: 'mode', value: el.dataset.v }),
+    answer: (el) => { buzz(30); send('act:answer', { targetId: el.dataset.id }); },
+    accuse: (el) => { buzz(30); send('act:accuse', { targetId: el.dataset.id }); },
+    secretPick: (el) => {
+      const need = me.turn && me.turn.type === 'shuffle' ? 2 : 1;
+      const id = el.dataset.id;
+      if (ui.secret.includes(id)) ui.secret = ui.secret.filter((x) => x !== id);
+      else ui.secret = need === 1 ? [id] : ui.secret.concat(id).slice(-2);
+      render();
+    },
+    secretGo: () => { buzz(40); send('act:secret', { targets: ui.secret }); ui.secret = []; },
     search: (el) => { buzz(30); send('act:search', { roomId: el.dataset.id }); },
     lie: (el) => { ui.lieKey = el.dataset.key; render(); },
     lieRoom: (el) => { ui.lieRoom = el.dataset.id; render(); },
@@ -380,7 +529,7 @@
     S = s; me = s.me;
     syncClock(s.serverNow); setTimer(s.timer);
     // When the final vote is already on the server, mirror it so "update" works.
-    if (me && me.myFinal && S.phase === 'final' && !ui.final.suspect) ui.final = { ...me.myFinal };
+    if (me && me.myFinal && S.phase === 'final' && S.mode !== 'items' && !ui.final.suspect) ui.final = { ...me.myFinal };
     render();
   });
 })();

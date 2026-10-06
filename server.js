@@ -49,6 +49,8 @@ const game = new Game({ timeScale: TIME_SCALE, minPlayers: MIN_PLAYERS, onChange
 const CONTENT = {
   story: C.STORY, traits: C.TRAITS, characters: C.CHARACTERS,
   weapons: C.WEAPONS, rooms: C.ROOMS, phaseTitles: C.PHASE_TITLES, hallwayNote: C.HALLWAY_NOTE, joinUrl: JOIN_URL,
+  modes: C.MODES, itemsStory: C.ITEMS_STORY, items: [C.KNIFE, ...C.ITEMS], knifeId: C.KNIFE.id,
+  secretActions: C.SECRET_ACTIONS, itemPhaseTitles: C.ITEM_PHASE_TITLES,
 };
 
 let broadcastQueued = false;
@@ -130,6 +132,10 @@ io.on('connection', (socket) => {
   socket.on('act:pin', guarded(({ cardId }) => game.pin(playerId, cardId)));
   socket.on('act:vote', guarded(({ targetId }) => game.vote(playerId, targetId)));
   socket.on('act:final', guarded((p) => game.final(playerId, p)));
+  // items mode
+  socket.on('act:answer', guarded(({ targetId }) => game.itAnswer(playerId, targetId)));
+  socket.on('act:secret', guarded(({ targets }) => game.itAct(playerId, { targets })));
+  socket.on('act:accuse', guarded(({ targetId }) => game.itFinal(playerId, targetId)));
 
   socket.on('disconnect', () => {
     if (!playerId) return;
