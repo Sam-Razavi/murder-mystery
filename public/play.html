@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="fa" dir="rtl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+  <meta name="theme-color" content="#12090f">
+  <title>ضیافت آخر</title>
+  <link rel="preload" href="/fonts/lalezar-arabic-400-normal.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="preload" href="/fonts/vazirmatn-arabic-500-normal.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="stylesheet" href="/shared.css">
+  <link rel="stylesheet" href="/play.css">
+</head>
+<body>
+  <div class="backdrop phone">
+    <section id="join" class="join hidden">
+      <div class="join-eyebrow">شب یلدا · عمارت فرهمند</div>
+      <h1 class="display join-title">ضیافت آخر</h1>
+      <p class="join-tag">یکی از ما قاتل است.</p>
+      <form id="joinForm" autocomplete="off">
+        <label for="nameInput">اسمت چیست؟</label>
+        <input id="nameInput" maxlength="14" placeholder="مثلاً: سام" enterkeyhint="go">
+        <button class="btn primary big" type="submit">ورود به مهمانی</button>
+        <div id="joinError" class="error"></div>
+      </form>
+    </section>
+
+    <section id="game" class="hidden">
+      <header class="ph-top">
+        <div id="meChip" class="me-chip"></div>
+        <div class="ph-phase"><div id="phPhase" class="display"></div><div id="phRound" class="muted"></div></div>
+        <div class="ph-timer" data-timer><span data-timer-label></span></div>
+      </header>
+      <section id="action" class="action"></section>
+      <nav id="tabs" class="tabs"></nav>
+      <section id="tabBody" class="tab-body"></section>
+      <div id="vipBar" class="vip-bar hidden"></div>
+    </section>
+
+    <div id="toast" class="toast hidden"></div>
+    <div id="offline" class="offline hidden">اتصال قطع شد… در حال اتصال دوباره</div>
+  </div>
+  <script src="/socket.io/socket.io.js"></script>
+  <script src="/shared.js"></script>
+  <script src="/play.js"></script>
+</body>
+</html>

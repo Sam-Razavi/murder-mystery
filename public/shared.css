@@ -1,0 +1,75 @@
+@font-face { font-family: 'Vazirmatn'; font-weight: 400; font-display: swap; src: url('/fonts/vazirmatn-arabic-400-normal.woff2') format('woff2'); unicode-range: U+0600-06FF, U+0750-077F, U+0870-089F, U+08A0-08FF, U+200C-200E, U+2010-2011, U+204F, U+2E41, U+FB50-FDFF, U+FE70-FEFC; }
+@font-face { font-family: 'Vazirmatn'; font-weight: 400; font-display: swap; src: url('/fonts/vazirmatn-latin-400-normal.woff2') format('woff2'); unicode-range: U+0000-00FF, U+2000-206F; }
+@font-face { font-family: 'Vazirmatn'; font-weight: 500; font-display: swap; src: url('/fonts/vazirmatn-arabic-500-normal.woff2') format('woff2'); unicode-range: U+0600-06FF, U+0750-077F, U+0870-089F, U+08A0-08FF, U+200C-200E, U+2010-2011, U+204F, U+2E41, U+FB50-FDFF, U+FE70-FEFC; }
+@font-face { font-family: 'Vazirmatn'; font-weight: 500; font-display: swap; src: url('/fonts/vazirmatn-latin-500-normal.woff2') format('woff2'); unicode-range: U+0000-00FF, U+2000-206F; }
+@font-face { font-family: 'Vazirmatn'; font-weight: 700; font-display: swap; src: url('/fonts/vazirmatn-arabic-700-normal.woff2') format('woff2'); unicode-range: U+0600-06FF, U+0750-077F, U+0870-089F, U+08A0-08FF, U+200C-200E, U+2010-2011, U+204F, U+2E41, U+FB50-FDFF, U+FE70-FEFC; }
+@font-face { font-family: 'Vazirmatn'; font-weight: 700; font-display: swap; src: url('/fonts/vazirmatn-latin-700-normal.woff2') format('woff2'); unicode-range: U+0000-00FF, U+2000-206F; }
+@font-face { font-family: 'Vazirmatn'; font-weight: 800; font-display: swap; src: url('/fonts/vazirmatn-arabic-800-normal.woff2') format('woff2'); unicode-range: U+0600-06FF, U+0750-077F, U+0870-089F, U+08A0-08FF, U+200C-200E, U+2010-2011, U+204F, U+2E41, U+FB50-FDFF, U+FE70-FEFC; }
+@font-face { font-family: 'Vazirmatn'; font-weight: 800; font-display: swap; src: url('/fonts/vazirmatn-latin-800-normal.woff2') format('woff2'); unicode-range: U+0000-00FF, U+2000-206F; }
+@font-face { font-family: 'Lalezar'; font-weight: 400; font-display: swap; src: url('/fonts/lalezar-arabic-400-normal.woff2') format('woff2'); unicode-range: U+0600-06FF, U+0750-077F, U+0870-089F, U+08A0-08FF, U+200C-200E, U+2010-2011, U+204F, U+2E41, U+FB50-FDFF, U+FE70-FEFC; }
+@font-face { font-family: 'Lalezar'; font-weight: 400; font-display: swap; src: url('/fonts/lalezar-latin-400-normal.woff2') format('woff2'); unicode-range: U+0000-00FF, U+2000-206F; }
+
+:root {
+  --night: #12090f;
+  --night-2: #1d1018;
+  --night-3: #2a1722;
+  --line: rgba(217, 164, 65, 0.22);
+  --pom: #a3123a;
+  --pom-bright: #e0335c;
+  --gold: #d9a441;
+  --gold-soft: #f0d08a;
+  --parchment: #f5e6c8;
+  --parchment-2: #e9d3a8;
+  --ink: #2a1418;
+  --turq: #2fb3a6;
+  --text: #f3e7d3;
+  --muted: #b8a185;
+  --good: #49c28a;
+  --bad: #ff5d73;
+  --display: 'Lalezar', 'Vazirmatn', serif;
+  --body: 'Vazirmatn', Tahoma, sans-serif;
+  color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+html, body { margin: 0; padding: 0; }
+body {
+  font-family: var(--body);
+  background: var(--night);
+  color: var(--text);
+  direction: rtl;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+/* Candle-lit room with a faint girih (Persian star) lattice */
+.backdrop {
+  background:
+    radial-gradient(ellipse 60% 50% at 75% 0%, rgba(224, 51, 92, 0.18), transparent 70%),
+    radial-gradient(ellipse 50% 45% at 10% 100%, rgba(217, 164, 65, 0.14), transparent 70%),
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120' viewBox='0 0 120 120'%3E%3Cg fill='none' stroke='%23d9a441' stroke-opacity='0.07' stroke-width='1.2'%3E%3Cpath d='M60 8l14 34 34 14-34 14-14 34-14-34-34-14 34-14z'/%3E%3Cpath d='M60 30l9 21 21 9-21 9-9 21-9-21-21-9 21-9z'/%3E%3Cpath d='M0 0l20 20M120 0l-20 20M0 120l20-20M120 120l-20-20'/%3E%3C/g%3E%3C/svg%3E"),
+    var(--night);
+  min-height: 100vh;
+}
+
+.display { font-family: var(--display); font-weight: 400; letter-spacing: 0; }
+.muted { color: var(--muted); }
+.gold { color: var(--gold); }
+.hidden { display: none !important; }
+
+.avatar {
+  display: inline-grid; place-items: center;
+  border-radius: 50%;
+  font-family: var(--display);
+  color: #1a0d12;
+  flex-shrink: 0;
+  box-shadow: 0 0 0 2px rgba(0,0,0,.35), inset 0 -3px 0 rgba(0,0,0,.18);
+}
+
+.sep { display: inline-block; width: .3em; height: .3em; background: currentColor; opacity: .55; transform: rotate(45deg); margin: 0 .4em; vertical-align: .18em; }
+.num { direction: ltr; unicode-bidi: isolate; display: inline-block; }
+
+@keyframes rise { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: none; } }
+@keyframes pop { 0% { transform: scale(.85); opacity: 0; } 70% { transform: scale(1.04); opacity: 1; } 100% { transform: scale(1); } }
+@keyframes flicker { 0%, 100% { opacity: 1; } 45% { opacity: .86; } 55% { opacity: .95; } }
+@keyframes pulse { 0%, 100% { box-shadow: 0 0 0 0 rgba(224, 51, 92, .45); } 50% { box-shadow: 0 0 0 12px rgba(224, 51, 92, 0); } }

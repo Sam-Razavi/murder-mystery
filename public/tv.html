@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="fa" dir="rtl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>ضیافت آخر — تلویزیون</title>
+  <link rel="preload" href="/fonts/lalezar-arabic-400-normal.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="preload" href="/fonts/vazirmatn-arabic-500-normal.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="stylesheet" href="/shared.css">
+  <link rel="stylesheet" href="/tv.css">
+</head>
+<body>
+  <div id="app" class="backdrop tv">
+    <header class="tv-top">
+      <div class="brand display">ضیافت آخر</div>
+      <div class="phase-info">
+        <div id="phaseTitle" class="phase-title display"></div>
+        <div id="roundPips" class="pips"></div>
+      </div>
+      <div class="timer" data-timer><span data-timer-label></span></div>
+    </header>
+    <main id="stage"></main>
+    <footer id="strip" class="strip"></footer>
+    <div id="offline" class="offline hidden">اتصال به سرور قطع شد… در حال تلاش دوباره</div>
+  </div>
+  <script src="/socket.io/socket.io.js"></script>
+  <script src="/shared.js"></script>
+  <script src="/tv.js"></script>
+</body>
+</html>
