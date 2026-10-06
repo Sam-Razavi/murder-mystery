@@ -26,6 +26,8 @@ const SETTING_OPTIONS = {
   mode: MODES,
   itemRounds: [4, 6, 8], // items mode: gossip rounds per game
   gossipSeconds: [30, 40, 60], // items mode: time to answer (+ secret action)
+  quietRounds: [false, true], // items mode: some rounds have no secret action
+  killersKnow: [false, true], // items mode: killers see each other
 };
 const LIVE_SETTINGS = ['discussSeconds'];
 
@@ -51,7 +53,9 @@ class Game {
     this.vipId = null;
     this.phase = 'lobby';
     this.round = 0;
-    this.settings = { discussSeconds: 150, mode: 'classic', itemRounds: 6, gossipSeconds: 40 };
+    this.settings = {
+      discussSeconds: 150, mode: 'classic', itemRounds: 6, gossipSeconds: 40, quietRounds: false, killersKnow: false,
+    };
     this.g = null; // per-game state
     this.timer = null; // {endsAt, duration}
     this._timerHandle = null;

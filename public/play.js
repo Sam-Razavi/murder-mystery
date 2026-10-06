@@ -106,7 +106,9 @@
         <div class="seg">${C.modes.map((m) => `<button data-act="setMode" data-v="${m.id}" class="${mode.id === m.id ? 'sel' : ''}">${esc(m.name)}</button>`).join('')}</div>
         <div class="note">${esc(mode.text)}</div>
         ${mode.id === 'items' ? `<div class="sub">تعداد دورهای پچ‌پچ (هر ۲ دور یک گفت‌وگو)</div>${seg('itemRounds', [[4, '۴ — کوتاه'], [6, '۶'], [8, '۸ — بلند']])}
-        <div class="sub">زمان جواب دادن در هر دور</div>${seg('gossipSeconds', [[30, '۳۰ ثانیه'], [40, '۴۰ ثانیه'], [60, '۶۰ ثانیه']])}` : ''}
+        <div class="sub">زمان جواب دادن در هر دور</div>${seg('gossipSeconds', [[30, '۳۰ ثانیه'], [40, '۴۰ ثانیه'], [60, '۶۰ ثانیه']])}
+        <div class="sub">دورهای بی‌صدا: گاهی هیچ‌کس کار مخفی نمی‌گیرد</div>${seg('quietRounds', [[false, 'خاموش'], [true, 'روشن']])}
+        <div class="sub">قاتل‌ها هم‌دیگر را می‌شناسند (از ۵ نفر به بالا)</div>${seg('killersKnow', [[false, 'خاموش'], [true, 'روشن']])}` : ''}
         <div class="sub">زمان هر گفت‌وگو</div>${seg('discussSeconds', [[90, '۱:۳۰'], [150, '۲:۳۰'], [240, '۴:۰۰']])}
         <button class="btn primary big" data-act="start" ${allReady ? '' : 'disabled'}>${allReady ? 'شروع بازی' : 'منتظر آماده شدن همه…'}</button>`;
     }
@@ -283,7 +285,9 @@
     const killer = isKiller();
     const moved = me.item !== me.startItem;
     const secret = killer
-      ? `<div class="secret killer"><h4>🔪 تو قاتلی!</h4><p>شب را با چاقو شروع کردی. ${S.game.killerCount > 1 ? 'یک قاتل دیگر هم هست — اما نمی‌دانی کیست.' : ''}
+      ? `<div class="secret killer"><h4>🔪 تو قاتلی!</h4><p>شب را با چاقو شروع کردی. ${me.partners && me.partners.length
+        ? `شریک جرمت <b>${me.partners.map(shortName).join('، ')}</b> است — او هم تو را می‌شناسد.`
+        : S.game.killerCount > 1 ? 'یک قاتل دیگر هم هست — اما نمی‌دانی کیست.' : ''}
          کاری کن در رأی نهایی بیشترین رأی به تو نرسد. بگذار ردّ چاقو گم شود.</p></div>`
       : `<div class="secret innocent"><h4>🕊️ تو بی‌گناهی</h4><p>شب را با ${itemTag(me.startItem)} شروع کردی.
          بفهم چه کسی شب را با چاقو شروع کرد و در رأی نهایی همه با هم به او رأی بدهید.</p></div>`;

@@ -28,6 +28,11 @@ async function playOne(n) {
   check(`[${n}] bad rounds rejected`, !game.setSetting('p0', 'itemRounds', 5).ok);
   check(`[${n}] gossip time setting accepted`, game.setSetting('p0', 'gossipSeconds', pick([30, 40, 60])).ok);
   check(`[${n}] unknown setting rejected`, !game.setSetting('p0', 'toString', 'x').ok);
+  const quiet = Math.random() < 0.5;
+  const know = Math.random() < 0.5;
+  check(`[${n}] quiet rounds setting`, game.setSetting('p0', 'quietRounds', String(quiet)).ok && game.settings.quietRounds === quiet);
+  check(`[${n}] killers-know setting`, game.setSetting('p0', 'killersKnow', know).ok && game.settings.killersKnow === know);
+  check(`[${n}] bad boolean rejected`, !game.setSetting('p0', 'killersKnow', 'yes').ok);
   ids.forEach((id) => game.setReady(id, true));
   check(`[${n}] start ok`, game.start('p0').ok);
   check(`[${n}] cannot change mode mid-game`, !game.setSetting('p0', 'mode', 'classic').ok);
@@ -40,6 +45,12 @@ async function playOne(n) {
   check(`[${n}] non-knife items unique`, new Set(nonKnives).size === nonKnives.length);
   check(`[${n}] roles match starting item`, ids.every((id) => game.privateState(id).role === (g.start[id] === KNIFE ? 'killer' : 'innocent')));
   const startMultiset = sorted(g.start);
+  ids.forEach((id) => {
+    const partners = game.privateState(id).partners;
+    if (know && g.killers.includes(id)) check(`[${n}] killer sees the other killer`, partners.join() === g.killers.filter((x) => x !== id).join());
+    else check(`[${n}] no partner info unless the rule is on and you're a killer`, partners === undefined);
+  });
+  check(`[${n}] action count hidden with quiet rounds`, (game.publicState().game.actionsSoFar === null) === quiet);
 
   const leakCheck = (label) => {
     const pub = JSON.stringify(game.publicState());
@@ -58,6 +69,21 @@ async function playOne(n) {
     check(`[${n}] r${r} gossip phase (${game.phase})`, game.phase === 'gossip' && game.round === r);
     leakCheck(`r${r} gossip`);
     const t = g.turn;
+    if (!t) {
+      check(`[${n}] quiet only when the rule is on`, quiet);
+      check(`[${n}] quiet round: no phone gets an action`, ids.every((id) => !game.privateState(id).turn));
+      const prev = g.log[g.log.length - 1];
+      check(`[${n}] never two quiet rounds in a row`, !prev || prev.type !== 'quiet');
+      const before = { ...g.hold };
+      ids.forEach((id) => game.itAnswer(id, pick(ids.filter((x) => x !== id))));
+      await sleep(6);
+      check(`[${n}] quiet round ends once everyone answers (${game.phase})`, game.phase === 'gossipResult');
+      check(`[${n}] quiet round logged, nothing moved`, g.log[g.log.length - 1].type === 'quiet' && ids.every((id) => g.hold[id] === before[id]));
+      leakCheck(`r${r} quiet result`);
+      game.skip('p0');
+      if (r % 2 === 0) game.skip('p0');
+      continue;
+    }
     actors.push(t.actorId);
     const withTurn = ids.filter((id) => game.privateState(id).turn);
     check(`[${n}] exactly one phone gets the secret action`, withTurn.length === 1 && withTurn[0] === t.actorId);

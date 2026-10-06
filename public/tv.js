@@ -280,6 +280,18 @@
   const itemsInPlay = () => `<div class="box"><h3>چیزهای در بازی</h3><div class="itm-row">${S.game.items.map((x) => `<span title="${esc(item(x).name)}">${item(x).icon}</span>`).join('')}</div>
     <p class="small">${fa(S.game.killerCount)} قاتل <i class="sep"></i> فقط چاقو تکراری است</p></div>`;
 
+  // Hidden when quiet rounds are on: the count would show which rounds were quiet.
+  const actionsBox = () => (S.game.actionsSoFar == null ? ''
+    : `<div class="box"><h3>کارهای مخفی تا حالا</h3><div class="big-n">${fa(S.game.actionsSoFar)}</div></div>`);
+
+  function rulesNote() {
+    const r = S.game.rules || {};
+    const lines = [];
+    if (r.quietRounds) lines.push('🤫 دورهای بی‌صدا: بعضی دورها هیچ‌کس کار مخفی نمی‌گیرد.');
+    if (r.killersKnow && S.game.killerCount > 1) lines.push('🤝 قاتل‌ها هم‌دیگر را می‌شناسند.');
+    return lines.length ? `<div class="house-rules">${lines.map((l) => `<span>${l}</span>`).join('')}</div>` : '';
+  }
+
   function actionCards() {
     return Object.entries(C.secretActions).map(([k, a]) => `<div class="act-card"><span class="ai">${a.icon}</span><div><b>${esc(a.name)}</b><p>${esc(a.text)}</p></div></div>`).join('');
   }
@@ -292,6 +304,7 @@
           <p class="lead">${fa(S.players.filter((p) => p.inGame).length)} نفر <i class="sep"></i> <b class="pom">${fa(S.game.killerCount)} چاقو = ${fa(S.game.killerCount)} قاتل</b></p></div>
         <div class="box"><h3>کارهای مخفی</h3><div class="acts">${actionCards()}</div></div>
       </div>
+      ${rulesNote()}
       <div class="look">📱 به گوشی‌تان نگاه کنید — چیزی که دستتان است آنجاست. مواظب باشید کسی نبیند!</div>
     </section>`;
   }
@@ -302,9 +315,9 @@
         <div class="eyebrow">پچ‌پچ <i class="sep"></i> دور ${fa(S.round)} از ${fa(S.totalRounds)}</div>
         <h2 class="g-q display">${esc(S.game.question)}</h2>
         <p class="lead">روی گوشی یک نفر را انتخاب کنید.</p>
-        <p class="whisper">…و همین حالا، یک نفر پنهانی کاری مخفی انجام می‌دهد.</p>
+        <p class="whisper">${S.game.rules.quietRounds ? '…و شاید همین حالا، یک نفر پنهانی کاری مخفی انجام می‌دهد.' : '…و همین حالا، یک نفر پنهانی کاری مخفی انجام می‌دهد.'}</p>
       </div>
-      <aside class="side">${itemsInPlay()}<div class="box"><h3>کارهای مخفی تا حالا</h3><div class="big-n">${fa(S.game.actionsSoFar)}</div></div></aside>
+      <aside class="side">${itemsInPlay()}${actionsBox()}</aside>
     </section>`;
   }
 
@@ -333,7 +346,7 @@
         <div class="qs">${qs.map((q) => `<span>${esc(q)}</span>`).join('')}</div>
         <p class="lead">چاقو جابه‌جا می‌شود؛ تاریخچه‌اش مدرک است. قاتل‌ها می‌خواهند این تاریخچه گم شود — شما باید دوباره بسازیدش.</p>
       </div>
-      <aside class="side">${itemsInPlay()}<div class="box"><h3>کارهای مخفی تا حالا</h3><div class="big-n">${fa(S.game.actionsSoFar)}</div></div>
+      <aside class="side">${itemsInPlay()}${actionsBox()}
         ${hist ? `<div class="box"><h3>پچ‌پچ‌ها</h3><ul class="small">${hist}</ul></div>` : ''}</aside>
     </section>`;
   }
@@ -360,6 +373,9 @@
   }
 
   function logLine(e) {
+    if (e.type === 'quiet') {
+      return `<div class="li tl quiet"><span class="ok">🤫</span><div><div class="main"><span class="muted">دور ${fa(e.round)}:</span> دور بی‌صدا — هیچ‌کس کار مخفی نگرفت</div></div><span></span></div>`;
+    }
     const a = C.secretActions[e.type];
     let what;
     if (e.type === 'snoop') what = `به <b>${name(e.targets[0])}</b> سرک کشید و ${itemChip(e.seen)} دید`;

@@ -51,6 +51,9 @@ The host chooses the mode in the lobby on their phone. This mode follows the ite
   - 🔀 **Shuffle:** exchange the items of two other players. Your own item stays put.
 
   Moves take effect when the round ends. A victim is told only that their item changed, not who changed it. A knife-for-knife exchange looks like no change at all. If the actor runs out of time, the game picks for them, so a frozen player doesn't give themselves away.
+- **House rules (optional, off by default, set in the lobby):**
+  - *Quiet rounds:* each round has a 1-in-4 chance of no secret action, but there are never two quiet rounds in a row. The TV then stops showing the action count, since that would reveal which rounds were quiet.
+  - *Killers know each other:* with two killers, each killer's phone names the other one.
 - **Discussion** after every 2 rounds. Each phone keeps a private journal of everything its owner saw or did, plus a tracker for marking suspects.
 - **Final vote:** If one player has the most votes and that player **started** with a knife, the innocents win. If an innocent gets the most votes, the killers win. A tie also goes to the killers, unless the tie is only between the two killers.
 - **Reveal:** The TV shows the tally, then the verdict, then who started with the knives, then the full item timeline (every action and every move).

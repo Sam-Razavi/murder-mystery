@@ -12,6 +12,7 @@ const ITEM_ROUNDS = 6; // default gossip rounds per game (host can pick 4/6/8)
 const ROUNDS_PER_DISCUSS = 2; // a discussion after every 2 gossip rounds
 const ACTION_TYPES = ['snoop', 'swap', 'steal', 'shuffle'];
 const ITEM_REVEAL_LAST = 3;
+const QUIET_CHANCE = 0.25; // "quiet rounds" house rule: chance a round has no secret action
 
 const killersFor = (n) => (n <= 4 ? 1 : 2);
 
@@ -46,7 +47,9 @@ const methods = {
       // Public: which items are in play (not who holds them). Knives first.
       items: pool.slice().sort((a, b) => (b === C.KNIFE.id) - (a === C.KNIFE.id)),
       totalRounds: this.settings.itemRounds || ITEM_ROUNDS,
-      log: [], // one entry per secret action, for the final reveal
+      // Optional house rules, fixed for the whole game.
+      rules: { quietRounds: !!this.settings.quietRounds, killersKnow: !!this.settings.killersKnow },
+      log: [], // one entry per round (secret action or quiet round), for the final reveal
       notes: Object.fromEntries(ids.map((id) => [id, [{ round: 0, type: 'start', item: start[id] }]])),
       actorQueue: [],
       turn: null,
@@ -86,7 +89,12 @@ const methods = {
     const question = pick(pool);
     g.usedQuestions.add(question);
     g.gossip = { round: this.round, question, answers: {} };
-    g.turn = { round: this.round, actorId: this._itNextActor(), type: pick(ACTION_TYPES), done: false, targets: null, result: null, auto: false };
+    // Quiet rounds (optional): sometimes nobody gets an action, but never two
+    // rounds in a row, so the game still moves items.
+    const prev = g.log[g.log.length - 1];
+    const quiet = g.rules.quietRounds && !(prev && prev.type === 'quiet') && Math.random() < QUIET_CHANCE;
+    g.turn = quiet ? null
+      : { round: this.round, actorId: this._itNextActor(), type: pick(ACTION_TYPES), done: false, targets: null, result: null, auto: false };
     this._setTimer(this.settings.gossipSeconds || this.durations.gossip, () => this._itEndGossip());
     this._changed();
   },
@@ -140,7 +148,10 @@ const methods = {
   _itResolveTurn() {
     const { g } = this;
     const t = g.turn;
-    if (!t) return;
+    if (!t) {
+      g.log.push({ round: this.round, actorId: null, type: 'quiet', targets: [], auto: false, seen: null, moves: [], holdAfter: { ...g.hold } });
+      return;
+    }
     if (!t.done) {
       // Actor ran out of time: the game picks for them so items still move
       // and nobody can tell who froze.
@@ -286,7 +297,7 @@ const methods = {
     const { g } = this;
     switch (this.phase) {
       case 'gossip':
-        return !!g.gossip.answers[pid] && (g.turn.actorId !== pid || g.turn.done);
+        return !!g.gossip.answers[pid] && (!g.turn || g.turn.actorId !== pid || g.turn.done);
       case 'final': return !!g.finalVotes[pid];
       default: return false;
     }
@@ -299,7 +310,9 @@ const methods = {
       mode: 'items',
       killerCount: g.killers.length,
       items: g.items,
-      actionsSoFar: g.log.length,
+      rules: g.rules,
+      // With quiet rounds on, the count would reveal which rounds were quiet.
+      actionsSoFar: g.rules.quietRounds ? null : g.log.length,
       question: ['gossip', 'gossipResult'].includes(this.phase) ? g.gossip.question : null,
       gossipResult: this.phase === 'gossipResult' ? g.gossips[g.gossips.length - 1] : null,
       gossips: g.gossips.map(({ round, question, tally }) => ({ round, question, top: tally.filter((t) => t.votes && t.votes === tally[0].votes).map((t) => t.playerId) })),
@@ -332,10 +345,11 @@ const methods = {
     out.startItem = g.start[pid];
     out.item = g.hold[pid];
     out.notes = g.notes[pid].slice();
+    if (g.rules.killersKnow && g.killers.includes(pid)) out.partners = g.killers.filter((id) => id !== pid);
     out.acted = this._itHasActed(pid);
     if (this.phase === 'gossip') {
       out.gossipAnswer = g.gossip.answers[pid] || null;
-      if (g.turn.actorId === pid) {
+      if (g.turn && g.turn.actorId === pid) {
         const t = g.turn;
         out.turn = {
           type: t.type, done: t.done, result: t.result,
