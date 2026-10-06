@@ -195,3 +195,7 @@ button { font-family: inherit; }
 .join-skyline .manor .slits rect { fill: #f0b54a; opacity: .2; }
 .join-skyline .manor .lit .win { fill: #f0b54a; opacity: .55; animation: join-win 5.5s ease-in-out infinite; }
 @keyframes join-win { 0%, 100% { opacity: .55; } 40% { opacity: .3; } 45% { opacity: .62; } }
+
+/* ---------- classic-mode illustrations ---------- */
+.opt .oi .art, .nb-row .oi .art { width: 1.3em; height: 1.3em; vertical-align: -.25em; }
+.trait .art, .opt .os .art, .nb-row .ti .art, .nb-help .art { width: 1.35em; height: 1.35em; vertical-align: -.35em; }

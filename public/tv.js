@@ -63,6 +63,8 @@
   const pl = (id) => S.players.find((p) => p.id === id);
   const weapon = (id) => C.weapons.find((w) => w.id === id);
   const room = (id) => C.rooms.find((r) => r.id === id);
+  // Illustration for a weapon, room or trait (public/art.js), falling back to its emoji.
+  const artOf = (o, anim = false) => (o && window.Art && Art.has(o.id) ? Art.item(o.id, { anim, title: o.name }) : (o ? o.icon : ''));
   const item = (id) => C.items.find((x) => x.id === id) || { icon: '❔', name: '؟' };
   // Illustrated item (public/art.js); `anim` only on big displays.
   const art = (id, anim = false) => (window.Art && Art.has(id) ? Art.item(id, { anim, title: item(id).name }) : item(id).icon);
@@ -91,9 +93,9 @@
   function traitTags(charId) {
     const c = ch(charId);
     const owned = C.traits.filter((t, i) => c.traits[i]);
-    return owned.length ? owned.map((t) => `<span class="trait">${t.icon} ${esc(t.name)}</span>`).join('') : '<span class="trait none">هیچ نشانه‌ی خاصی ندارد</span>';
+    return owned.length ? owned.map((t) => `<span class="trait">${artOf(t)} ${esc(t.name)}</span>`).join('') : '<span class="trait none">هیچ نشانه‌ی خاصی ندارد</span>';
   }
-  const traitIcons = (charId) => C.traits.filter((t, i) => ch(charId).traits[i]).map((t) => t.icon).join(' ');
+  const traitIcons = (charId) => C.traits.filter((t, i) => ch(charId).traits[i]).map((t) => artOf(t)).join('');
 
   // ------------------------------------------------------------ views
   function viewLobby() {
@@ -167,7 +169,7 @@
         مدرک‌ها خصوصی‌اند — خودتان تصمیم بگیرید چه چیزی را بگویید.</p>
         <p class="whisper">…و همین حالا، قاتل در تاریکی مدرکی جعلی می‌کارد.</p>
       </div>
-      <div class="mansion">${layout.map((id, i) => { const r = room(id); return `<div class="room ${id === 'garden' ? 'lit' : ''}" style="animation-delay:${i * 0.08}s"><div><div class="ri">${r.icon}</div><div class="rn">${esc(r.name)}</div></div></div>`; }).join('')}</div>
+      <div class="mansion">${layout.map((id, i) => { const r = room(id); return `<div class="room ${id === 'garden' ? 'lit' : ''}" style="animation-delay:${i * 0.08}s"><div><div class="ri">${artOf(r, true)}</div><div class="rn">${esc(r.name)}</div></div></div>`; }).join('')}</div>
     </section>`;
   }
 
@@ -192,8 +194,8 @@
     const spots = S.game.spotlights.length
       ? `<div class="box"><h3>بازجویی‌شده‌ها</h3><ul>${S.game.spotlights.map((s) => `<li>دور ${fa(s.round)}: ${who(s.playerId)}</li>`).join('')}</ul></div>` : '';
     return `<aside class="side">
-      <div class="box"><h3>سلاح‌ها</h3><ul>${C.weapons.map((w) => `<li>${w.icon} ${esc(w.name)}</li>`).join('')}</ul></div>
-      <div class="box"><h3>اتاق‌ها</h3><ul>${C.rooms.map((r) => `<li>${r.icon} ${esc(r.name)}</li>`).join('')}</ul></div>
+      <div class="box"><h3>سلاح‌ها</h3><ul>${C.weapons.map((w) => `<li>${artOf(w)} ${esc(w.name)}</li>`).join('')}</ul></div>
+      <div class="box"><h3>اتاق‌ها</h3><ul>${C.rooms.map((r) => `<li>${artOf(r)} ${esc(r.name)}</li>`).join('')}</ul></div>
       ${spots}
     </aside>`;
   }
@@ -220,7 +222,7 @@
     const sp = S.game.spotlight;
     const p = pl(sp.playerId);
     const c = ch(p.charId);
-    const rooms = sp.rooms.map((rid, i) => `<div class="rv"><small>دور ${fa(i + 1)}</small>${room(rid).icon} ${esc(room(rid).name)}</div>`).join('');
+    const rooms = sp.rooms.map((rid, i) => `<div class="rv"><small>دور ${fa(i + 1)}</small>${artOf(room(rid))} ${esc(room(rid).name)}</div>`).join('');
     const ballots = sp.ballots.map((b) => `<span>${esc(pl(b.from) ? pl(b.from).name : '؟')} ← ${esc(pl(b.to) ? pl(b.to).name : '؟')}</span>`).join('');
     return `<section class="spot stage-in">
       <div class="spot-who">${avatar(p)}<div class="nm">${esc(c.name)}</div><div class="sub">${esc(p.name)} <i class="sep"></i> ${esc(c.role)} <i class="sep"></i> ${fa(sp.votes)} رأی${sp.tie ? ' (قرعه بین مساوی‌ها)' : ''}</div></div>
@@ -265,8 +267,8 @@
     } else if (step === 2) {
       const names = (ids) => ids.map((id) => esc(pl(id) ? pl(id).name : '')).join('، ');
       inner = `${miniKiller(r)}<h2 class="h-big">سلاح و مکان</h2><div class="truth">
-        <div class="truth-card"><div class="ti">${weapon(r.weapon).icon}</div><div class="tl">سلاح</div><div class="tn">${esc(weapon(r.weapon).name)}</div><div class="right">${r.weaponRight.length ? `✓ ${names(r.weaponRight)}` : 'هیچ‌کس درست نگفت'}</div></div>
-        <div class="truth-card"><div class="ti">${room(r.room).icon}</div><div class="tl">مکان</div><div class="tn">${esc(room(r.room).name)}</div><div class="right">${r.roomRight.length ? `✓ ${names(r.roomRight)}` : 'هیچ‌کس درست نگفت'}</div></div>
+        <div class="truth-card"><div class="ti">${artOf(weapon(r.weapon), true)}</div><div class="tl">سلاح</div><div class="tn">${esc(weapon(r.weapon).name)}</div><div class="right">${r.weaponRight.length ? `✓ ${names(r.weaponRight)}` : 'هیچ‌کس درست نگفت'}</div></div>
+        <div class="truth-card"><div class="ti">${artOf(room(r.room), true)}</div><div class="tl">مکان</div><div class="tn">${esc(room(r.room).name)}</div><div class="right">${r.roomRight.length ? `✓ ${names(r.roomRight)}` : 'هیچ‌کس درست نگفت'}</div></div>
       </div>`;
     } else if (step === 3) {
       const rows = r.forgeries.map((f, i) => `<div class="li fake" style="animation-delay:${i * 0.25}s"><span class="ok">🎭</span>

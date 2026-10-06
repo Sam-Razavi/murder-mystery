@@ -387,3 +387,11 @@ ul.small { list-style: none; padding: 0; display: grid; gap: .35rem; line-height
 .itm-row.big span { display: inline-block; animation: pop .6s ease both; filter: drop-shadow(0 .4rem .6rem rgba(0, 0, 0, .45)); }
 .many .itm-row.big { font-size: 3.2rem; }
 .itm-chip .art, .st .art, .mv .art { width: 1.6em; height: 1.6em; vertical-align: -.45em; }
+
+/* ---------- classic-mode illustrations ---------- */
+.room .ri .art { width: 1.75em; height: 1.75em; filter: drop-shadow(0 .3rem .5rem rgba(0, 0, 0, .45)); }
+.truth-card .ti .art { width: 1.05em; height: 1.05em; }
+.side li .art { width: 1.5em; height: 1.5em; }
+.rv .art { width: 1.4em; height: 1.4em; }
+.trait .art { width: 1.3em; height: 1.3em; vertical-align: -.35em; }
+.chip .ic .art { width: 1.25em; height: 1.25em; vertical-align: -.3em; }

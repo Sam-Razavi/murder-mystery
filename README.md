@@ -71,7 +71,7 @@ Private role card (tap to reveal, hides itself after 15 seconds), clue hand with
 ## Look & feel
 - **Living backdrop (TV):** A night sky with a glowing moon, twinkling stars and falling snow. Along the bottom is the Farahmand mansion's skyline (domes, wind-catchers, cypresses), and its windows flicker like candlelight. It calms down on busy screens like the reveal and the scoreboard (`public/scene.js`).
 - **Curtain transitions:** Each new phase opens with velvet drapes closing over a gold title card, then parting to show the new screen as it animates in. The steps inside a reveal and the short gossip result skip the curtain.
-- **Illustrated items:** All 15 «دست‌به‌دست» items are hand-drawn vector art (`public/art.js`) instead of emoji, with small idle animations on big displays: the knife glints, the candle flickers, the tea steams, the tasbih sways. On the phone, your item flips over like a card when you reveal it.
+- **Illustrated items:** The classic mode's 6 weapons, 6 rooms and 4 suspect traits, and all 15 «دست‌به‌دست» items, are hand-drawn vector art (`public/art.js`) instead of emoji, with small idle animations on big displays: the knife glints, the candle flickers, the tea steams, the tasbih sways. On the phone, your item flips over like a card when you reveal it.
 - Everything is inline SVG, CSS and canvas: no image files, no internet needed. All motion stops if the device asks for reduced motion.
 
 ## Edit the content

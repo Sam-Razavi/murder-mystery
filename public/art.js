@@ -148,6 +148,115 @@
         <path d="M32 18 L32 58" fill="none" stroke="${INK}" stroke-width="1" stroke-opacity=".4"/>
         <g class="a-sway"><path d="M32 18 Q20 4 15 10 Q12 17 32 18 Q52 17 49 10 Q44 4 32 18 Z" fill="${GOLD}" ${S}/></g>`;
     },
+
+    // ---- classic mode: weapons ----
+    samovar() {
+      return `<path class="a-steam" d="M33 7 Q30 3 33 -1" fill="none" stroke="${PARCH}" stroke-width="2" stroke-linecap="round" opacity=".7"/>
+        <path d="M25 8 Q32 5 39 8 L38 14 L26 14 Z" fill="${POM}" ${S}/>
+        <path d="M39 10 Q45 9 46 5" fill="none" stroke="${INK}" stroke-width="2.4" stroke-linecap="round"/>
+        <path d="M22 14 L42 14 L40 19 L24 19 Z" fill="${GOLD_SOFT}" ${S}/>
+        <path d="M13 32 Q13 19 32 19 Q51 19 51 32 Q51 46 32 47 Q13 46 13 32 Z" fill="${GOLD}" ${S}/>
+        <path d="M13 31 Q6 31 6 25 M51 31 Q58 31 58 25" fill="none" stroke="${INK}" stroke-width="2.6" stroke-linecap="round"/>
+        <path d="M17 33 Q32 37 47 33" fill="none" stroke="${INK}" stroke-opacity=".35" stroke-width="1.6"/>
+        <path d="M24 40 L18 40 L18 44" fill="none" stroke="${INK}" stroke-width="2.4" stroke-linecap="round"/>
+        <rect x="16" y="38" width="5" height="4" rx="1" fill="${GOLD_SOFT}" stroke="${INK}" stroke-width="1.4"/>
+        <path d="M26 47 L38 47 L37 51 L27 51 Z" fill="${GOLD}" ${S}/>
+        <path d="M20 51 L44 51 L48 58 L16 58 Z" fill="${GOLD}" ${S}/>
+        <path class="a-shine" d="M20 26 Q18 32 21 39" fill="none" stroke="#fff" stroke-opacity=".75" stroke-width="2.2" stroke-linecap="round"/>`;
+    },
+    poison() {
+      return `<rect x="27" y="6" width="10" height="7" rx="2" fill="#8a5a2b" ${S}/>
+        <path d="M28 13 L36 13 L36 21 Q50 27 48 42 Q46 57 32 57 Q18 57 16 42 Q14 27 28 21 Z" fill="#cfe9df" fill-opacity=".45" ${S}/>
+        <path d="M17.5 36 Q32 32 46.5 36 Q46 55 32 55 Q18 55 17.5 36 Z" fill="#4fbf4a"/>
+        <circle class="a-steam" cx="27" cy="45" r="2" fill="#d6f7c9"/><circle class="a-steam d2" cx="37" cy="48" r="1.6" fill="#d6f7c9"/>
+        <path d="M28 13 L36 13 L36 21 Q50 27 48 42 Q46 57 32 57 Q18 57 16 42 Q14 27 28 21 Z" fill="none" ${S}/>
+        <circle cx="32" cy="27" r="5" fill="${PARCH}" stroke="${INK}" stroke-width="1.6"/>
+        <circle cx="30.2" cy="26.4" r="1.1" fill="${INK}"/><circle cx="33.8" cy="26.4" r="1.1" fill="${INK}"/>`;
+    },
+    hookah() {
+      return `<path class="a-steam" d="M32 6 Q29 2 32 -2" fill="none" stroke="${PARCH}" stroke-width="2" stroke-linecap="round" opacity=".6"/>
+        <path d="M24 9 L40 9 L37 16 L27 16 Z" fill="${POM}" ${S}/>
+        <circle class="a-glow" cx="32" cy="8" r="3.2" fill="#ff7a2e"/>
+        <path d="M30 16 L34 16 L34 34 L30 34 Z" fill="${GOLD}" ${S}/>
+        <path d="M26 24 L38 24" ${S}/>
+        <path d="M30 34 Q16 40 18 50 Q20 58 32 58 Q44 58 46 50 Q48 40 34 34 Z" fill="${TURQ}" fill-opacity=".75" ${S}/>
+        <path d="M22 46 Q32 50 42 46" fill="none" stroke="#fff" stroke-opacity=".5" stroke-width="1.6"/>
+        <path d="M38 28 Q54 26 56 40 Q57 50 50 54" fill="none" stroke="${POM}" stroke-width="3" stroke-linecap="round"/>
+        <rect x="47" y="52" width="6" height="5" rx="1.5" fill="${GOLD}" stroke="${INK}" stroke-width="1.4"/>`;
+    },
+    // ---- classic mode: rooms ----
+    library() {
+      const books = [[11, '#b5173f', 22], [17, '#2fb3a6', 19], [23, '#d9a441', 23], [29, '#7b3f9e', 20], [35, '#3f8f3a', 22], [41, '#b5173f', 18]];
+      return `<rect x="6" y="6" width="52" height="54" rx="2" fill="#6b3a24" ${S}/>
+        <rect x="9" y="9" width="46" height="23" fill="#2a1418"/><rect x="9" y="34" width="46" height="23" fill="#2a1418"/>
+        ${books.map(([x, c, h]) => `<rect x="${x}" y="${32 - h}" width="5" height="${h}" fill="${c}" stroke="${INK}" stroke-width="1.2"/>`).join('')}
+        <rect x="47" y="12" width="5" height="20" fill="${PARCH}" stroke="${INK}" stroke-width="1.2" transform="rotate(14 49 32)"/>
+        ${books.map(([x, c, h], i) => `<rect x="${x + 1}" y="${57 - (h - 2 * (i % 2))}" width="5" height="${h - 2 * (i % 2)}" fill="${['#d9a441', '#7b3f9e', '#b5173f', '#2fb3a6', '#f5e6c8', '#3f8f3a'][i]}" stroke="${INK}" stroke-width="1.2"/>`).join('')}
+        <path d="M6 32.5 L58 32.5" ${S}/>`;
+    },
+    kitchen() {
+      return `<path class="a-steam" d="M26 12 Q23 8 26 4" fill="none" stroke="${PARCH}" stroke-width="2" stroke-linecap="round" opacity=".7"/>
+        <path class="a-steam d2" d="M38 12 Q35 8 38 4" fill="none" stroke="${PARCH}" stroke-width="2" stroke-linecap="round" opacity=".7"/>
+        <path d="M12 18 L52 18 L50 40 Q32 46 14 40 Z" fill="#b8682e" ${S}/>
+        <path d="M10 18 L54 18" stroke="${GOLD}" stroke-width="4" stroke-linecap="round"/>
+        <path d="M14 26 Q32 30 50 26" fill="none" stroke="${INK}" stroke-opacity=".35" stroke-width="1.6"/>
+        <path d="M8 24 Q4 24 5 28 M56 24 Q60 24 59 28" fill="none" ${S}/>
+        <path class="a-flame" d="M22 52 Q18 46 22 40 Q26 46 22 52 Z M32 54 Q27 46 32 38 Q37 46 32 54 Z M42 52 Q38 46 42 40 Q46 46 42 52 Z" fill="#ffb238" stroke="${INK}" stroke-width="1.4"/>
+        <rect x="10" y="54" width="44" height="6" rx="2" fill="#3a2a2e" ${S}/>`;
+    },
+    howz() {
+      return `<path d="M4 40 L14 30 L50 30 L60 40 L50 50 L14 50 Z" fill="${TURQ}" ${S}/>
+        <path d="M10 40 L17 34 L47 34 L54 40 L47 46 L17 46 Z" fill="#1d6fa3"/>
+        <ellipse class="a-shine" cx="32" cy="40" rx="10" ry="3" fill="none" stroke="#bfe9ff" stroke-width="1.6"/>
+        <path d="M30 40 L30 22 L34 22 L34 40" fill="${GOLD}" ${S}/>
+        <path class="a-steam" d="M32 20 Q24 10 18 22 M32 20 Q40 10 46 22" fill="none" stroke="#bfe9ff" stroke-width="2.2" stroke-linecap="round"/>
+        <circle cx="32" cy="20" r="3" fill="${GOLD}" stroke="${INK}" stroke-width="1.6"/>`;
+    },
+    shahneshin() {
+      const glass = ['#b5173f', '#2fb3a6', '#d9a441', '#3f8f3a', '#2f6fbf', '#b5173f', '#d9a441', '#2fb3a6'];
+      return `<path d="M8 58 L8 26 Q8 6 32 4 Q56 6 56 26 L56 58 Z" fill="#6b3a24" ${S}/>
+        <path class="a-glow" d="M13 55 L13 27 Q13 11 32 9 Q51 11 51 27 L51 55 Z" fill="#ffcf6b" opacity=".35"/>
+        ${glass.map((c, i) => `<rect x="${14 + (i % 4) * 9}" y="${30 + Math.floor(i / 4) * 12}" width="8" height="11" fill="${c}" opacity=".85"/>`).join('')}
+        <path d="M13 27 Q13 11 32 9 Q51 11 51 27 Z" fill="#d9a441" opacity=".6"/>
+        <path d="M32 9 L32 55 M13 29 L51 29 M13 42 L51 42 M22.5 29 L22.5 55 M41.5 29 L41.5 55 M18 18 L46 18" stroke="${INK}" stroke-width="1.6"/>
+        <path d="M13 55 L13 27 Q13 11 32 9 Q51 11 51 27 L51 55 Z" fill="none" ${S}/>`;
+    },
+    sardab() {
+      return `<path d="M6 60 L6 26 Q6 6 32 6 Q58 6 58 26 L58 60 Z" fill="#3a2a2e" ${S}/>
+        <path d="M12 60 L12 28 Q12 12 32 12 Q52 12 52 28 L52 60 Z" fill="#0b060d"/>
+        <path d="M12 60 L52 60 L52 54 L18 54 L18 48 L46 48 L46 42 L24 42 L24 36 L40 36" fill="#5b4448" stroke="${INK}" stroke-width="1.8" stroke-linejoin="round"/>
+        <path d="M6 6 L22 6 M6 6 L6 20 M6 6 L18 18 M10 6 Q9 12 6 13 M16 6 Q14 15 6 17" fill="none" stroke="${PARCH}" stroke-width="1.2" opacity=".75"/>
+        <g class="a-sway"><path d="M44 12 L44 26" stroke="${PARCH}" stroke-width="1" opacity=".75"/><circle cx="44" cy="27.5" r="2.4" fill="${INK}" stroke="${PARCH}" stroke-width=".8"/></g>`;
+    },
+    garden() {
+      const fruit = [[22, 22], [40, 18], [32, 32], [46, 30], [18, 34]];
+      return `<path d="M29 60 L30 40 Q24 36 22 30 M30 42 Q38 36 40 30 M35 60 L33 40" fill="#6b3a24" ${S}/>
+        <path d="M27 60 L29 40 L35 40 L37 60 Z" fill="#6b3a24" ${S}/>
+        <g class="a-sway"><path d="M8 30 Q6 12 22 8 Q32 0 44 7 Q58 10 57 26 Q60 40 46 42 Q32 48 18 42 Q4 40 8 30 Z" fill="#3f8f3a" ${S}/>
+        <path d="M14 20 Q18 16 24 16 M36 12 Q42 12 46 16" fill="none" stroke="#7cc35a" stroke-width="2" stroke-linecap="round"/>
+        ${fruit.map(([x, y]) => `<circle cx="${x}" cy="${y}" r="4.6" fill="${POM_BRIGHT}" stroke="${INK}" stroke-width="1.6"/><path d="M${x - 1.6} ${y - 4.4} L${x} ${y - 6.4} L${x + 1.6} ${y - 4.4}" fill="${POM}" stroke="${INK}" stroke-width="1"/>`).join('')}</g>`;
+    },
+    // ---- classic mode: traits (glasses reuses the item drawing) ----
+    lefty() {
+      return `<path d="M22 58 L22 40 Q14 34 10 26 Q9 22 13 22 Q17 23 22 31 L22 12 Q22 8 26 8 Q29 8 29 12 L29 28 L29 7 Q29 3 33 3 Q36 3 36 7 L36 28 L36 9 Q36 5 40 5 Q43 5 43 9 L43 30 L43 15 Q43 11 47 11 Q50 11 50 15 L50 40 Q50 50 44 58 Z" fill="#e8b98a" ${S}/>
+        <path d="M22 58 L44 58" stroke="${GOLD}" stroke-width="5" stroke-linecap="round"/>
+        <path d="M27 44 Q33 47 40 44" fill="none" stroke="${INK}" stroke-opacity=".35" stroke-width="1.6"/>`;
+    },
+    smoker() {
+      return `<path class="a-steam" d="M50 22 Q46 16 50 11 Q54 6 50 1" fill="none" stroke="${PARCH}" stroke-width="2.2" stroke-linecap="round" opacity=".7"/>
+        <g transform="rotate(-28 32 40)">
+          <rect x="6" y="36" width="44" height="9" rx="2" fill="#fbf6ea" ${S}/>
+          <rect x="6" y="36" width="13" height="9" rx="2" fill="#d98a3a" ${S}/>
+          <rect class="a-glow" x="47" y="36" width="5" height="9" rx="2" fill="#ff5a24" stroke="${INK}" stroke-width="1.8"/>
+        </g>`;
+    },
+    rose() {
+      return `<path d="M32 60 Q30 46 32 32" fill="none" stroke="#3f8f3a" stroke-width="3" stroke-linecap="round"/>
+        <path d="M31 48 Q20 42 18 48 Q24 54 31 50 Z" fill="#5d9b3c" ${S}/>
+        <g class="a-sway"><path d="M20 20 Q18 6 32 6 Q46 6 44 20 Q44 32 32 34 Q20 32 20 20 Z" fill="${POM_BRIGHT}" ${S}/>
+        <path d="M26 16 Q32 10 38 16 Q36 24 30 22 Q26 20 30 16" fill="none" stroke="${POM}" stroke-width="2.2" stroke-linecap="round"/>
+        <path d="M22 24 Q28 30 36 28" fill="none" stroke="${POM}" stroke-width="2" stroke-linecap="round"/></g>`;
+    },
   };
 
   // Item illustration. `anim` turns on the idle animation (big displays only;

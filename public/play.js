@@ -31,6 +31,8 @@
   // Illustrated item (public/art.js); `anim` only on big displays.
   const art = (id, anim = false) => (window.Art && Art.has(id) ? Art.item(id, { anim, title: item(id).name }) : item(id).icon);
   const itemTag = (id) => `<b class="itm">${art(id)} ${esc(item(id).name)}</b>`;
+  // Illustration for a weapon, room or trait (public/art.js), falling back to its emoji.
+  const artOf = (o, anim = false) => (o && window.Art && Art.has(o.id) ? Art.item(o.id, { anim, title: o.name }) : (o ? o.icon : ''));
   const itemsMode = () => S && S.mode === 'items';
   const phaseTitles = () => (itemsMode() ? C.itemPhaseTitles : C.phaseTitles);
   const SEAT_COLORS = ['#c9a227', '#e0335c', '#2fb3a6', '#7b6fd0', '#d77ab3', '#6a9a4b', '#d9823b', '#4a9fb5'];
@@ -43,9 +45,9 @@
     return `<span class="avatar" style="background:${color}">${esc(letter)}</span>`;
   }
   const nameOf = (pid) => { const p = pl(pid); return p ? (p.charId ? `${ch(p.charId).name} (${p.name})` : p.name) : '؟'; };
-  const traitIcons = (charId) => C.traits.filter((t, i) => ch(charId).traits[i]).map((t) => t.icon).join(' ');
+  const traitIcons = (charId) => C.traits.filter((t, i) => ch(charId).traits[i]).map((t) => artOf(t)).join('');
   const traitTags = (charId) => C.traits.map((t, i) => ch(charId).traits[i]
-    ? `<span class="trait">${t.icon} ${esc(t.name)}</span>` : `<span class="trait no">${esc(t.name)}</span>`).join('');
+    ? `<span class="trait">${artOf(t)} ${esc(t.name)}</span>` : `<span class="trait no">${esc(t.name)}</span>`).join('');
 
   // Only touch the DOM when a region's markup actually changed, so other
   // players' actions don't replace the button under someone's finger.
@@ -147,7 +149,7 @@
   }
 
   function roomGrid(selected, act) {
-    return `<div class="grid2">${C.rooms.map((r) => `<button class="opt ${selected === r.id ? 'sel' : ''}" data-act="${act}" data-id="${r.id}"><span class="oi">${r.icon}</span><span class="on">${esc(r.name)}</span></button>`).join('')}</div>`;
+    return `<div class="grid2">${C.rooms.map((r) => `<button class="opt ${selected === r.id ? 'sel' : ''}" data-act="${act}" data-id="${r.id}"><span class="oi">${artOf(r)}</span><span class="on">${esc(r.name)}</span></button>`).join('')}</div>`;
   }
 
   function actionSearch() {
@@ -210,7 +212,7 @@
       ${head}
       <div class="step-label">قاتل کیست؟</div>${playerList(f.suspect, 'fSuspect')}
       <div class="step-label">با چه سلاحی؟</div>
-      <div class="grid2">${C.weapons.map((w) => `<button class="opt ${f.weapon === w.id ? 'sel' : ''}" data-act="fWeapon" data-id="${w.id}"><span class="oi">${w.icon}</span><span class="on">${esc(w.name)}</span></button>`).join('')}</div>
+      <div class="grid2">${C.weapons.map((w) => `<button class="opt ${f.weapon === w.id ? 'sel' : ''}" data-act="fWeapon" data-id="${w.id}"><span class="oi">${artOf(w)}</span><span class="on">${esc(w.name)}</span></button>`).join('')}</div>
       <div class="step-label">کجا؟</div>${roomGrid(f.room, 'fRoom')}
       <button class="btn primary big" data-act="final" ${f.suspect && f.weapon && f.room ? '' : 'disabled'}>${submitted ? 'به‌روزرسانی اتهام' : 'ثبت اتهام'}</button>`;
   }
@@ -267,9 +269,9 @@
     const row = (k, inner) => `<button class="nb-row ${nb[k] || ''}" data-act="nb" data-k="${esc(k)}">${inner}<span class="mark">${mark(k)}</span></button>`;
     const suspects = S.players.filter((p) => p.charId).map((p) => row(`p:${p.id}`,
       `${avatar(p)}<span class="nm">${esc(ch(p.charId).name)}<small>${esc(p.name)}</small></span><span class="ti">${traitIcons(p.charId)}</span>`)).join('');
-    const ws = C.weapons.map((w) => row(`w:${w.id}`, `<span class="oi">${w.icon}</span><span class="nm">${esc(w.name)}</span>`)).join('');
-    const rs = C.rooms.map((r) => row(`r:${r.id}`, `<span class="oi">${r.icon}</span><span class="nm">${esc(r.name)}</span>`)).join('');
-    const legend = C.traits.map((t) => `${t.icon} ${esc(t.name)}`).join(' <i class="sep"></i> ');
+    const ws = C.weapons.map((w) => row(`w:${w.id}`, `<span class="oi">${artOf(w)}</span><span class="nm">${esc(w.name)}</span>`)).join('');
+    const rs = C.rooms.map((r) => row(`r:${r.id}`, `<span class="oi">${artOf(r)}</span><span class="nm">${esc(r.name)}</span>`)).join('');
+    const legend = C.traits.map((t) => `${artOf(t)} ${esc(t.name)}`).join(' <i class="sep"></i> ');
     return `<div class="nb-help">لمس کن: ✕ = رد شد <i class="sep"></i> ؟ = مشکوک <i class="sep"></i> دوباره = پاک</div>
       <div class="sec-title">مظنون‌ها</div><div class="nb">${suspects}</div><div class="nb-help">${legend}</div>
       <div class="sec-title">سلاح‌ها</div><div class="nb">${ws}</div>
