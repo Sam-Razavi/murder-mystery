@@ -182,6 +182,10 @@ const ITEM_PHASE_TITLES = {
   results: 'نتیجه',
 };
 
+// Lobby portraits. Avoids every in-game item icon so a portrait is never
+// mistaken for something a player holds.
+const PORTRAITS = ['🦊', '🦉', '🐈', '🦚', '🐢', '🦁', '🐺', '🦋', '🌙', '⭐', '🎩', '🎭', '🌹', '🍄', '🐝', '🦜'];
+
 const MODES = [
   { id: 'classic', name: 'ضیافت آخر', text: 'مدرک بگردید، دروغ‌های قاتل را پیدا کنید و قاتل، سلاح و مکان را حدس بزنید.' },
   { id: 'items', name: 'دست‌به‌دست', text: 'هر کس با چاقو شروع کند قاتل است. چیزها پنهانی جابه‌جا می‌شوند — ردّ چاقو را تا اولش بگیرید.' },
@@ -191,5 +195,5 @@ module.exports = {
   STORY, TRAITS, CHARACTERS, WEAPONS, ROOMS,
   ALIBI_TEMPLATES, MOTIVE_TEMPLATES, NOTHING_FOUND, HALLWAY_NOTE,
   MISSIONS, PHASE_TITLES,
-  ITEMS_STORY, KNIFE, ITEMS, SECRET_ACTIONS, GOSSIP_QUESTIONS, ITEM_PHASE_TITLES, MODES,
+  ITEMS_STORY, KNIFE, ITEMS, SECRET_ACTIONS, GOSSIP_QUESTIONS, ITEM_PHASE_TITLES, MODES, PORTRAITS,
 };

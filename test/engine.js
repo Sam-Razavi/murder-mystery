@@ -154,6 +154,12 @@ async function playOne(n, gameNo) {
   check('kick by vip', lg.kick('b', 'c').ok && !lg.player('c'));
   ['f', 'g', 'h', 'i', 'j', 'k', 'l'].forEach((x) => lg.join(x, x));
   check('max 8 players', lg.players.length === 8 && !lg.join('m', 'm').ok);
+  check('portraits unique on join', new Set(lg.players.map((p) => p.portrait)).size === 8 && lg.players.every((p) => C.PORTRAITS.includes(p.portrait)));
+  const freeP = C.PORTRAITS.find((x) => !lg.players.some((p) => p.portrait === x));
+  check('pick a free portrait', lg.setPortrait('b', freeP).ok && lg.player('b').portrait === freeP);
+  check('taken portrait rejected', !lg.setPortrait('f', freeP).ok);
+  check('unknown portrait rejected', !lg.setPortrait('f', '🔪').ok);
+  check('portrait is public', lg.publicState().players.find((p) => p.id === 'b').portrait === freeP);
   lg.dispose();
 
   console.log(`\n${stats.games} games simulated, killer caught in ${stats.caught}, forged cards delivered: ${stats.delivered}`);

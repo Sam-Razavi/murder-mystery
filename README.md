@@ -28,7 +28,7 @@ Requires Node 18+. The phones and the PC have to be on the same Wi-Fi/LAN. The g
 
 ## How a game plays (≈20–25 min)
 
-1. **Lobby:** Players join on their phones. The first person to join is the host 👑 and controls start/skip from their phone.
+1. **Lobby:** Players join on their phones and pick an emoji portrait. The first person to join is the host 👑 and controls start/skip from their phone. Everyone presses «آماده‌ام» (Ready), and the host can start once every online player is ready.
 2. **Intro:** Everyone is secretly assigned a character (e.g. the bankrupt eldest son or the family lawyer). Each character has visible **traits** (👓 glasses, ✋ left-handed, 🚬 smoker, 🌹 rose perfume). One player is told they are the **killer** and learns the weapon and the room. Every innocent player gets a **secret mission** worth bonus points.
 3. **Three rounds, each with these phases:**
    - **Search:** Innocents each pick one of 6 rooms and privately receive a clue. Clues can rule out weapons or rooms, reveal one of the killer's traits, give someone an alibi, or expose a motive. At the same time, the killer **forges a lie** and plants it in a room. The next person to search that room picks up the fake instead of a real clue.

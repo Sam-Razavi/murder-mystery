@@ -137,7 +137,8 @@ class Game {
     if (this.players.some((p) => p.name.toLowerCase() === name.toLowerCase())) {
       return { ok: false, error: 'این اسم را کس دیگری برداشته.' };
     }
-    this.players.push({ id, name, score: 0, connected: true, ready: false, joinedAt: Date.now() + this.players.length });
+    const free = C.PORTRAITS.filter((x) => !this.players.some((p) => p.portrait === x));
+    this.players.push({ id, name, score: 0, connected: true, ready: false, portrait: pick(free), joinedAt: Date.now() + this.players.length });
     if (!this.vipId) this.vipId = id;
     this._ensureVip();
     this._changed();
@@ -151,6 +152,17 @@ class Game {
     this._ensureVip();
     if (this.phase !== 'lobby') this._checkAllDone();
     this._changed();
+  }
+
+  setPortrait(id, portrait) {
+    const p = this.player(id);
+    if (!p) return { ok: false, error: 'اول وارد بازی شو.' };
+    if (this.phase !== 'lobby') return { ok: false, error: 'فقط در سالن انتظار.' };
+    if (!C.PORTRAITS.includes(portrait)) return { ok: false, error: 'چهره‌ی نامعتبر.' };
+    if (this.players.some((x) => x.id !== id && x.portrait === portrait)) return { ok: false, error: 'این چهره را کس دیگری برداشته.' };
+    p.portrait = portrait;
+    this._changed();
+    return { ok: true };
   }
 
   setReady(id, ready) {
@@ -705,7 +717,7 @@ class Game {
       gamesPlayed: this.gamesPlayed,
       vipId: this.vipId,
       players: this.players.map((p) => ({
-        id: p.id, name: p.name, score: p.score, connected: p.connected, ready: !!p.ready,
+        id: p.id, name: p.name, score: p.score, connected: p.connected, ready: !!p.ready, portrait: p.portrait,
         charId: g && g.chars ? g.chars[p.id] || null : null,
         inGame: this._inGame(p.id),
         done: this._hasActed(p.id),

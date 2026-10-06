@@ -57,6 +57,7 @@
   }
   function avatar(p, extra = '') {
     if (!p) return '';
+    if (!p.charId && p.portrait) return `<span class="avatar pt ${extra}" style="background:${colorOf(p)}">${esc(p.portrait)}</span>`;
     const letter = p.charId ? ch(p.charId).name.replace('دکتر ', '').replace('خانم‌جان', 'خ')[0] : p.name[0];
     return `<span class="avatar ${extra}" style="background:${colorOf(p)}">${esc(letter)}</span>`;
   }

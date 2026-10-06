@@ -50,7 +50,7 @@ const CONTENT = {
   story: C.STORY, traits: C.TRAITS, characters: C.CHARACTERS,
   weapons: C.WEAPONS, rooms: C.ROOMS, phaseTitles: C.PHASE_TITLES, hallwayNote: C.HALLWAY_NOTE, joinUrl: JOIN_URL,
   modes: C.MODES, itemsStory: C.ITEMS_STORY, items: [C.KNIFE, ...C.ITEMS], knifeId: C.KNIFE.id,
-  secretActions: C.SECRET_ACTIONS, itemPhaseTitles: C.ITEM_PHASE_TITLES,
+  secretActions: C.SECRET_ACTIONS, itemPhaseTitles: C.ITEM_PHASE_TITLES, portraits: C.PORTRAITS,
 };
 
 let broadcastQueued = false;
@@ -120,6 +120,7 @@ io.on('connection', (socket) => {
     }
   };
 
+  socket.on('player:portrait', guarded(({ portrait }) => game.setPortrait(playerId, portrait)));
   socket.on('player:ready', guarded(({ ready }) => game.setReady(playerId, ready)));
   socket.on('vip:start', guarded(() => game.start(playerId)));
   socket.on('vip:skip', guarded(() => game.skip(playerId)));

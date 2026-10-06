@@ -36,6 +36,7 @@
   function avatar(p) {
     if (!p) return '';
     const color = p.charId ? ch(p.charId).color : SEAT_COLORS[Math.max(0, S.players.indexOf(p)) % 8];
+    if (!p.charId && p.portrait) return `<span class="avatar pt" style="background:${color}">${esc(p.portrait)}</span>`;
     const letter = p.charId ? ch(p.charId).name.replace('دکتر ', '').replace('خانم‌جان', 'خ')[0] : (p.name || '؟')[0];
     return `<span class="avatar" style="background:${color}">${esc(letter)}</span>`;
   }
@@ -89,6 +90,12 @@
     let html = `<h2 class="prompt">${me ? 'به مهمانی خوش آمدی!' : ''}</h2>
       <p class="sub">${n < S.minPlayers ? `منتظر بقیه‌ایم — دست‌کم ${fa(S.minPlayers)} نفر لازم است (الان ${fa(n)} نفر).`
         : waiting ? `${fa(waiting)} نفر هنوز «آماده‌ام» را نزده‌اند.` : 'همه آماده‌اند. میزبان بازی را شروع می‌کند.'}</p>
+      ${meReady ? '' : `<div class="step-label">چهره‌ات را انتخاب کن</div>
+      <div class="portraits">${C.portraits.map((x) => {
+        const mine = pl(me.id) && pl(me.id).portrait === x;
+        const taken = !mine && S.players.some((p) => p.portrait === x);
+        return `<button class="pt-opt ${mine ? 'sel' : ''}" data-act="portrait" data-v="${esc(x)}" ${taken ? 'disabled' : ''}>${esc(x)}</button>`;
+      }).join('')}</div>`}
       <button class="btn big ${meReady ? 'ready-on' : 'gold'}" data-act="ready" data-v="${meReady ? '0' : '1'}">${meReady ? '✓ آماده‌ای — برای لغو لمس کن' : 'آماده‌ام!'}</button>
       <div class="players-mini">${S.players.map((p) => `<span class="pm ${p.connected ? '' : 'off'} ${p.ready ? 'rdy' : ''}">${avatar(p)}${esc(p.name)}${p.id === S.vipId ? ' 👑' : ''}${p.ready ? ' ✓' : ''}
         ${me && me.isVip && !p.connected && p.id !== me.id ? `<button data-act="kick" data-id="${esc(p.id)}">حذف</button>` : ''}</span>`).join('')}</div>`;
@@ -459,6 +466,7 @@
   // ------------------------------------------------------------ events
   const handlers = {
     start: () => send('vip:start'),
+    portrait: (el) => { buzz(20); send('player:portrait', { portrait: el.dataset.v }); },
     ready: (el) => { buzz(30); send('player:ready', { ready: el.dataset.v === '1' }); },
     lobby: () => send('vip:lobby'),
     resetScores: () => send('vip:resetScores'),
