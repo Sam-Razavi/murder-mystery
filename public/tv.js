@@ -63,6 +63,7 @@
         this.crash(dur);
       },
       crash(at = 0) { noise(at, 1.6, 0.35, 5200, 0.6, 'highpass'); tone(82, at, 0.9, 'sine', 0.25); },
+      blip() { tone(1046, 0, 0.12, 'sine', 0.07); tone(1568, 0.05, 0.14, 'sine', 0.05); },
       // A card turning over.
       flip() { noise(0, 0.28, 0.22, 2600, 0.7); tone(520, 0.05, 0.15, 'triangle', 0.05); },
       // Items mode: a soft two-note chime as a gossip question appears.
@@ -366,7 +367,8 @@
     return `<section class="gossip stage-in">
       <div class="g-main">
         <div class="eyebrow">پچ‌پچ <i class="sep"></i> دور ${fa(S.round)} از ${fa(S.totalRounds)}</div>
-        <h2 class="g-q display">${esc(S.game.question)}</h2>
+        <h2 class="g-q display ink">${esc(S.game.question)}</h2>
+        ${answerProgress()}
         <p class="lead">روی گوشی یک نفر را انتخاب کنید.</p>
         <p class="whisper">…و ${S.game.rules.quietRounds ? 'شاید ' : ''}همین حالا، ${S.game.actionsPerRound > 1 ? 'دو نفر' : 'یک نفر'} پنهانی کاری مخفی انجام می‌دهد.</p>
       </div>
@@ -374,9 +376,24 @@
     </section>`;
   }
 
+  // Answers so far, as a bar that grows from where it was on the last paint.
+  // (.anim keeps it animating on re-renders, which otherwise settle.)
+  let lastPct = 0;
+  function answerProgress() {
+    const ps = S.players.filter((p) => p.inGame && p.connected);
+    const done = ps.filter((p) => p.done).length;
+    const pct = ps.length ? Math.round((done / ps.length) * 100) : 0;
+    const from = Math.min(lastPct, pct);
+    lastPct = pct;
+    return `<div class="g-progress"><i class="anim" style="--from:${from}%;--to:${pct}%"></i>
+      <span>${done === ps.length ? 'همه جواب دادند!' : `${fa(done)} از ${fa(ps.length)} نفر جواب داده‌اند`}</span></div>`;
+  }
+
+  // Vote bars spring out one after another; the most-picked rows glow.
   function tallyHtml(tally) {
     const max = Math.max(1, ...tally.map((t) => t.votes));
-    return `<div class="tally">${tally.map((t, i) => `<div class="tally-row" style="animation-delay:${i * 0.12}s">
+    const top = Math.max(0, ...tally.map((t) => t.votes));
+    return `<div class="tally">${tally.map((t, i) => `<div class="tally-row ${top && t.votes === top ? 'win' : ''}" style="animation-delay:${i * 0.12}s;--bd:${(0.25 + i * 0.12).toFixed(2)}s">
       <div class="who">${avatar(pl(t.playerId))}<span>${name(t.playerId)}</span></div>
       <div class="bar">${t.votes ? `<i style="width:${(t.votes / max) * 100}%"></i>` : ''}<span>${t.voters.map(name).join('، ')}</span></div>
       <div class="n">${fa(t.votes)}</div></div>`).join('')}</div>`;
@@ -385,7 +402,15 @@
   function itViewGossipResult() {
     const r = S.game.gossipResult;
     return `<section class="reveal stage-in"><div class="reveal-inner">
-      <div class="eyebrow">دور ${fa(r.round)}</div><h2 class="h-big">${esc(r.question)}</h2>${tallyHtml(r.tally)}</div></section>`;
+      <div class="eyebrow">دور ${fa(r.round)}</div><h2 class="h-big">${esc(r.question)}</h2>${gossipWinner(r)}${tallyHtml(r.tally)}</div></section>`;
+  }
+
+  // Crown banner for whoever the room picked most (after the bars land).
+  function gossipWinner(r) {
+    const top = r.tally[0] ? r.tally[0].votes : 0;
+    if (!top) return '';
+    const ids = r.tally.filter((t) => t.votes === top).map((t) => t.playerId);
+    return `<div class="g-winner" style="--wd:${Math.min(1.6, 0.25 + r.tally.length * 0.12 + 0.7).toFixed(2)}s">👑 ${ids.map((id) => `${avatar(pl(id))} ${name(id)}`).join(' <i class="sep"></i> ')}</div>`;
   }
 
   function itViewDiscuss() {
@@ -596,7 +621,8 @@
   const wantsCurtain = (firstPaint) => !Scene.reduced && !firstPaint && S.phase !== 'lobby' && S.phase !== 'gossipResult'
     && !(S.phase === 'reveal' && S.game.revealStep > 0);
   let replayEntrance = false;
-  let fxTimers = []; // pending reveal sounds, cancelled when the screen changes
+  let fxTimers = [];
+  let lastDone = 0; // pending reveal sounds, cancelled when the screen changes
 
   function render() {
     if (!C || !S) return;
@@ -650,6 +676,10 @@
       else if (S.phase === 'results') Sound.win();
       else if (S.phase !== 'lobby' && (S.phase !== 'reveal' || step === 0)) Sound.gong();
     }
+    // Soft blip whenever another player finishes answering / voting.
+    const doneNow = S.players.filter((p) => p.done).length;
+    if (!phaseChanged && doneNow > lastDone) Sound.blip();
+    lastDone = doneNow;
     const boardLen = S.game && S.game.board ? S.game.board.length : 0;
     if (boardLen > lastBoardLen && !phaseChanged) Sound.pin();
     lastBoardLen = boardLen;
