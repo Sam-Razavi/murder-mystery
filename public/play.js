@@ -403,7 +403,8 @@
     if (!me || !me.isVip || !labels[S.phase]) { bar.classList.add('hidden'); return; }
     bar.classList.remove('hidden');
     const confirming = ui.vipConfirm === S.phase;
-    setHTML(bar, `<span class="lbl">👑 میزبان</span><button class="btn ${confirming ? 'confirm' : ''}" data-act="vipSkip">${confirming ? 'مطمئنی؟ دوباره بزن' : `⏭ ${labels[S.phase]}`}</button>`);
+    const toResults = S.phase === 'reveal' ? '<button class="btn" data-act="vipSkipReveal">⏩ نتیجه</button>' : '';
+    setHTML(bar, `<span class="lbl">👑 میزبان</span><button class="btn ${confirming ? 'confirm' : ''}" data-act="vipSkip">${confirming ? 'مطمئنی؟ دوباره بزن' : `⏭ ${labels[S.phase]}`}</button>${toResults}`);
   }
 
   function render() {
@@ -486,6 +487,7 @@
       }
       render();
     },
+    vipSkipReveal: () => send('vip:skipReveal'),
     showRole: () => {
       ui.roleVisible = true;
       clearTimeout(ui.roleTimer);

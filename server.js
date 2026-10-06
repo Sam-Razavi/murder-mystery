@@ -125,6 +125,7 @@ io.on('connection', (socket) => {
   socket.on('vip:start', guarded(() => game.start(playerId)));
   socket.on('vip:skip', guarded(() => game.skip(playerId)));
   socket.on('vip:next', guarded(() => game.next(playerId)));
+  socket.on('vip:skipReveal', guarded(() => game.skipReveal(playerId)));
   socket.on('vip:lobby', guarded(() => game.backToLobby(playerId)));
   socket.on('vip:resetScores', guarded(() => game.resetScores(playerId)));
   socket.on('vip:kick', guarded(({ targetId }) => game.kick(playerId, targetId)));

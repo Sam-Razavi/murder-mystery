@@ -92,8 +92,11 @@ async function playOne(n, gameNo) {
   await sleep(5);
   check(`[${n}] reveal phase`, game.phase === 'reveal');
   check(`[${n}] reveal step 0 hides killer`, game.publicState().game.reveal.killerId === undefined);
-  for (let s = 0; s < 5; s++) game.next('p0');
+  check(`[${n}] non-vip cannot skip reveal`, !game.skipReveal('p1').ok);
+  if (gameNo % 2) check(`[${n}] vip skips to results`, game.skipReveal('p0').ok && game.phase === 'results');
+  else for (let s = 0; s < 5; s++) game.next('p0');
   check(`[${n}] results phase`, game.phase === 'results');
+  check(`[${n}] skip reveal only during reveal`, !game.skipReveal('p0').ok);
   const res = game.publicState().game.reveal;
   check(`[${n}] results show killer`, res.killerId === killer && res.points.length === n);
 

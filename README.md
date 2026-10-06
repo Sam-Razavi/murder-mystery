@@ -35,7 +35,7 @@ Requires Node 18+. The phones and the PC have to be on the same Wi-Fi/LAN. The g
    - **Discussion:** Players talk. Anyone can press "نشان بده" to pin a clue to the TV evidence board.
    - **Interrogation (rounds 1–2):** Everyone votes. The player with the most votes is put in the spotlight. The TV shows **every room they have searched** and who voted for whom, and they must defend themselves.
 4. **Final accusation:** Everyone names a killer, a weapon and a room.
-5. **Reveal:** The TV shows the vote tally, then the killer, then the weapon and room, then every forged clue (where it was planted and who was fooled by it), then the mission results, then the scoreboard.
+5. **Reveal** (the host can tap ⏩ on their phone to jump straight to the scores): The TV shows the vote tally, then the killer, then the weapon and room, then every forged clue (where it was planted and who was fooled by it), then the mission results, then the scoreboard.
 
 **Deduction hooks:** True clues never contradict each other. Forged clues do. The killer is "seen" in whichever room they plant in, and interrogation exposes those rooms. The killer also holds a copy of each forgery. If both copies end up on the board, the duplicate gives away who planted it.
 
@@ -56,6 +56,7 @@ The host chooses the mode in the lobby on their phone. This mode follows the ite
   - *Killers know each other:* with two killers, each killer's phone names the other one.
 - **Discussion** after every 2 rounds. Each phone keeps a private journal of everything its owner saw or did, plus a tracker for marking suspects.
 - **Final vote:** If one player has the most votes and that player **started** with a knife, the innocents win. If an innocent gets the most votes, the killers win. A tie also goes to the killers, unless the tie is only between the two killers.
+- **Sound:** The TV plays a soft chime when each gossip question appears, and a rustle of items at the end of *every* round, so the sound never gives away whether anything moved. Phones stay silent for the same reason.
 - **Reveal:** The TV shows the tally, then the verdict, then who started with the knives, then the full item timeline (every action and every move).
 - **Scoring:** If the killers win, each killer gets **+3**. If the innocents win, each innocent gets **+2**. Every innocent who voted for a killer gets **+1** either way.
 

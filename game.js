@@ -650,6 +650,17 @@ class Game {
     return { ok: true };
   }
 
+  // Host shortcut: jump past the remaining reveal steps to the scoreboard.
+  skipReveal(byId_) {
+    if (!this._isVip(byId_)) return { ok: false, error: 'فقط میزبان می‌تواند.' };
+    if (this.phase !== 'reveal') return { ok: false, error: 'الان افشاگری نیست.' };
+    this._phaseToken += 1;
+    this._clearTimer();
+    this.phase = 'results';
+    this._changed();
+    return { ok: true };
+  }
+
   backToLobby(byId_) {
     if (!this._isVip(byId_)) return { ok: false, error: 'فقط میزبان می‌تواند.' };
     this._clearTimer();

@@ -37,6 +37,24 @@
       pin() { tone(880, 0, 0.18, 'triangle', 0.1); tone(1320, 0.07, 0.25, 'triangle', 0.08); },
       sting() { [233, 277, 349, 466].forEach((f, i) => tone(f, i * 0.09, 1.8, 'sawtooth', 0.05)); tone(58, 0, 2.5, 'sine', 0.3); },
       win() { [392, 494, 587, 784].forEach((f, i) => tone(f, i * 0.12, 0.9, 'triangle', 0.09)); },
+      // Items mode: a soft two-note chime as a gossip question appears.
+      whisper() { tone(660, 0, 0.9, 'sine', 0.07); tone(990, 0.18, 1.1, 'sine', 0.05); },
+      // Items mode: a rustle of items changing hands. Played at the end of EVERY
+      // round, so it never tells the room whether anything actually moved.
+      swoosh() {
+        const c = get(); if (!c) return;
+        const len = Math.floor(c.sampleRate * 0.7);
+        const buf = c.createBuffer(1, len, c.sampleRate);
+        const data = buf.getChannelData(0);
+        for (let i = 0; i < len; i++) data[i] = (Math.random() * 2 - 1) * Math.sin((Math.PI * i) / len);
+        const src = c.createBufferSource(); src.buffer = buf;
+        const bp = c.createBiquadFilter(); bp.type = 'bandpass'; bp.Q.value = 1.2;
+        bp.frequency.setValueAtTime(500, c.currentTime);
+        bp.frequency.exponentialRampToValueAtTime(3200, c.currentTime + 0.6);
+        const g = c.createGain(); g.gain.value = 0.25;
+        src.connect(bp).connect(g).connect(c.destination);
+        src.start();
+      },
     };
   })();
 
@@ -465,7 +483,11 @@
     $('strip').innerHTML = stripHtml();
 
     if (phaseChanged) {
-      if (S.phase === 'reveal' && S.game.revealStep === 1) Sound.sting();
+      if (itemsMode() && S.phase === 'gossip') Sound.whisper();
+      else if (itemsMode() && S.phase === 'gossipResult') Sound.swoosh();
+      else if (itemsMode() && S.phase === 'reveal' && S.game.revealStep === 1) (S.game.reveal.innocentsWin ? Sound.win() : Sound.sting());
+      else if (itemsMode() && S.phase === 'reveal' && S.game.revealStep === 2) Sound.sting();
+      else if (S.phase === 'reveal' && S.game.revealStep === 1) Sound.sting();
       else if (S.phase === 'results') Sound.win();
       else if (S.phase !== 'lobby') Sound.gong();
     }
