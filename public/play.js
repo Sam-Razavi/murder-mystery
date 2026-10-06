@@ -40,6 +40,9 @@
   function avatar(p) {
     if (!p) return '';
     const color = p.charId ? ch(p.charId).color : SEAT_COLORS[Math.max(0, S.players.indexOf(p)) % 8];
+    // Illustrated face (public/faces.js): the character in classic, else the portrait.
+    const face = window.Art && (p.charId ? Art.character(p.charId) : p.portrait ? Art.portrait(p.portrait) : '');
+    if (face) return `<span class="avatar has-face" style="background:${color}">${face}</span>`;
     if (!p.charId && p.portrait) return `<span class="avatar pt" style="background:${color}">${esc(p.portrait)}</span>`;
     const letter = p.charId ? ch(p.charId).name.replace('دکتر ', '').replace('خانم‌جان', 'خ')[0] : (p.name || '؟')[0];
     return `<span class="avatar" style="background:${color}">${esc(letter)}</span>`;
@@ -99,7 +102,7 @@
       <div class="portraits">${C.portraits.map((x) => {
         const mine = pl(me.id) && pl(me.id).portrait === x;
         const taken = !mine && S.players.some((p) => p.portrait === x);
-        return `<button class="pt-opt ${mine ? 'sel' : ''}" data-act="portrait" data-v="${esc(x)}" ${taken ? 'disabled' : ''}>${esc(x)}</button>`;
+        return `<button class="pt-opt ${mine ? 'sel' : ''}" data-act="portrait" data-v="${esc(x)}" ${taken ? 'disabled' : ''}>${(window.Art && Art.portrait(x)) || esc(x)}</button>`;
       }).join('')}</div>`}
       <button class="btn big ${meReady ? 'ready-on' : 'gold'}" data-act="ready" data-v="${meReady ? '0' : '1'}">${meReady ? '✓ آماده‌ای — برای لغو لمس کن' : 'آماده‌ام!'}</button>
       <div class="players-mini">${S.players.map((p) => `<span class="pm ${p.connected ? '' : 'off'} ${p.ready ? 'rdy' : ''}">${avatar(p)}${esc(p.name)}${p.id === S.vipId ? ' 👑' : ''}${p.ready ? ' ✓' : ''}

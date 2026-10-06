@@ -78,7 +78,9 @@ body {
 
 /* ---------- item art (public/art.js) ---------- */
 .art { width: 1.25em; height: 1.25em; display: inline-block; vertical-align: -.3em; overflow: visible; }
-.art * { transform-box: fill-box; }
+/* Only animated parts measure transforms from their own box; elsewhere SVG
+   rotate(a x y) attributes must keep using the viewBox. */
+.art :is(.a-flame, .a-glow, .a-steam, .a-glint, .a-shine, .a-sway, .a-blink) { transform-box: fill-box; }
 .art.anim .a-flame { transform-origin: 50% 100%; animation: art-flame 1.3s ease-in-out infinite; }
 .art.anim .a-glow { transform-origin: center; animation: art-glow 1.3s ease-in-out infinite; }
 .art.anim .a-steam { animation: art-steam 2.8s ease-in infinite; }
@@ -95,3 +97,19 @@ body {
 @keyframes art-sway { 0%, 100% { transform: rotate(-4deg); } 50% { transform: rotate(4deg); } }
 @keyframes art-blink { 0%, 60% { opacity: 1; } 61%, 100% { opacity: 0; } }
 @media (prefers-reduced-motion: reduce) { .art.anim * { animation: none !important; } }
+
+/* ---------- illustrated faces (public/faces.js) ---------- */
+.avatar.has-face { overflow: hidden; padding: 0; }
+.avatar .face { width: 100%; height: 100%; display: block; vertical-align: top; }
+.avatar .face.pt-art { width: 86%; height: 86%; margin: auto; }
+.avatar .face.bust { transform: translateY(4%); }
+/* faces blink on the big reveal and spotlight avatars */
+.killer-reveal .face .a-eye, .spot-who .face .a-eye, .kr .face .a-eye, .unmask .face .a-eye, .role-head .face .a-eye, .suspect .face .a-eye {
+  transform-box: fill-box; transform-origin: center; animation: blink 4.6s infinite; }
+.suspect:nth-child(2n) .face .a-eye { animation-delay: 1.7s; }
+.suspect:nth-child(3n) .face .a-eye { animation-delay: 3.1s; }
+@keyframes blink { 0%, 92%, 100% { transform: scaleY(1); } 95% { transform: scaleY(.1); } }
+.face .a-sway-w { transform-box: fill-box; transform-origin: center; }
+.kr .face .a-sway-w, .killer-reveal .face .a-sway-w { animation: flutter .5s ease-in-out infinite alternate; }
+@keyframes flutter { from { transform: scaleX(1); } to { transform: scaleX(.8); } }
+@media (prefers-reduced-motion: reduce) { .face .a-eye, .face .a-sway-w { animation: none !important; } }

@@ -199,3 +199,4 @@ button { font-family: inherit; }
 /* ---------- classic-mode illustrations ---------- */
 .opt .oi .art, .nb-row .oi .art { width: 1.3em; height: 1.3em; vertical-align: -.25em; }
 .trait .art, .opt .os .art, .nb-row .ti .art, .nb-help .art { width: 1.35em; height: 1.35em; vertical-align: -.35em; }
+.pt-opt .art { width: 82%; height: 82%; display: block; margin: auto; }

@@ -108,6 +108,9 @@
   }
   function avatar(p, extra = '') {
     if (!p) return '';
+    // Illustrated face (public/faces.js): the character in classic, else the portrait.
+    const face = window.Art && (p.charId ? Art.character(p.charId) : p.portrait ? Art.portrait(p.portrait) : '');
+    if (face) return `<span class="avatar has-face ${extra}" style="background:${colorOf(p)}">${face}</span>`;
     if (!p.charId && p.portrait) return `<span class="avatar pt ${extra}" style="background:${colorOf(p)}">${esc(p.portrait)}</span>`;
     const letter = p.charId ? ch(p.charId).name.replace('دکتر ', '').replace('خانم‌جان', 'خ')[0] : p.name[0];
     return `<span class="avatar ${extra}" style="background:${colorOf(p)}">${esc(letter)}</span>`;
