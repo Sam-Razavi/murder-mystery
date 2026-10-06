@@ -1,0 +1,20 @@
+{
+  "name": "ziafat-akhar",
+  "version": "1.0.0",
+  "description": "ضیافت آخر — a Farsi murder-mystery party game: TV screen + phone controllers",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "test": "node test/engine.js && node test/e2e.js"
+  },
+  "license": "UNLICENSED",
+  "dependencies": {
+    "express": "^5.2.1",
+    "qrcode": "^1.5.4",
+    "socket.io": "^4.8.4"
+  },
+  "devDependencies": {
+    "socket.io-client": "^4.8.4"
+  },
+  "private": true
+}
