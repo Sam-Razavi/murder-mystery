@@ -171,3 +171,5 @@ button { font-family: inherit; }
 .jn p { margin: 0; line-height: 1.75; font-size: .97rem; }
 .jn.changed { border-color: var(--pom-bright); }
 .jn.snoop { border-color: rgba(73,194,138,.45); }
+.btn.ready-on { background: rgba(73,194,138,.18); border-color: var(--good); color: var(--good); }
+.pm.rdy { box-shadow: inset 0 0 0 1px var(--good); }

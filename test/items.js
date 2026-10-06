@@ -23,6 +23,7 @@ async function playOne(n) {
   check(`[${n}] non-vip cannot change mode`, !game.setSetting('p1', 'mode', 'items').ok);
   check(`[${n}] bad mode rejected`, !game.setSetting('p0', 'mode', 'nope').ok);
   check(`[${n}] vip sets items mode`, game.setSetting('p0', 'mode', 'items').ok);
+  ids.forEach((id) => game.setReady(id, true));
   check(`[${n}] start ok`, game.start('p0').ok);
   check(`[${n}] cannot change mode mid-game`, !game.setSetting('p0', 'mode', 'classic').ok);
 

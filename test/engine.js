@@ -19,7 +19,13 @@ async function playOne(n, gameNo) {
   ids.forEach((id, i) => game.join(id, `Bot${i}`));
   check(`[${n}] vip is first player`, game.vipId === 'p0');
   check(`[${n}] cannot start as non-vip`, !game.start('p1').ok);
+  check(`[${n}] cannot start before everyone is ready`, !game.start('p0').ok);
+  ids.slice(0, -1).forEach((id) => game.setReady(id, true));
+  check(`[${n}] one player still not ready`, !game.start('p0').ok && game.phase === 'lobby');
+  game.setReady(ids[n - 1], true);
   check(`[${n}] start ok`, game.start('p0').ok);
+  check(`[${n}] ready flags reset on start`, game.players.every((p) => !p.ready));
+  check(`[${n}] cannot toggle ready mid-game`, !game.setReady('p1', true).ok);
   check(`[${n}] cannot join mid-game`, !game.join('late', 'Late').ok);
 
   const g = game.g;

@@ -120,6 +120,7 @@ io.on('connection', (socket) => {
     }
   };
 
+  socket.on('player:ready', guarded(({ ready }) => game.setReady(playerId, ready)));
   socket.on('vip:start', guarded(() => game.start(playerId)));
   socket.on('vip:skip', guarded(() => game.skip(playerId)));
   socket.on('vip:next', guarded(() => game.next(playerId)));

@@ -79,9 +79,15 @@
 
   function actionLobby() {
     const n = S.players.length;
+    const online = S.players.filter((p) => p.connected);
+    const waiting = online.filter((p) => !p.ready).length;
+    const allReady = n >= S.minPlayers && waiting === 0;
+    const meReady = !!(pl(me.id) && pl(me.id).ready);
     let html = `<h2 class="prompt">${me ? 'به مهمانی خوش آمدی!' : ''}</h2>
-      <p class="sub">${n < S.minPlayers ? `منتظر بقیه‌ایم — دست‌کم ${fa(S.minPlayers)} نفر لازم است (الان ${fa(n)} نفر).` : `${fa(n)} نفر آماده‌اند. میزبان بازی را شروع می‌کند.`}</p>
-      <div class="players-mini">${S.players.map((p) => `<span class="pm ${p.connected ? '' : 'off'}">${avatar(p)}${esc(p.name)}${p.id === S.vipId ? ' 👑' : ''}
+      <p class="sub">${n < S.minPlayers ? `منتظر بقیه‌ایم — دست‌کم ${fa(S.minPlayers)} نفر لازم است (الان ${fa(n)} نفر).`
+        : waiting ? `${fa(waiting)} نفر هنوز «آماده‌ام» را نزده‌اند.` : 'همه آماده‌اند. میزبان بازی را شروع می‌کند.'}</p>
+      <button class="btn big ${meReady ? 'ready-on' : 'gold'}" data-act="ready" data-v="${meReady ? '0' : '1'}">${meReady ? '✓ آماده‌ای — برای لغو لمس کن' : 'آماده‌ام!'}</button>
+      <div class="players-mini">${S.players.map((p) => `<span class="pm ${p.connected ? '' : 'off'} ${p.ready ? 'rdy' : ''}">${avatar(p)}${esc(p.name)}${p.id === S.vipId ? ' 👑' : ''}${p.ready ? ' ✓' : ''}
         ${me && me.isVip && !p.connected && p.id !== me.id ? `<button data-act="kick" data-id="${esc(p.id)}">حذف</button>` : ''}</span>`).join('')}</div>`;
     const mode = C.modes.find((m) => m.id === S.settings.mode) || C.modes[0];
     if (me && me.isVip) {
@@ -92,7 +98,7 @@
         <div class="note">${esc(mode.text)}</div>
         <div class="sub">زمان گفت‌وگو در هر دور</div>
         <div class="seg">${[[90, '۱:۳۰'], [150, '۲:۳۰'], [240, '۴:۰۰']].map(([v, l]) => `<button data-act="setting" data-v="${v}" class="${d === v ? 'sel' : ''}">${l}</button>`).join('')}</div>
-        <button class="btn primary big" data-act="start" ${n < S.minPlayers ? 'disabled' : ''}>شروع بازی</button>`;
+        <button class="btn primary big" data-act="start" ${allReady ? '' : 'disabled'}>${allReady ? 'شروع بازی' : 'منتظر آماده شدن همه…'}</button>`;
     }
     else html += `<div class="note"><b>بازی: ${esc(mode.name)}</b> — ${esc(mode.text)}</div>`;
     html += `<div class="note">📺 صفحه‌ی تلویزیون را ببینید. وقتی بازی شروع شد، نقش مخفی‌ات اینجا روی گوشی می‌آید — نگذار کسی ببیند!</div>`;
@@ -450,6 +456,7 @@
   // ------------------------------------------------------------ events
   const handlers = {
     start: () => send('vip:start'),
+    ready: (el) => { buzz(30); send('player:ready', { ready: el.dataset.v === '1' }); },
     lobby: () => send('vip:lobby'),
     resetScores: () => send('vip:resetScores'),
     kick: (el) => send('vip:kick', { targetId: el.dataset.id }),

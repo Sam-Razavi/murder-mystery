@@ -127,7 +127,7 @@ class Game {
     if (this.players.some((p) => p.name.toLowerCase() === name.toLowerCase())) {
       return { ok: false, error: 'این اسم را کس دیگری برداشته.' };
     }
-    this.players.push({ id, name, score: 0, connected: true, joinedAt: Date.now() + this.players.length });
+    this.players.push({ id, name, score: 0, connected: true, ready: false, joinedAt: Date.now() + this.players.length });
     if (!this.vipId) this.vipId = id;
     this._ensureVip();
     this._changed();
@@ -142,6 +142,18 @@ class Game {
     if (this.phase !== 'lobby') this._checkAllDone();
     this._changed();
   }
+
+  setReady(id, ready) {
+    const p = this.player(id);
+    if (!p) return { ok: false, error: 'اول وارد بازی شو.' };
+    if (this.phase !== 'lobby') return { ok: false, error: 'فقط در سالن انتظار.' };
+    p.ready = !!ready;
+    this._changed();
+    return { ok: true };
+  }
+
+  // Everyone who is online has pressed Ready (offline players can be kicked).
+  _allReady() { return this.players.filter((p) => p.connected).every((p) => p.ready); }
 
   kick(byId_, targetId) {
     if (!this._isVip(byId_)) return { ok: false, error: 'فقط میزبان می‌تواند.' };
@@ -176,6 +188,10 @@ class Game {
     if (this.players.length < this.minPlayers) {
       return { ok: false, error: `دست‌کم ${this.minPlayers.toLocaleString('fa-IR')} نفر لازم است.` };
     }
+    // From the lobby everyone must press Ready first. "Play again" from the
+    // results screen skips this: the same group just finished a game.
+    if (this.phase === 'lobby' && !this._allReady()) return { ok: false, error: 'هنوز همه آماده نیستند.' };
+    this.players.forEach((p) => { p.ready = false; });
     if (this.settings.mode === 'items') {
       this._itStart();
       this._changed();
@@ -682,7 +698,7 @@ class Game {
       gamesPlayed: this.gamesPlayed,
       vipId: this.vipId,
       players: this.players.map((p) => ({
-        id: p.id, name: p.name, score: p.score, connected: p.connected,
+        id: p.id, name: p.name, score: p.score, connected: p.connected, ready: !!p.ready,
         charId: g && g.chars ? g.chars[p.id] || null : null,
         inGame: this._inGame(p.id),
         done: this._hasActed(p.id),

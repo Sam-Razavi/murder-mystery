@@ -279,3 +279,5 @@ ul.small { list-style: none; padding: 0; display: grid; gap: .35rem; line-height
 .st.k { border-color: var(--pom-bright); background: rgba(224,51,92,.15); }
 .mv { margin-inline-end: 1.2rem; white-space: nowrap; }
 .side ul.small li { display: block; }
+.seat.ready { border-color: var(--good); }
+.seat .tag.ok { color: var(--good); }

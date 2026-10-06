@@ -81,8 +81,8 @@
       const p = S.players[i];
       if (p) {
         const isNew = !seenSeats.has(p.id); seenSeats.add(p.id);
-        seats.push(`<div class="seat filled ${p.connected ? '' : 'off'} ${isNew ? 'anim' : ''}">${avatar(p)}
-          <div><div class="nm">${esc(p.name)}</div><div class="tag">${p.id === S.vipId ? '👑 میزبان' : (p.connected ? 'آماده' : 'آفلاین')}${p.score ? ` <i class="sep"></i> ${fa(p.score)} امتیاز` : ''}</div></div></div>`);
+        seats.push(`<div class="seat filled ${p.connected ? '' : 'off'} ${p.ready ? 'ready' : ''} ${isNew ? 'anim' : ''}">${avatar(p)}
+          <div><div class="nm">${esc(p.name)}</div><div class="tag ${p.ready ? 'ok' : ''}">${p.id === S.vipId ? '👑 میزبان <i class="sep"></i> ' : ''}${!p.connected ? 'آفلاین' : p.ready ? '✓ آماده' : 'هنوز آماده نیست'}${p.score ? ` <i class="sep"></i> ${fa(p.score)} امتیاز` : ''}</div></div></div>`);
       } else {
         seats.push(`<div class="seat">${i < S.minPlayers ? 'منتظر مهمان…' : 'جای خالی'}</div>`);
       }
@@ -90,7 +90,8 @@
     const n = S.players.length;
     const foot = n < S.minPlayers
       ? `دست‌کم ${fa(S.minPlayers)} نفر لازم است — ${fa(S.minPlayers - n)} نفر دیگر`
-      : 'همه آماده‌اند؟ میزبان (👑) از روی گوشی‌اش بازی را شروع می‌کند.';
+      : S.players.some((p) => p.connected && !p.ready) ? 'هر کس آماده است، روی گوشی‌اش «آماده‌ام» را بزند.'
+        : 'همه آماده‌اند! میزبان (👑) از روی گوشی‌اش بازی را شروع می‌کند.';
     const items = S.settings.mode === 'items';
     const story = items ? C.itemsStory : C.story;
     const how = items ? `

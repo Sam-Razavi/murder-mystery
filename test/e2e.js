@@ -33,8 +33,14 @@ async function waitFor(fn, label, ms = 8000) {
   return false;
 }
 
+async function readyAll(bots) {
+  if (bots[0].state.phase !== 'lobby') return;
+  for (const b of bots) await b.emit('player:ready', { ready: true });
+}
+
 async function playGame(bots, tv, gameNo) {
   const vip = bots[0];
+  await readyAll(bots);
   const all = () => bots.every((b) => b.state);
   const phase = () => vip.state && vip.state.phase;
 
@@ -97,6 +103,8 @@ async function playItemsGame(bots, tv) {
   check('items: non-vip cannot set mode', !(await bots[1].emit('vip:setting', { key: 'mode', value: 'items' })).ok);
   check('items: vip sets mode', (await vip.emit('vip:setting', { key: 'mode', value: 'items' })).ok);
   await waitFor(() => tv.state.settings.mode === 'items', 'tv sees items mode');
+  check('items: cannot start until everyone is ready', !(await vip.emit('vip:start')).ok);
+  await readyAll(bots);
   check('items: vip starts', (await vip.emit('vip:start')).ok);
   await waitFor(() => bots.every((b) => b.state.phase === 'intro' && b.state.me && b.state.me.startItem), 'items intro');
   const knife = vip.content.knifeId;
