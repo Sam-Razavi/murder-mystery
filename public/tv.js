@@ -31,12 +31,40 @@
       o.connect(g).connect(c.destination);
       o.start(c.currentTime + start); o.stop(c.currentTime + start + dur + 0.05);
     }
+    // Filtered white-noise burst: drum hits, cymbals, whooshes.
+    function noise(start, dur, gain, freq, q = 1, type = 'bandpass') {
+      const c = get(); if (!c) return;
+      const len = Math.max(1, Math.floor(c.sampleRate * dur));
+      const buf = c.createBuffer(1, len, c.sampleRate);
+      const data = buf.getChannelData(0);
+      for (let i = 0; i < len; i++) data[i] = (Math.random() * 2 - 1) * (1 - i / len);
+      const src = c.createBufferSource(); src.buffer = buf;
+      const f = c.createBiquadFilter(); f.type = type; f.frequency.value = freq; f.Q.value = q;
+      const g = c.createGain(); g.gain.value = gain;
+      src.connect(f).connect(g).connect(c.destination);
+      src.start(c.currentTime + start);
+    }
     return {
       gong() { tone(110, 0, 2.6, 'sine', 0.28); tone(165, 0, 2.2, 'sine', 0.12); tone(220.5, 0.01, 1.6, 'triangle', 0.06); },
       tick() { tone(1400, 0, 0.06, 'square', 0.04); },
       pin() { tone(880, 0, 0.18, 'triangle', 0.1); tone(1320, 0.07, 0.25, 'triangle', 0.08); },
       sting() { [233, 277, 349, 466].forEach((f, i) => tone(f, i * 0.09, 1.8, 'sawtooth', 0.05)); tone(58, 0, 2.5, 'sine', 0.3); },
       win() { [392, 494, 587, 784].forEach((f, i) => tone(f, i * 0.12, 0.9, 'triangle', 0.09)); },
+      // Snare roll that speeds up and swells for `dur` seconds, then a crash.
+      drumroll(dur = 2.2) {
+        let t = 0;
+        let gap = 0.13;
+        while (t < dur) {
+          noise(t, 0.06, 0.16 + 0.34 * (t / dur), 1900, 0.9);
+          tone(170, t, 0.05, 'triangle', 0.03 + 0.05 * (t / dur));
+          t += gap;
+          gap = Math.max(0.04, gap * 0.92);
+        }
+        this.crash(dur);
+      },
+      crash(at = 0) { noise(at, 1.6, 0.35, 5200, 0.6, 'highpass'); tone(82, at, 0.9, 'sine', 0.25); },
+      // A card turning over.
+      flip() { noise(0, 0.28, 0.22, 2600, 0.7); tone(520, 0.05, 0.15, 'triangle', 0.05); },
       // Items mode: a soft two-note chime as a gossip question appears.
       whisper() { tone(660, 0, 0.9, 'sine', 0.07); tone(990, 0.18, 1.1, 'sine', 0.05); },
       // Items mode: a rustle of items changing hands. Played at the end of EVERY
@@ -261,14 +289,14 @@
           <div class="n">${fa(t.votes)}</div></div>`).join('')}</div>`;
     } else if (step === 1) {
       const p = pl(r.killerId);
-      inner = `<div class="killer-reveal">${avatar(p)}<div class="k1">قاتل آقابزرگ…</div>
-        <div class="k2">${esc(ch(p.charId).name)} (${esc(p.name)})</div>
-        <div class="verdict ${r.caught ? 'caught' : 'escaped'}">${r.caught ? 'گیر افتاد!' : 'فرار کرد!'}</div></div>`;
+      inner = `<div class="killer-reveal show" style="--sus:${SUSPENSE + 0.5}s"><div class="spot"></div>${unmask(p, SUSPENSE - 0.3)}<div class="k1">قاتل آقابزرگ…</div>
+        ${dots()}<div class="k2 after">${esc(ch(p.charId).name)} (${esc(p.name)})</div>
+        <div class="verdict stamp ${r.caught ? 'caught' : 'escaped'}" style="--vd:${SUSPENSE + 1.1}s">${r.caught ? 'گیر افتاد!' : 'فرار کرد!'}</div></div>`;
     } else if (step === 2) {
       const names = (ids) => ids.map((id) => esc(pl(id) ? pl(id).name : '')).join('، ');
       inner = `${miniKiller(r)}<h2 class="h-big">سلاح و مکان</h2><div class="truth">
-        <div class="truth-card"><div class="ti">${artOf(weapon(r.weapon), true)}</div><div class="tl">سلاح</div><div class="tn">${esc(weapon(r.weapon).name)}</div><div class="right">${r.weaponRight.length ? `✓ ${names(r.weaponRight)}` : 'هیچ‌کس درست نگفت'}</div></div>
-        <div class="truth-card"><div class="ti">${artOf(room(r.room), true)}</div><div class="tl">مکان</div><div class="tn">${esc(room(r.room).name)}</div><div class="right">${r.roomRight.length ? `✓ ${names(r.roomRight)}` : 'هیچ‌کس درست نگفت'}</div></div>
+        <div class="truth-card flipin" style="--d:.3s"><div class="ti">${artOf(weapon(r.weapon), true)}</div><div class="tl">سلاح</div><div class="tn">${esc(weapon(r.weapon).name)}</div><div class="right">${r.weaponRight.length ? `✓ ${names(r.weaponRight)}` : 'هیچ‌کس درست نگفت'}</div></div>
+        <div class="truth-card flipin" style="--d:1.4s"><div class="ti">${artOf(room(r.room), true)}</div><div class="tl">مکان</div><div class="tn">${esc(room(r.room).name)}</div><div class="right">${r.roomRight.length ? `✓ ${names(r.roomRight)}` : 'هیچ‌کس درست نگفت'}</div></div>
       </div>`;
     } else if (step === 3) {
       const rows = r.forgeries.map((f, i) => `<div class="li fake" style="animation-delay:${i * 0.25}s"><span class="ok">🎭</span>
@@ -301,7 +329,6 @@
 
   // ------------------------------------------------------------ items mode («دست‌به‌دست»)
   const name = (pid) => esc(pl(pid) ? pl(pid).name : '؟');
-  const itemChip = (id) => `<span class="itm-chip">${art(id)} ${esc(item(id).name)}</span>`;
   const itemsInPlay = () => `<div class="box"><h3>چیزهای در بازی</h3><div class="itm-row">${S.game.items.map((x) => `<span title="${esc(item(x).name)}">${art(x)}</span>`).join('')}</div>
     <p class="small">${fa(S.game.killerCount)} قاتل <i class="sep"></i> فقط چاقو تکراری است</p></div>`;
 
@@ -388,32 +415,14 @@
       </div></div></section>`;
   }
 
-  function itVerdict(r) {
-    if (r.innocentsWin) return '<div class="verdict caught">بی‌گناه‌ها بردند!</div>';
-    return '<div class="verdict escaped">قاتل‌ها بردند!</div>';
-  }
+
 
   function itMini(r) {
     if (!r.killers) return '';
     return `<div class="mini-killer">${r.killers.map((k) => avatar(pl(k))).join('')} قاتل‌ها: ${r.killers.map(name).join(' و ')} — ${r.innocentsWin ? 'گیر افتادند' : 'فرار کردند'}</div>`;
   }
 
-  function logLine(e) {
-    if (e.type === 'quiet') {
-      return `<div class="li tl quiet"><span class="ok">🤫</span><div><div class="main">دور بی‌صدا — هیچ‌کس کار مخفی نگرفت</div></div><span></span></div>`;
-    }
-    const a = C.secretActions[e.type];
-    let what;
-    if (e.type === 'snoop') what = `به <b>${name(e.targets[0])}</b> سرک کشید و ${itemChip(e.seen)} دید`;
-    else if (e.type === 'swap') what = `با <b>${name(e.targets[0])}</b> معاوضه شد`;
-    else if (e.type === 'steal') what = `از <b>${name(e.targets[0])}</b> دزدید`;
-    else what = `چیزهای <b>${name(e.targets[0])}</b> و <b>${name(e.targets[1])}</b> را جابه‌جا کرد`;
-    const moves = e.moves.map((m) => `<span class="mv">${name(m.playerId)}: ${art(m.from)} ← ${art(m.to)}</span>`).join('');
-    return `<div class="li tl ${e.moves.some((m) => m.from === C.knifeId || m.to === C.knifeId) ? 'fake' : ''}">
-      <span class="ok">${a.icon}</span>
-      <div><div class="main"><b>${name(e.actorId)}</b> ${what}${e.auto ? ' <span class="muted">(خودکار)</span>' : ''}</div>
-      <div class="meta">${moves || (e.type === 'snoop' ? 'چیزی جابه‌جا نشد' : 'هر دو یک‌جور چیز داشتند — ظاهراً چیزی عوض نشد')}</div></div><span></span></div>`;
-  }
+
 
   // Timeline entries grouped by round: one row per round, 1–2 actions side by side.
   function roundsOf(log) {
@@ -425,6 +434,92 @@
     return out;
   }
 
+  // ---- reveal staging (both modes) ----
+  const SUSPENSE = 2.3; // seconds of drumroll before a verdict lands
+  const UNMASK_GAP = 1.3; // seconds between killers being unmasked
+  // An avatar hidden behind a dark mask that shakes and drops away at `delay`.
+  const unmask = (p, delay) => `<div class="unmask" style="--d:${delay}s">${avatar(p)}<div class="mask"><span>؟</span></div></div>`;
+  const dots = () => '<div class="suspense"><i></i><i></i><i></i></div>';
+
+  function itVerdict(r, stampAt) {
+    const cls = `verdict ${r.innocentsWin ? 'caught' : 'escaped'}${stampAt != null ? ' stamp' : ''}`;
+    const style = stampAt != null ? ` style="--vd:${stampAt}s"` : '';
+    return `<div class="${cls}"${style}>${r.innocentsWin ? 'بی‌گناه‌ها بردند!' : 'قاتل‌ها بردند!'}</div>`;
+  }
+
+  // Short Farsi label for one secret action, for the knife-trail rows.
+  function actShort(e) {
+    const a = (id) => name(id);
+    switch (e.type) {
+      case 'quiet': return '🤫 بی‌صدا';
+      case 'snoop': return `🕵️ ${a(e.actorId)} به ${a(e.targets[0])}`;
+      case 'swap': return `🔄 ${a(e.actorId)} و ${a(e.targets[0])}`;
+      case 'steal': return `🫳 ${a(e.actorId)} از ${a(e.targets[0])}`;
+      default: return `🔀 ${a(e.targets[0])} و ${a(e.targets[1])}`;
+    }
+  }
+
+  // The knife trail: one column per player, one row per round, each cell the
+  // item that player held. Each knife is followed through every exchange (even
+  // knife-for-knife ones), so its line leads back to whoever started with it.
+  const TRAIL_STEP = 0.45; // seconds between rows appearing
+  const TRAIL_COLORS = ['#e0335c', '#f0d08a', '#2fb3a6'];
+  function knifeTrail(r) {
+    const ids = S.players.filter((p) => p.inGame).map((p) => p.id);
+    const col = Object.fromEntries(ids.map((id, i) => [id, i]));
+    const hold = { ...r.start };
+    const kid = {};
+    let n = 0;
+    ids.forEach((id) => { if (r.start[id] === C.knifeId) { kid[id] = n; n += 1; } });
+    const rows = [{ label: '<b>شروع شب</b>', hold: { ...hold }, kid: { ...kid } }];
+    const exchange = (a, b) => { [hold[a], hold[b]] = [hold[b], hold[a]]; [kid[a], kid[b]] = [kid[b], kid[a]]; };
+    roundsOf(r.log).forEach(([round, es]) => {
+      es.forEach((e) => {
+        if (e.type === 'swap' || e.type === 'steal') exchange(e.actorId, e.targets[0]);
+        else if (e.type === 'shuffle') exchange(e.targets[0], e.targets[1]);
+      });
+      rows.push({ label: `<b>دور ${fa(round)}</b> ${es.map(actShort).join('<br>')}`, hold: { ...hold }, kid: { ...kid } });
+    });
+    const trails = Array.from({ length: n }, (_, k) => rows.map((row) => col[ids.find((id) => row.kid[id] === k)]));
+    const head = `<div class="tr-head"><span></span>${ids.map((id) => `<span class="th ${r.killers.includes(id) ? 'k' : ''}">${avatar(pl(id))}<b>${name(id)}</b></span>`).join('')}</div>`;
+    const body = rows.map((row, ri) => `<div class="tr-row" style="--i:${ri}"><span class="tr-lbl">${row.label}</span>${ids.map((id) => `<span class="tc ${row.hold[id] === C.knifeId ? 'kn' : ''}">${art(row.hold[id])}</span>`).join('')}</div>`).join('');
+    return `<div class="trail" style="--cols:${ids.length}" data-trails='${JSON.stringify(trails)}'>${head}${body}</div>`;
+  }
+
+  // Draws each knife's line over the rendered trail, segment by segment in step
+  // with the rows. Uses offset* positions so the rows' entrance transforms
+  // don't skew the measurements.
+  function drawTrails() {
+    const tr = stage.querySelector('.trail');
+    if (!tr) return;
+    const trails = JSON.parse(tr.dataset.trails);
+    const rows = [...tr.querySelectorAll('.tr-row')];
+    // Sum offsets up to the trail: an animating row can itself become the
+    // cell's offsetParent, so a single offsetTop isn't enough.
+    const at = (ri, ci) => {
+      const c = rows[ri].children[ci + 1];
+      let x = c.offsetWidth / 2;
+      let y = c.offsetHeight / 2;
+      for (let el = c; el && el !== tr; el = el.offsetParent) { x += el.offsetLeft; y += el.offsetTop; }
+      return [x, y];
+    };
+    let paths = '';
+    trails.forEach((cols, k) => {
+      const color = TRAIL_COLORS[k % TRAIL_COLORS.length];
+      for (let ri = 1; ri < cols.length; ri++) {
+        const [x0, y0] = at(ri - 1, cols[ri - 1]);
+        const [x1, y1] = at(ri, cols[ri]);
+        const my = (y0 + y1) / 2;
+        paths += `<path class="seg" pathLength="1" style="--d:${(ri * TRAIL_STEP + 0.25).toFixed(2)}s;color:${color}" d="M${x0} ${y0} C${x0} ${my} ${x1} ${my} ${x1} ${y1}"/>`;
+      }
+      const [xs, ys] = at(0, cols[0]);
+      const [xe, ye] = at(cols.length - 1, cols[cols.length - 1]);
+      paths += `<circle class="dot start" cx="${xs}" cy="${ys}" r="7" style="color:${color}"/>`;
+      paths += `<circle class="dot end" cx="${xe}" cy="${ye}" r="6" style="--d:${((cols.length - 1) * TRAIL_STEP + 0.6).toFixed(2)}s;color:${color}"/>`;
+    });
+    tr.insertAdjacentHTML('afterbegin', `<svg class="tr-lines" width="${tr.offsetWidth}" height="${tr.offsetHeight}">${paths}</svg>`);
+  }
+
   function itViewReveal() {
     const r = S.game.reveal;
     const step = S.game.revealStep;
@@ -434,32 +529,28 @@
     } else if (step === 1) {
       if (r.accusedId) {
         const k = r.topKiller[0];
-        inner = `<div class="killer-reveal">${avatar(pl(r.accusedId))}<div class="k1">بیشترین رأی به…</div>
-          <div class="k2">${name(r.accusedId)}</div>
-          <div class="k1">${k ? 'شب را با 🔪 چاقو شروع کرده بود!' : 'شب را با چاقو شروع نکرده بود.'}</div>${itVerdict(r)}</div>`;
+        inner = `<div class="killer-reveal show" style="--sus:${SUSPENSE}s"><div class="spot"></div>${avatar(pl(r.accusedId))}<div class="k1">بیشترین رأی به…</div>
+          <div class="k2">${name(r.accusedId)}</div>${dots()}
+          <div class="k1 after">${k ? `شب را با ${art('knife', true)} چاقو شروع کرده بود!` : 'شب را با چاقو شروع نکرده بود.'}</div>${itVerdict(r, SUSPENSE + 0.5)}</div>`;
       } else if (r.tie) {
-        inner = `<div class="killer-reveal"><div class="tie-row">${r.top.map((id) => avatar(pl(id))).join('')}</div>
-          <div class="k1">تساوی بین</div><div class="k2">${r.top.map(name).join(' و ')}</div>
-          <div class="k1">${r.innocentsWin ? 'تساوی فقط بین قاتل‌هاست — پس بی‌گناه‌ها می‌برند.' : 'تساوی یعنی بُرد قاتل‌ها.'}</div>${itVerdict(r)}</div>`;
+        inner = `<div class="killer-reveal show" style="--sus:${SUSPENSE}s"><div class="spot"></div><div class="tie-row">${r.top.map((id) => avatar(pl(id))).join('')}</div>
+          <div class="k1">تساوی بین</div><div class="k2">${r.top.map(name).join(' و ')}</div>${dots()}
+          <div class="k1 after">${r.innocentsWin ? 'تساوی فقط بین قاتل‌هاست — پس بی‌گناه‌ها می‌برند.' : 'تساوی یعنی بُرد قاتل‌ها.'}</div>${itVerdict(r, SUSPENSE + 0.5)}</div>`;
       } else {
-        inner = `<div class="killer-reveal"><div class="k2">کسی رأی نداد!</div>${itVerdict(r)}</div>`;
+        inner = `<div class="killer-reveal show" style="--sus:${SUSPENSE}s"><div class="k2">کسی رأی نداد!</div>${dots()}${itVerdict(r, SUSPENSE)}</div>`;
       }
     } else if (step === 2) {
+      const last = 0.6 + r.killers.length * UNMASK_GAP;
       inner = `<h2 class="h-big">چه کسی شب را با چاقو شروع کرد؟</h2>
-        <div class="killers-row">${r.killers.map((id, i) => `<div class="kr" style="animation-delay:${i * 0.5}s">${avatar(pl(id))}<div class="nm">${name(id)}</div><div class="it">🔪</div></div>`).join('')}</div>
-        ${itVerdict(r)}`;
+        <div class="killers-row">${r.killers.map((id, i) => `<div class="kr">${unmask(pl(id), 0.6 + i * UNMASK_GAP)}
+          <div class="nm after" style="--sus:${0.6 + i * UNMASK_GAP + 0.6}s">${name(id)}</div><div class="it after" style="--sus:${0.6 + i * UNMASK_GAP + 0.8}s">${art('knife', true)}</div></div>`).join('')}</div>
+        ${itVerdict(r, last)}`;
     } else {
-      const ids = S.players.filter((p) => p.inGame).map((p) => p.id);
-      const startRow = ids.map((id) => `<span class="st ${r.start[id] === C.knifeId ? 'k' : ''}">${name(id)} ${art(r.start[id])}</span>`).join('');
-      const endRow = ids.map((id) => `<span class="st ${r.finalHold[id] === C.knifeId ? 'k' : ''}">${name(id)} ${art(r.finalHold[id])}</span>`).join('');
-      inner = `${itMini(r)}<h2 class="h-big">ردّ چاقو</h2>
-        <div class="timeline"><div class="tl-row"><b>شروع شب</b>${startRow}</div>
-        <div class="list">${roundsOf(r.log).map(([round, es]) => `<div class="tl-round"><span class="rn">دور ${fa(round)}</span>
-          <div class="tl-acts">${es.map(logLine).join('')}</div></div>`).join('')}</div>
-        <div class="tl-row"><b>آخر شب</b>${endRow}</div></div>`;
+      inner = `${itMini(r)}<h2 class="h-big">ردّ چاقو</h2>${knifeTrail(r)}`;
     }
     return `<section class="reveal stage-in"><div class="reveal-inner ${step === 3 ? 'wide' : ''}">${inner}</div></section>`;
   }
+
 
   function stripHtml() {
     if (['lobby', 'results', 'reveal', 'intro', 'gossipResult'].includes(S.phase)) return '';
@@ -505,6 +596,7 @@
   const wantsCurtain = (firstPaint) => !Scene.reduced && !firstPaint && S.phase !== 'lobby' && S.phase !== 'gossipResult'
     && !(S.phase === 'reveal' && S.game.revealStep > 0);
   let replayEntrance = false;
+  let fxTimers = []; // pending reveal sounds, cancelled when the screen changes
 
   function render() {
     if (!C || !S) return;
@@ -537,14 +629,26 @@
     $('app').classList.toggle('many', tableSize > 8);
     $('strip').innerHTML = stripHtml();
 
+    if (S.phase === 'reveal' && itemsMode() && S.game.revealStep === 3) drawTrails();
     if (phaseChanged) {
+      // Sounds timed to the reveal's staging (see SUSPENSE / UNMASK_GAP).
+      fxTimers.forEach(clearTimeout);
+      fxTimers = [];
+      const later = (sec, fn) => fxTimers.push(setTimeout(fn, sec * 1000));
+      const r = S.game && S.game.reveal;
+      const step = S.game ? S.game.revealStep : -1;
       if (itemsMode() && S.phase === 'gossip') Sound.whisper();
       else if (itemsMode() && S.phase === 'gossipResult') Sound.swoosh();
-      else if (itemsMode() && S.phase === 'reveal' && S.game.revealStep === 1) (S.game.reveal.innocentsWin ? Sound.win() : Sound.sting());
-      else if (itemsMode() && S.phase === 'reveal' && S.game.revealStep === 2) Sound.sting();
-      else if (S.phase === 'reveal' && S.game.revealStep === 1) Sound.sting();
+      else if (S.phase === 'reveal' && step === 1) {
+        Sound.drumroll(SUSPENSE);
+        const good = itemsMode() ? r.innocentsWin : r.caught;
+        later(itemsMode() ? SUSPENSE + 0.5 : SUSPENSE + 1.1, () => (good ? Sound.win() : Sound.sting()));
+      } else if (itemsMode() && S.phase === 'reveal' && step === 2) {
+        r.killers.forEach((_, i) => later(0.6 + i * UNMASK_GAP + 0.3, () => Sound.sting()));
+      } else if (itemsMode() && S.phase === 'reveal' && step === 3) Sound.swoosh();
+      else if (!itemsMode() && S.phase === 'reveal' && step === 2) { later(0.3, () => Sound.flip()); later(1.4, () => Sound.flip()); }
       else if (S.phase === 'results') Sound.win();
-      else if (S.phase !== 'lobby') Sound.gong();
+      else if (S.phase !== 'lobby' && (S.phase !== 'reveal' || step === 0)) Sound.gong();
     }
     const boardLen = S.game && S.game.board ? S.game.board.length : 0;
     if (boardLen > lastBoardLen && !phaseChanged) Sound.pin();

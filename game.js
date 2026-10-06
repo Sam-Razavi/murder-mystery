@@ -608,7 +608,9 @@ class Game {
   // ---------------------------------------------------------------- reveal
 
   _scheduleReveal() {
-    this._setTimer(this.durations.revealStep, () => this._advanceReveal());
+    // The knife trail (last «دست‌به‌دست» step) animates row by row: give it longer.
+    const long = this._items() && this.g.revealStep === Items.ITEM_REVEAL_LAST;
+    this._setTimer(this.durations.revealStep * (long ? 2 : 1), () => this._advanceReveal());
   }
 
   _advanceReveal() {

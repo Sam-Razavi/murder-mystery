@@ -395,3 +395,69 @@ ul.small { list-style: none; padding: 0; display: grid; gap: .35rem; line-height
 .rv .art { width: 1.4em; height: 1.4em; }
 .trait .art { width: 1.3em; height: 1.3em; vertical-align: -.35em; }
 .chip .ic .art { width: 1.25em; height: 1.25em; vertical-align: -.3em; }
+
+/* ---------- reveal staging: suspense, stamp, unmask ---------- */
+.killer-reveal.show { position: relative; }
+.killer-reveal .spot { position: absolute; left: 50%; top: 0; width: 24rem; height: 24rem; margin-left: -12rem; border-radius: 50%; pointer-events: none;
+  background: radial-gradient(circle, rgba(240, 208, 138, .22), transparent 65%); animation: spot-sweep var(--sus, 2.3s) ease-in-out both; z-index: -1; }
+@keyframes spot-sweep { 0% { transform: translateX(-38vw); opacity: .4; } 35% { transform: translateX(30vw); } 70% { transform: translateX(-12vw); } 100% { transform: none; opacity: 1; } }
+.suspense { display: flex; gap: .9rem; justify-content: center; margin: 1rem 0 .2rem; height: 1.4rem; animation: fade-away .3s var(--sus, 2.3s) forwards; }
+.suspense i { width: 1rem; height: 1rem; border-radius: 50%; background: var(--gold); animation: dot-bounce .6s ease-in-out infinite; }
+.suspense i:nth-child(2) { animation-delay: .15s; }
+.suspense i:nth-child(3) { animation-delay: .3s; }
+@keyframes dot-bounce { 0%, 100% { transform: translateY(0); opacity: .4; } 50% { transform: translateY(-.6rem); opacity: 1; } }
+@keyframes fade-away { to { opacity: 0; height: 0; margin: 0; } }
+.show .after, .kr .after { animation: rise .55s var(--sus, 2.3s) both; }
+.verdict.stamp { animation: stamp .5s var(--vd, 2.8s) cubic-bezier(.2, 1.5, .4, 1) both; }
+@keyframes stamp { 0% { transform: scale(3.2) rotate(-16deg); opacity: 0; } 55% { opacity: 1; } 100% { transform: scale(1) rotate(-5deg); opacity: 1; } }
+.verdict.stamp { box-shadow: 0 0 0 .3rem rgba(0, 0, 0, .25), 0 1rem 2.4rem rgba(0, 0, 0, .5); }
+
+.unmask { position: relative; display: inline-block; border-radius: 50%; }
+.unmask .mask { position: absolute; inset: -6%; border-radius: 50%; display: grid; place-items: center; z-index: 2;
+  background: radial-gradient(circle at 50% 40%, #3a1a2a, #0b060d 70%); box-shadow: 0 0 0 .35rem var(--gold), 0 0 2.4rem rgba(0, 0, 0, .8);
+  animation: mask-off 1s var(--d, 1s) cubic-bezier(.5, 0, .75, 0) both; }
+.unmask .mask span { font-family: var(--display); color: var(--gold-soft); font-size: 45%; line-height: 1; }
+.killer-reveal .unmask .mask span { font-size: 6rem; }
+.kr .unmask .mask span { font-size: 4.6rem; }
+@keyframes mask-off { 0% { transform: none; opacity: 1; } 12% { transform: rotate(-8deg); } 24% { transform: rotate(8deg); } 36% { transform: rotate(-4deg); }
+  48% { transform: none; opacity: 1; } 100% { transform: translateY(150%) rotate(40deg); opacity: 0; } }
+.killers-row .kr { animation: none; }
+.kr .it .art { width: 3rem; height: 3rem; }
+.killer-reveal .after .art { width: 1.4em; height: 1.4em; vertical-align: -.35em; }
+
+/* classic weapon/room cards turn over one after the other */
+.truth-card.flipin { animation: card-turn .8s var(--d, .3s) cubic-bezier(.2, .9, .3, 1.2) both; }
+@keyframes card-turn { 0% { transform: perspective(60rem) rotateY(90deg) scale(.85); opacity: 0; } 40% { opacity: 1; } 100% { transform: perspective(60rem) rotateY(0) scale(1); opacity: 1; } }
+
+/* ---------- knife trail (items reveal, last step) ---------- */
+.trail { position: relative; z-index: 0; display: grid; gap: .32rem; margin-top: .8rem; text-align: center; }
+.tr-head, .tr-row { display: grid; grid-template-columns: 13rem repeat(var(--cols), minmax(0, 1fr)); gap: .3rem; align-items: center; }
+.tr-head .th { display: grid; justify-items: center; gap: .15rem; min-width: 0; }
+.tr-head .th .avatar { width: 2.2rem; height: 2.2rem; font-size: 1.1rem; }
+.tr-head .th b { font-size: .85rem; font-weight: 700; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.tr-head .th.k .avatar { box-shadow: 0 0 0 .2rem var(--pom-bright), 0 0 1rem rgba(224, 51, 92, .6); }
+.tr-row { animation: rise .4s calc(var(--i) * .45s) both; }
+.tr-lbl { text-align: right; font-size: .85rem; line-height: 1.35; color: var(--muted); }
+.tr-lbl b { color: var(--gold); font-family: var(--display); font-weight: 400; font-size: 1.05rem; margin-inline-end: .3rem; }
+.tc { height: 2.7rem; display: grid; place-items: center; border-radius: .55rem; background: rgba(42, 23, 34, .55); }
+.tc .art { width: 2rem; height: 2rem; }
+.tc.kn { background: rgba(224, 51, 92, .16); box-shadow: inset 0 0 0 1px rgba(224, 51, 92, .55); }
+.tr-lines { position: absolute; left: 0; top: 0; z-index: -1; overflow: visible; pointer-events: none; }
+.tr-lines .seg { fill: none; stroke: currentColor; stroke-width: 4; stroke-linecap: round; stroke-dasharray: 1; stroke-dashoffset: 1;
+  filter: drop-shadow(0 0 5px currentColor); animation: draw-seg .45s var(--d) ease-out forwards; }
+@keyframes draw-seg { to { stroke-dashoffset: 0; } }
+.tr-lines .dot { fill: currentColor; filter: drop-shadow(0 0 6px currentColor); }
+.tr-lines .dot.end { opacity: 0; animation: dot-in .5s var(--d) ease-out forwards, dot-pulse 1.6s calc(var(--d) + .5s) ease-in-out infinite; transform-box: fill-box; transform-origin: center; }
+@keyframes dot-in { from { opacity: 0; transform: scale(0); } to { opacity: 1; transform: scale(1); } }
+@keyframes dot-pulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.5); } }
+.many .tc { height: 2.3rem; }
+.many .tc .art { width: 1.7rem; height: 1.7rem; }
+.many .tr-head .th b { font-size: .72rem; }
+.many .tr-head, .many .tr-row { grid-template-columns: 11rem repeat(var(--cols), minmax(0, 1fr)); }
+.many .tr-lbl { font-size: .74rem; }
+@media (prefers-reduced-motion: reduce) {
+  .tr-lines .seg { animation: none; stroke-dashoffset: 0; }
+  .unmask .mask { display: none; }
+  .suspense { display: none; }
+  .show .after, .kr .after, .verdict.stamp, .tr-row, .truth-card.flipin { animation: none; }
+}
