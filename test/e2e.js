@@ -100,40 +100,49 @@ async function playGame(bots, tv, gameNo) {
 
 async function playItemsGame(bots, tv) {
   const vip = bots[0];
-  check('items: non-vip cannot set mode', !(await bots[1].emit('vip:setting', { key: 'mode', value: 'items' })).ok);
-  check('items: vip sets mode', (await vip.emit('vip:setting', { key: 'mode', value: 'items' })).ok);
+  const n = bots.length;
+  const k = n <= 4 ? 1 : n <= 8 ? 2 : 3;
+  const apr = n >= 9 ? 2 : 1; // secret actions per round
+  const tag = `items ${n}p`;
+  check(`${tag}: non-vip cannot set mode`, !(await bots[1].emit('vip:setting', { key: 'mode', value: 'items' })).ok);
+  check(`${tag}: vip sets mode`, (await vip.emit('vip:setting', { key: 'mode', value: 'items' })).ok);
   await waitFor(() => tv.state.settings.mode === 'items', 'tv sees items mode');
-  check('items: cannot start until everyone is ready', !(await vip.emit('vip:start')).ok);
+  check(`${tag}: cannot start until everyone is ready`, !(await vip.emit('vip:start')).ok);
   await readyAll(bots);
-  check('items: vip starts', (await vip.emit('vip:start')).ok);
+  check(`${tag}: vip starts`, (await vip.emit('vip:start')).ok);
   await waitFor(() => bots.every((b) => b.state.phase === 'intro' && b.state.me && b.state.me.startItem), 'items intro');
   const knife = vip.content.knifeId;
   const killers = bots.filter((b) => b.state.me.role === 'killer');
-  check('items: 5 players → 2 killers', killers.length === 2 && tv.state.game.killerCount === 2);
-  check('items: killers started with knives', bots.every((b) => (b.state.me.startItem === knife) === (b.state.me.role === 'killer')));
-  const leak = () => /"(killers|start|hold|turn|startItem|role)"/.test(JSON.stringify(tv.state));
-  check('items: TV gets no private data', tv.state.me === null && !leak());
+  check(`${tag}: ${k} killer(s)`, killers.length === k && tv.state.game.killerCount === k);
+  check(`${tag}: ${apr} action(s) per round is public`, tv.state.game.actionsPerRound === apr);
+  check(`${tag}: killers started with knives`, bots.every((b) => (b.state.me.startItem === knife) === (b.state.me.role === 'killer')));
+  const leak = () => /"(killers|start|hold|turn|turns|startItem|role|partners)"/.test(JSON.stringify(tv.state));
+  check(`${tag}: TV gets no private data`, tv.state.me === null && !leak());
   await vip.emit('vip:skip');
 
   const total = tv.state.totalRounds;
   for (let round = 1; round <= total; round++) {
     await waitFor(() => bots.every((b) => b.state.phase === 'gossip' && b.state.round === round), `gossip r${round}`);
     const actors = bots.filter((b) => b.state.me.turn);
-    check(`items r${round}: exactly one secret action`, actors.length === 1);
-    check(`items r${round}: TV shows the question, not the actor`, !!tv.state.game.question && !leak());
-    const a = actors[0];
-    const others = a.state.players.filter((p) => p.id !== a.id).map((p) => p.id);
-    const type = a.state.me.turn.type;
-    const targets = type === 'shuffle' ? others.slice(0, 2) : type === 'swap' ? [] : [pick(others)];
-    check(`items r${round}: ${type} accepted`, (await a.emit('act:secret', { targets })).ok);
+    check(`${tag} r${round}: ${apr} secret action(s)`, actors.length === apr);
+    check(`${tag} r${round}: TV shows the question, not the actors`, !!tv.state.game.question && !leak());
+    const types = {};
+    for (const a of actors) {
+      const others = a.state.players.filter((p) => p.id !== a.id).map((p) => p.id);
+      const type = a.state.me.turn.type;
+      types[a.id] = type;
+      const targets = type === 'shuffle' ? others.slice(0, 2) : type === 'swap' ? [] : [pick(others)];
+      check(`${tag} r${round}: ${type} accepted`, (await a.emit('act:secret', { targets })).ok);
+    }
     for (const b of bots) {
       const opts = b.state.players.filter((p) => p.id !== b.id);
       await b.emit('act:answer', { targetId: pick(opts).id });
     }
     await waitFor(() => tv.state.phase === 'gossipResult', `gossip result r${round}`);
-    check(`items r${round}: actor sees result in journal`, a.state.me.notes.some((x) => x.round === round && x.type === type));
-    const held = bots.map((b) => b.state.me.item).sort().join();
-    check(`items r${round}: two knives still in play`, held.split(',').filter((x) => x === knife).length === 2);
+    await sleep(40);
+    check(`${tag} r${round}: each actor sees their result in the journal`, actors.every((a) => a.state.me.notes.some((x) => x.round === round && x.type === types[a.id])));
+    const held = bots.map((b) => b.state.me.item);
+    check(`${tag} r${round}: ${k} knife/knives still in play`, held.filter((x) => x === knife).length === k);
     await vip.emit('vip:skip');
     if (round % 2 === 0) {
       await waitFor(() => tv.state.phase === 'discuss', `discuss r${round}`);
@@ -151,10 +160,10 @@ async function playItemsGame(bots, tv) {
   for (let i = 0; i < 4; i++) { await vip.emit('vip:next'); await sleep(30); }
   await waitFor(() => tv.state.phase === 'results', 'items results');
   const rev = tv.state.game.reveal;
-  check('items: majority on a killer → innocents win', rev.innocentsWin === true && rev.accusedId === target);
-  check('items: reveal names both killers', rev.killers.length === 2 && killers.every((k) => rev.killers.includes(k.id)));
-  check('items: timeline has every round', rev.log.length === total);
-  check('items: every phone has points', bots.every((b) => b.state.me.myPoints));
+  check(`${tag}: majority on a killer → innocents win`, rev.innocentsWin === true && rev.accusedId === target);
+  check(`${tag}: reveal names every killer`, rev.killers.length === k && killers.every((x) => rev.killers.includes(x.id)));
+  check(`${tag}: timeline has every round`, Array.from({ length: total }, (_, i) => i + 1).every((r) => rev.log.some((e) => e.round === r)));
+  check(`${tag}: every phone has points`, bots.every((b) => b.state.me.myPoints));
   await vip.emit('vip:setting', { key: 'mode', value: 'classic' });
 }
 
@@ -202,6 +211,20 @@ async function backToLobby(bots) {
 
   await playGame(bots, tv, 2);
   await backToLobby(bots);
+  await playItemsGame(bots, tv);
+
+  // Big table: 5 more phones join (10 players) → 3 killers, 2 secret actions per round.
+  await backToLobby(bots);
+  const extra = ['بابک', 'شیوا', 'رضا', 'یاسمن', 'لیلا'].map((nm, i) => makeBot(`big${i}`, nm));
+  await sleep(300);
+  for (const b of extra) check(`join ${b.name} (big table)`, (await b.emit('player:join', { id: b.id, name: b.name })).ok);
+  bots.push(...extra);
+  await waitFor(() => tv.state.players.length === 10 && bots.every((b) => b.state && b.state.me), 'big table lobby');
+  check('big table: TV offers the classic seat count', tv.state.modeMax === 8 && tv.state.maxPlayers === 12);
+  await readyAll(bots);
+  const classic10 = await bots[0].emit('vip:start');
+  check('big table: classic start refused with 10', !classic10.ok && /۸/.test(classic10.error));
+  for (const b of bots) await b.emit('player:ready', { ready: false });
   await playItemsGame(bots, tv);
 
   [tv, ...bots].forEach((b) => b.sock.close());
