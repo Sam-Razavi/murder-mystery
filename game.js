@@ -79,6 +79,7 @@ class Game {
     this._phaseToken = 0;
     this._cardSeq = 0;
     this.gamesPlayed = 0;
+    this.stats = {}; // per player, for the whole night (end-of-night summary)
   }
 
   // ---------------------------------------------------------------- helpers
@@ -618,6 +619,7 @@ class Game {
       const pts = this.g.results.points.find((x) => x.playerId === p.id);
       if (pts) p.score += pts.total;
     });
+    this._recordStats();
     this.gamesPlayed += 1;
     this.phase = 'reveal';
     this.g.revealStep = 0;
@@ -695,6 +697,75 @@ class Game {
       roomRight: Object.keys(fv).filter((id) => id !== g.killerId && fv[id].room === g.room),
       forgeries, missions: missionResults, points,
     };
+  }
+
+  // ---------------------------------------------------------------- the night
+
+  // After every game: who played the killer, escaped, fooled others with a
+  // fake, named the killer, finished their mission, and who won.
+  _recordStats() {
+    const { g } = this;
+    const r = g.results;
+    const items = this._items();
+    const killers = items ? r.killers : [r.killerId];
+    const killersWin = items ? !r.innocentsWin : !r.caught;
+    g.ids.forEach((pid) => {
+      const p = this.player(pid);
+      const st = this.stats[pid] || (this.stats[pid] = { games: 0, killerGames: 0, escapes: 0, fooled: 0, correct: 0, missions: 0, wins: 0 });
+      st.name = p ? p.name : st.name;
+      st.games += 1;
+      const isKiller = killers.includes(pid);
+      if (isKiller) {
+        st.killerGames += 1;
+        if (killersWin) st.escapes += 1;
+        if (!items) st.fooled += r.forgeries.filter((f) => f.deliveredTo).length;
+      } else {
+        const voted = items ? g.finalVotes[pid] : g.finalVotes[pid] && g.finalVotes[pid].suspect;
+        if (voted && killers.includes(voted)) st.correct += 1;
+        if (!items && r.missions.some((m) => m.playerId === pid && m.success)) st.missions += 1;
+      }
+      if (isKiller === killersWin) st.wins += 1;
+    });
+  }
+
+  // Awards for the end-of-night screen: each goes to everyone tied on the top
+  // value, and only when someone actually earned it.
+  _summary() {
+    const award = (id, value) => {
+      const scored = Object.entries(this.stats).map(([pid, st]) => ({ pid, v: value(st) })).filter((x) => x.v > 0);
+      const max = Math.max(0, ...scored.map((x) => x.v));
+      return max ? { id, ids: scored.filter((x) => x.v === max).map((x) => x.pid), value: max } : null;
+    };
+    const top = Math.max(0, ...this.players.map((p) => p.score));
+    return {
+      games: this.gamesPlayed,
+      champions: top ? this.players.filter((p) => p.score === top).map((p) => p.id) : [],
+      awards: [
+        award('liar', (st) => st.escapes * 2 + st.fooled),
+        award('detective', (st) => st.correct),
+        award('missions', (st) => st.missions),
+        award('winner', (st) => st.wins),
+      ].filter(Boolean),
+      stats: this.stats,
+    };
+  }
+
+  endNight(byId_) {
+    if (!this._isVip(byId_)) return { ok: false, error: this._t('فقط میزبان می‌تواند.') };
+    if (this.phase !== 'results') return { ok: false, error: this._t('اول این بازی را تمام کنید.') };
+    this._clearTimer();
+    this.phase = 'summary';
+    this._changed();
+    return { ok: true };
+  }
+
+  // A fresh night: scores and stats back to zero, everyone to the lobby.
+  newNight(byId_) {
+    if (!this._isVip(byId_)) return { ok: false, error: this._t('فقط میزبان می‌تواند.') };
+    this.players.forEach((p) => { p.score = 0; });
+    this.gamesPlayed = 0;
+    this.stats = {};
+    return this.backToLobby(byId_);
   }
 
   // ---------------------------------------------------------------- reveal
@@ -799,6 +870,7 @@ class Game {
     if (!this._isVip(byId_)) return { ok: false, error: this._t('فقط میزبان می‌تواند.') };
     this.players.forEach((p) => { p.score = 0; });
     this.gamesPlayed = 0;
+    this.stats = {};
     this._changed();
     return { ok: true };
   }
@@ -862,6 +934,7 @@ class Game {
       // Seats the chosen mode can take (classic 8, items 12).
       modeMax: (g ? g.mode : this.settings.mode) === 'items' ? MAX_PLAYERS : CLASSIC_MAX,
       gamesPlayed: this.gamesPlayed,
+      summary: this.phase === 'summary' ? this._summary() : null,
       vipId: this.vipId,
       players: this.players.map((p) => ({
         id: p.id, name: p.name, score: p.score, connected: p.connected, ready: !!p.ready, portrait: p.portrait,

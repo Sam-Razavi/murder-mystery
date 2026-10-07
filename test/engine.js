@@ -339,6 +339,27 @@ async function playOne(n, gameNo, lang = 'fa') {
   check('pause: skip ends the pause', pg.skip('a').ok && !pg.paused && pg.phase === 'vote');
   pg.dispose();
 
+  // End of the night: stats add up across games, awards, and a fresh night.
+  const ng2 = new Game({ timeScale: 1000, minPlayers: 4 });
+  pids.forEach((id) => ng2.join(id, id));
+  pids.forEach((id) => ng2.setReady(id, true));
+  for (let k = 0; k < 2; k++) {
+    if (k === 1) ng2.setSetting('a', 'mode', 'items');
+    ng2.start('a');
+    for (let i = 0; i < 80 && ng2.phase !== 'reveal'; i++) ng2.skip('a');
+    ng2.skipReveal('a');
+  }
+  check('night: refused outside results', !ng2.endNight('b').ok);
+  check('night: host ends the night', ng2.endNight('a').ok && ng2.phase === 'summary');
+  const sm = ng2.publicState().summary;
+  check('night: two games counted', sm.games === 2 && pids.every((id) => sm.stats[id].games === 2));
+  check('night: killer games add up (1 classic + 1 items killer)', pids.reduce((s, id) => s + sm.stats[id].killerGames, 0) === 2);
+  check('night: champion has the top score', sm.champions.every((id) => ng2.player(id).score === Math.max(...ng2.players.map((p) => p.score))));
+  check('night: awards only for earned values', sm.awards.every((a) => a.value > 0 && a.ids.length));
+  check('night: start refused from the summary', !ng2.start('a').ok);
+  check('night: new night resets', ng2.newNight('a').ok && ng2.phase === 'lobby' && ng2.gamesPlayed === 0 && !Object.keys(ng2.stats).length && ng2.players.every((p) => p.score === 0));
+  ng2.dispose();
+
   // The host's first look at the slides is remembered (the phone's start button uses it).
   const tg = new Game({ minPlayers: 4 });
   ['a', 'b', 'c', 'd'].forEach((id) => tg.join(id, id));

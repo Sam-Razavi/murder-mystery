@@ -408,6 +408,34 @@
   }
 
 
+  // ------------------------------------------------------------ end of the night
+  // stats: one player's night (game.js _recordStats). Each award says why.
+  const AWARDS = {
+    liar: { icon: '🎭', title: () => t('بهترین دروغگو'), why: (st) => t('{e} بار فرار از عدالت، {f} مدرک جعلی به دست بقیه رسید', { e: st.escapes, f: st.fooled }) },
+    detective: { icon: '🔎', title: () => t('تیزبین‌ترین کارآگاه'), why: (st) => t('{n} بار قاتل را درست گفت', { n: st.correct }) },
+    missions: { icon: '🎯', title: () => t('استاد مأموریت'), why: (st) => t('{n} مأموریت مخفی انجام داد', { n: st.missions }) },
+    winner: { icon: '🏆', title: () => t('بیشترین بُرد'), why: (st) => t('{n} بار در تیم برنده بود', { n: st.wins }) },
+  };
+
+  function viewSummary() {
+    const s = S.summary;
+    const nameOf = (pid) => esc((pl(pid) && pl(pid).name) || (s.stats[pid] && s.stats[pid].name) || t('؟'));
+    const champs = s.champions.map((id) => `<div class="champ">${unmask(pl(id), 0.5)}<div class="nm">${nameOf(id)}</div><div class="pts">${t('{n} امتیاز', { n: pl(id) ? pl(id).score : 0 })}</div></div>`).join('');
+    const awards = s.awards.map((a, i) => {
+      const def = AWARDS[a.id];
+      return `<div class="award" style="animation-delay:${1.6 + i * 0.25}s"><div class="ai">${def.icon}</div><div class="at">${def.title()}</div>
+        <div class="aw">${a.ids.map((id) => `<span>${avatar(pl(id))}${nameOf(id)}</span>`).join('')}</div>
+        <div class="why">${def.why(s.stats[a.ids[0]])}</div></div>`;
+    }).join('');
+    return `<section class="reveal stage-in"><div class="reveal-inner summary">
+      <div class="eyebrow">${t('{n} بازی امشب', { n: s.games })}</div>
+      <h2 class="h-big">${s.champions.length > 1 ? t('قهرمان‌های امشب') : t('قهرمان امشب')}</h2>
+      <div class="champs">${champs || `<p class="lead">${t('امشب کسی امتیاز نگرفت!')}</p>`}</div>
+      ${awards ? `<div class="awards">${awards}</div>` : ''}
+      <p class="lead">${t('شب خوبی بود. میزبان می‌تواند از روی گوشی شب تازه‌ای شروع کند.')}</p>
+    </div></section>`;
+  }
+
   // ------------------------------------------------------------ items mode («دست‌به‌دست»)
   const name = (pid) => esc(pl(pid) ? pl(pid).name : t('؟'));
   const itemsInPlay = () => `<div class="box"><h3>${t('چیزهای در بازی')}</h3><div class="itm-row">${S.game.items.map((x) => `<span title="${esc(item(x).name)}">${art(x)}</span>`).join('')}</div>
@@ -705,7 +733,7 @@
   }
 
   function flowHtml() {
-    if (!S.game || !S.round || ['lobby', 'intro', 'reveal', 'results'].includes(S.phase)) return '';
+    if (!S.game || !S.round || ['lobby', 'intro', 'reveal', 'results', 'summary'].includes(S.phase)) return '';
     const titles = itemsMode() ? C.itemPhaseTitles : C.phaseTitles;
     const steps = flowSteps();
     const at = steps.indexOf(S.phase);
@@ -716,7 +744,7 @@
   }
 
   function stripHtml() {
-    if (['lobby', 'results', 'reveal', 'intro', 'gossipResult'].includes(S.phase)) return '';
+    if (['lobby', 'results', 'summary', 'reveal', 'intro', 'gossipResult'].includes(S.phase)) return '';
     const showDone = ['search', 'vote', 'final', 'gossip'].includes(S.phase);
     return S.players.filter((p) => p.inGame).map((p) => {
       const done = showDone && p.done ? '<span class="done">✓</span>' : '';
@@ -732,11 +760,11 @@
 
   const VIEWS = {
     lobby: viewLobby, intro: viewIntro, search: viewSearch, discuss: viewDiscuss,
-    vote: viewVote, spotlight: viewSpotlight, final: viewFinal, reveal: viewReveal, results: viewResults,
+    vote: viewVote, spotlight: viewSpotlight, final: viewFinal, reveal: viewReveal, results: viewResults, summary: viewSummary,
   };
   const IT_VIEWS = {
     lobby: viewLobby, intro: itViewIntro, gossip: itViewGossip, gossipResult: itViewGossipResult,
-    discuss: itViewDiscuss, final: itViewFinal, reveal: itViewReveal, results: viewResults,
+    discuss: itViewDiscuss, final: itViewFinal, reveal: itViewReveal, results: viewResults, summary: viewSummary,
   };
 
   // Title card shown on the curtain when a new phase starts.
@@ -751,6 +779,7 @@
       case 'final': return [title, t('آخرین فرصت')];
       case 'reveal': return [title, t('حقیقت آشکار می‌شود…')];
       case 'results': return [title, ''];
+      case 'summary': return [title, t('{n} بازی امشب', { n: S.gamesPlayed })];
       default: return [title, round];
     }
   }
@@ -824,7 +853,7 @@
     else if (p === 'intro') scene = 'intro';
     else if (p === 'vote' || p === 'spotlight' || p === 'final') scene = 'tense';
     else if (p === 'reveal') scene = 'reveal';
-    else if (p === 'results') scene = 'results';
+    else if (p === 'results' || p === 'summary') scene = 'results';
     Music.setScene(scene);
     Music.refresh();
   }
@@ -857,7 +886,7 @@
         replayEntrance = false;
       });
     }
-    Scene.setDim(S.phase === 'reveal' || S.phase === 'results');
+    Scene.setDim(['reveal', 'results', 'summary'].includes(S.phase));
     // Big tables (9–12) switch the TV to a denser layout.
     const tableSize = S.phase === 'lobby' ? Math.max(S.players.length, S.modeMax) : S.players.filter((p) => p.inGame).length;
     $('app').classList.toggle('many', tableSize > 8);
@@ -883,7 +912,7 @@
         r.killers.forEach((_, i) => later(0.6 + i * UNMASK_GAP + 0.3, () => Sound.sting()));
       } else if (itemsMode() && S.phase === 'reveal' && step === 3) Sound.swoosh();
       else if (!itemsMode() && S.phase === 'reveal' && step === 2) { later(0.3, () => Sound.flip()); later(1.4, () => Sound.flip()); }
-      else if (S.phase === 'results') Sound.win();
+      else if (S.phase === 'results' || S.phase === 'summary') Sound.win();
       else if (S.phase !== 'lobby' && !S.prologue && (S.phase !== 'reveal' || step === 0)) Sound.gong();
     }
     // Soft blip whenever another player finishes answering / voting.

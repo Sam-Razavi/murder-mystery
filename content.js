@@ -104,6 +104,7 @@ const PHASE_TITLES = {
   final: 'اتهام نهایی',
   reveal: 'افشاگری',
   results: 'نتیجه',
+  summary: 'پایان شب',
 };
 
 
@@ -184,6 +185,7 @@ const ITEM_PHASE_TITLES = {
   final: 'رأی نهایی',
   reveal: 'افشاگری',
   results: 'نتیجه',
+  summary: 'پایان شب',
 };
 
 // Lobby portraits. Avoids every in-game item icon so a portrait is never

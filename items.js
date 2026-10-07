@@ -261,6 +261,7 @@ const methods = {
       const pts = this.g.results.points.find((x) => x.playerId === p.id);
       if (pts) p.score += pts.total;
     });
+    this._recordStats();
     this.gamesPlayed += 1;
     this.phase = 'reveal';
     this.g.revealStep = 0;

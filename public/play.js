@@ -257,9 +257,27 @@
     if (me.isVip) {
       html += `<button class="btn primary big" data-act="start">${t('بازی دوباره با همین جمع')}</button>
         <div class="grid2"><button class="btn" data-act="lobby">${t('سالن انتظار')}</button><button class="btn" data-act="resetScores">${t('صفر کردن امتیازها')}</button></div>
+        <button class="btn gold" data-act="endNight">${t('🌙 پایان شب و جایزه‌ها')}</button>
         <p class="sub">${t('برای اضافه شدن نفر جدید، به سالن انتظار برگرد.')}</p>`;
     } else {
       html += `<p class="sub">${t('میزبان دور بعد را شروع می‌کند.')}</p>`;
+    }
+    return html;
+  }
+
+  // End of the night: your own numbers, and the host's way out.
+  function actionSummary() {
+    const st = S.summary.stats[me.id];
+    const row = (label, v) => `<div class="row"><span>${label}</span><b class="num">${num(v)}</b></div>`;
+    let html = `<h2 class="prompt">${t('شب تو')}</h2>`;
+    html += st ? `<div class="points">${row(t('بازی'), st.games)}${row(t('بُرد'), st.wins)}${row(t('قاتل بودی'), st.killerGames)}${row(t('فرار از عدالت'), st.escapes)}
+        ${row(t('قاتل را درست گفتی'), st.correct)}${row(t('مأموریت انجام شد'), st.missions)}${row(t('مدرک جعلی‌ات به دست بقیه رسید'), st.fooled)}</div>`
+      : `<p class="sub">${t('امشب بازی نکردی.')}</p>`;
+    const won = S.summary.awards.filter((a) => a.ids.includes(me.id)).length + (S.summary.champions.includes(me.id) ? 1 : 0);
+    if (won) html += `<div class="done-box"><b>${t('🏅 امشب جایزه گرفتی!')}</b>${t('به تلویزیون نگاه کن.')}</div>`;
+    if (me.isVip) {
+      html += `<button class="btn primary big" data-act="lobby">${t('سالن انتظار (امتیازها می‌مانند)')}</button>
+        <button class="btn" data-act="newNight">${t('شب تازه (همه‌چیز از صفر)')}</button>`;
     }
     return html;
   }
@@ -504,11 +522,11 @@
   // ------------------------------------------------------------ render
   const ACTIONS = {
     lobby: actionLobby, intro: actionIntro, search: actionSearch, discuss: actionDiscuss, vote: actionVote,
-    spotlight: actionSpotlight, final: actionFinal, reveal: actionReveal, results: actionResults,
+    spotlight: actionSpotlight, final: actionFinal, reveal: actionReveal, results: actionResults, summary: actionSummary,
   };
   const IT_ACTIONS = {
     lobby: actionLobby, intro: itActionIntro, gossip: itActionGossip, gossipResult: itActionGossipResult,
-    discuss: itActionDiscuss, final: itActionFinal, reveal: actionReveal, results: actionResults,
+    discuss: itActionDiscuss, final: itActionFinal, reveal: actionReveal, results: actionResults, summary: actionSummary,
   };
 
   function vipBar() {
@@ -602,16 +620,17 @@
     $('phRound').textContent = S.round ? t('دور {n} از {total}', { n: S.round, total: S.totalRounds }) : '';
 
     const playing = inGame();
-    setHTML($('action'), (playing || S.phase === 'lobby') ? tipHtml() + (itemsMode() ? IT_ACTIONS : ACTIONS)[S.phase]() : `<p class="sub">${t('بازی در جریان است…')}</p>`);
+    setHTML($('action'), (playing || S.phase === 'lobby' || S.phase === 'summary') ? tipHtml() + (itemsMode() ? IT_ACTIONS : ACTIONS)[S.phase]() : `<p class="sub">${t('بازی در جریان است…')}</p>`);
 
-    if (playing && S.phase !== 'intro' && itemsMode()) {
+    const tabbed = playing && S.phase !== 'intro' && S.phase !== 'summary';
+    if (tabbed && itemsMode()) {
       if (!['item', 'journal', 'notes'].includes(ui.tab)) ui.tab = 'item';
       const body = ui.tab === 'notes' ? tabTracker() : ui.tab === 'journal' ? tabJournal() : itemCard();
       const fresh = unseenNotes();
       setHTML($('tabs'), [['item', t('چیزِ من')], ['journal', `${t('دفترچه‌ی مخفی')}${fresh ? `<span class="badge">${num(fresh)}</span>` : ''}`], ['notes', t('ردیابی')]]
         .map(([k, l]) => `<button data-act="tab" data-id="${k}" class="${ui.tab === k ? 'sel' : ''}">${l}</button>`).join(''));
       setHTML($('tabBody'), body);
-    } else if (playing && S.phase !== 'intro') {
+    } else if (tabbed) {
       if (!['hand', 'notes', 'role'].includes(ui.tab)) ui.tab = 'hand';
       const fresh = me.hand.filter((x) => x.isNew).length;
       setHTML($('tabs'), [['hand', `${t('مدارک')}${fresh ? `<span class="badge">${num(fresh)}</span>` : ''}`], ['notes', t('دفترچه')], ['role', t('نقش من')]]
@@ -638,6 +657,8 @@
     ready: (el) => { buzz(30); send('player:ready', { ready: el.dataset.v === '1' }); },
     lobby: () => send('vip:lobby'),
     resetScores: () => send('vip:resetScores'),
+    endNight: () => send('vip:endNight'),
+    newNight: () => send('vip:newNight'),
     kick: (el) => send('vip:kick', { targetId: el.dataset.id }),
     setting: (el) => send('vip:setting', { key: el.dataset.k, value: el.dataset.v }),
     vipSkip: () => {

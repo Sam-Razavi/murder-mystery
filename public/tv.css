@@ -576,3 +576,18 @@ ul.small { list-style: none; padding: 0; display: grid; gap: .35rem; line-height
 .recap .ctag { color: var(--text); background: rgba(240, 208, 138, .1); border-color: rgba(240, 208, 138, .25); font-size: .85rem; }
 .recap .more { font-size: .95rem; color: var(--muted); align-self: center; }
 .recap .warn { display: block; margin-top: .25rem; }
+
+/* ---------- end of the night (tv.js viewSummary) ---------- */
+.summary .champs { display: flex; justify-content: center; gap: 3rem; margin: 1.4rem 0 .4rem; }
+.champ .avatar { width: 9rem; height: 9rem; font-size: 4.5rem; box-shadow: 0 0 0 .45rem var(--gold), 0 0 4rem rgba(217, 164, 65, .55); }
+.champ .unmask .mask span { font-size: 4rem; }
+.champ .nm { font-family: var(--display); font-size: 2.6rem; color: var(--gold-soft); margin-top: .8rem; }
+.champ .pts { font-size: 1.3rem; color: var(--text); }
+.awards { display: grid; grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr)); gap: 1rem; margin-top: 1.4rem; text-align: center; }
+.award { background: rgba(42, 23, 34, .88); border: 1px solid rgba(240, 208, 138, .22); border-radius: 1rem; padding: .9rem 1rem; animation: pop .5s ease both; }
+.award .ai { font-size: 2.4rem; line-height: 1.1; }
+.award .at { font-family: var(--display); font-size: 1.5rem; color: var(--gold); }
+.award .aw { display: flex; flex-wrap: wrap; justify-content: center; gap: .3rem .8rem; margin: .4rem 0 .3rem; font-size: 1.2rem; font-weight: 700; color: var(--parchment); }
+.award .aw span { display: inline-flex; align-items: center; gap: .4rem; }
+.award .aw .avatar { width: 2rem; height: 2rem; font-size: 1rem; }
+.award .why { font-size: .95rem; color: var(--muted); line-height: 1.5; }

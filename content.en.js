@@ -101,6 +101,7 @@ const PHASE_TITLES = {
   final: 'Final accusation',
   reveal: 'The reveal',
   results: 'Results',
+  summary: 'End of the night',
 };
 
 // ------------------------------------------------------------------
@@ -178,6 +179,7 @@ const ITEM_PHASE_TITLES = {
   final: 'Final vote',
   reveal: 'The reveal',
   results: 'Results',
+  summary: 'End of the night',
 };
 
 const MODES = [
