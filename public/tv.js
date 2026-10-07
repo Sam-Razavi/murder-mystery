@@ -167,7 +167,7 @@
           <li><span>${t('<b>به سؤال‌های پچ‌پچ جواب می‌دهید</b> — و همان موقع یک نفر (از ۹ نفر به بالا: دو نفر) پنهانی سرک می‌کشد، معاوضه می‌کند، می‌دزدد یا جابه‌جا می‌کند.')}</span></li>
           <li><span>${t('<b>ردّ چاقو را بگیرید.</b> در رأی نهایی به کسی رأی بدهید که چاقو را <u>اول</u> داشت.')}</span></li>` : `
           <li><span>${t('<b>هر کدام نقشی مخفی می‌گیرید.</b> یکی از شما قاتل است و خودش می‌داند.')}</span></li>
-          <li><span>${t('<b>سه دور اتاق‌های عمارت را می‌گردید</b> و مدرک پیدا می‌کنید — اما قاتل مدرک جعلی می‌کارد.')}</span></li>
+          <li><span>${t('<b>سه دور اتاق‌های خانه را می‌گردید</b> و مدرک پیدا می‌کنید — اما قاتل مدرک جعلی می‌کارد.')}</span></li>
           <li><span>${t('<b>بحث کنید، بازجویی کنید،</b> و در آخر بگویید قاتل کیست، با چه سلاحی و کجا.')}</span></li>`;
     return `<section class="lobby stage-in">
       <div>
@@ -225,7 +225,7 @@
     return `<section class="search stage-in">
       <div>
         <div class="eyebrow">${t('دور {n} از {total}', { n: S.round, total: S.totalRounds })}</div>
-        <h2 class="h-big">${t('عمارت را بگردید')}</h2>
+        <h2 class="h-big">${t('خانه را بگردید')}</h2>
         <p class="lead">${t('هر کس روی گوشی‌اش یک اتاق را انتخاب می‌کند و مدرکی پیدا می‌کند. مدرک‌ها خصوصی‌اند — خودتان تصمیم بگیرید چه چیزی را بگویید.')}</p>
         <p class="whisper">${t('…و همین حالا، قاتل در تاریکی مدرکی جعلی می‌کارد.')}</p>
         ${recap}
@@ -878,7 +878,7 @@
     $('app').querySelector('.brand').textContent = (S.settings.mode === 'items' ? C.itemsStory : C.story).title;
 
     $('phaseTitle').textContent = (itemsMode() ? C.itemPhaseTitles : C.phaseTitles)[S.phase] || '';
-    $('roundPips').innerHTML = S.round
+    $('roundPips').innerHTML = S.round && S.phase !== 'summary'
       ? Array.from({ length: S.totalRounds }, (_, i) => `<span class="pip ${i + 1 < S.round ? 'on' : ''} ${i + 1 === S.round ? 'now' : ''}"></span>`).join('')
       : '';
 

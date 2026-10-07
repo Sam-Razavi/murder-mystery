@@ -36,7 +36,7 @@ npm run bots        # 2 bots (two people + two bots)
 npm run bots -- 1   # or any number, e.g. 1 bot for three people
 ```
 
-Bots wait until a real person has joined, so a person is always the host (bots never take over hosting, even if the host's phone drops). They mark themselves ready, search or forge, pin clues, vote and accuse at random after a short delay, and stay for every following game. They can't talk, so judge them by their clues and votes. Bots show up as "Bot Sam", "Bot Mina", … Stop them with Ctrl+C.
+Bots wait until a real person has joined, so a person is always the host (bots never take over hosting, even if the host's phone drops). They mark themselves ready and stay for every following game. They play a simple honest game after a short delay. In the classic mode, innocent bots pin their clues and vote and accuse among the suspects, weapons and rooms the evidence still allows (the same logic as the TV's case file), while a killer bot frames someone the evidence points at and only now and then shows its own fakes. In «دست‌به‌دست», bots accuse whoever they know had a knife, and never someone they know started innocent. They can't talk, so judge them by their clues and votes. Bots show up as "Bot Sam", "Bot Mina", … Stop them with Ctrl+C.
 
 ## Tutorial, cinematic and soundtrack
 
@@ -53,6 +53,13 @@ Bots wait until a real person has joined, so a person is always the host (bots n
 - **Beginner mode / "first game" (host setting, on by default):** action timers are 1.5× longer, each phone screen shows a one-line rule tip, and before the first game the start button offers "Rules first, then start", which opens the tutorial on the TV.
 - **Round recap (TV):** while everyone searches, the TV recaps the last round: the clues pinned, who was interrogated, and what is ruled out so far. In Hand to Hand, the gossip screen shows the previous question and its answer.
 - **"What you know for sure" (phone, Hand to Hand):** a box at the top of the journal lists hard facts. These are your starting item, anyone whose starting item you saw in round 1 (which tells you if they are a killer), every knife sighting, later snoops, and the rounds your item changed.
+
+## Host tools and the rest of the night
+
+- **Pause (⏸ in the host bar):** freezes the phase timer, for example when someone gets up for tea. Players can still tap, but nothing advances until the host taps ▶. The TV shows a pause card and every phone shows a banner. Pausing isn't available during the cinematic.
+- **Latecomers watch:** a phone that scans the QR code mid-game gets a watch-only view (phase, timer, what's happening, the evidence board or the gossip question, and the players) instead of an error. The join form comes back when the host returns to the lobby.
+- **End of the night:** from the results screen, the host taps «🌙 پایان شب» / "End the night". The TV crowns tonight's champion and hands out awards (best liar, sharpest detective, mission master, most wins), and each phone shows the player's own numbers. From there the host goes back to the lobby (scores stay) or starts a fresh night.
+- **TV scaling:** the TV is sized in `rem`, which follows whichever is tighter: the width, or the height of a 16:9 screen. Ultrawide screens and browsers that aren't fullscreen shrink the layout instead of overflowing it.
 
 ## How a game plays (≈20–25 min)
 
