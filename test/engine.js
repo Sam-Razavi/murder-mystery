@@ -385,6 +385,31 @@ async function playOne(n, gameNo, lang = 'fa', story = 'yalda') {
   check('night: new night resets', ng2.newNight('a').ok && ng2.phase === 'lobby' && ng2.gamesPlayed === 0 && !Object.keys(ng2.stats).length && ng2.players.every((p) => p.score === 0));
   ng2.dispose();
 
+  // Quick game: 2 rounds, shorter timers, discussion capped, no Stubborn mission.
+  for (let k = 0; k < 6; k++) {
+    const qg = new Game({ timeScale: 1000, minPlayers: 4 });
+    pids.forEach((id) => qg.join(id, id));
+    pids.forEach((id) => qg.setReady(id, true));
+    qg.setSetting('a', 'beginner', 'false');
+    qg.setSetting('a', 'quick', 'true');
+    qg.start('a');
+    check('quick: 2 rounds, public', qg.g.totalRounds === 2 && qg.publicState().totalRounds === 2);
+    check('quick: intro timer trimmed', Math.round(qg.timer.duration) === Math.round(35 * 0.75));
+    check('quick: no Stubborn mission', Object.values(qg.g.missions).every((m) => m.id !== 'stubborn'));
+    qg.skip('a');
+    check('quick: search timer 30s', qg.phase === 'search' && Math.round(qg.timer.duration) === 30);
+    qg.skip('a');
+    check('quick: discussion capped at 1:30', qg.phase === 'discuss' && Math.round(qg.timer.duration) === 90);
+    qg.skip('a'); // -> vote
+    qg.skip('a'); // -> search round 2 (no votes)
+    qg.skip('a');
+    qg.skip('a');
+    check('quick: final after round 2', qg.phase === 'final' && qg.round === 2);
+    qg.skip('a');
+    check('quick: game ends', qg.phase === 'reveal');
+    qg.dispose();
+  }
+
   // Seat takeover rules.
   const tk = new Game({ timeScale: 1000, minPlayers: 4 });
   pids.forEach((id) => tk.join(id, `P${id}`));

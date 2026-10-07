@@ -43,9 +43,15 @@ const SETTING_OPTIONS = {
   beginner: [true, false], // first game: slower action timers + rule tips on the phones
   caseFile: [true, false], // classic: TV sums up what the pinned clues prove
   story: Object.keys(STORIES), // classic: which mystery
+  quick: [false, true], // classic: 2 rounds and shorter timers (~10 minutes)
 };
 const LIVE_SETTINGS = ['discussSeconds', 'caseFile'];
 const BEGINNER_SLOWDOWN = 1.5; // action timers in beginner mode
+const ACTION_KEYS = ['search', 'vote', 'spotlight', 'final', 'gossip']; // what beginner mode slows down
+const QUICK_ROUNDS = 2; // classic quick game: 2 rounds instead of 3
+const QUICK_SPEEDUP = 0.75; // ...with shorter timers
+const QUICK_KEYS = ['intro', 'search', 'vote', 'spotlight', 'final', 'revealStep'];
+const QUICK_DISCUSS_MAX = 90; // seconds
 
 const shuffle = (arr) => {
   const a = arr.slice();
@@ -77,7 +83,7 @@ class Game {
     this.round = 0;
     this.settings = {
       discussSeconds: 150, mode: 'classic', lang: 'fa', itemRounds: 6, gossipSeconds: 40, quietRounds: false, killersKnow: false,
-      beginner: true, caseFile: true, story: 'yalda',
+      beginner: true, caseFile: true, story: 'yalda', quick: false,
     };
     this.g = null; // per-game state
     this.timer = null; // {endsAt, duration}
@@ -124,11 +130,19 @@ class Game {
     return `${ch.name} (${p ? p.name : this._t('؟')})`;
   }
 
-  // Length of an action phase. Beginner mode (fixed per game) gives everyone
-  // more time to read and decide.
+  // Length of a timed phase. A quick game (classic) trims the story and the
+  // action phases; beginner mode (fixed per game) then gives everyone more
+  // time to read and decide.
   _dur(key) {
-    const base = key === 'gossip' ? (this.settings.gossipSeconds || this.durations.gossip) : this.durations[key];
-    return this.g && this.g.beginner ? Math.round(base * BEGINNER_SLOWDOWN) : base;
+    let base = key === 'gossip' ? (this.settings.gossipSeconds || this.durations.gossip) : this.durations[key];
+    if (this.g && this.g.quick && QUICK_KEYS.includes(key)) base *= QUICK_SPEEDUP;
+    if (this.g && this.g.beginner && ACTION_KEYS.includes(key)) base *= BEGINNER_SLOWDOWN;
+    return Math.round(base);
+  }
+
+  // Discussion length: the host's choice, at most 1:30 in a quick game.
+  _discussSecs() {
+    return this.g && this.g.quick ? Math.min(this.settings.discussSeconds, QUICK_DISCUSS_MAX) : this.settings.discussSeconds;
   }
 
   _card(kind, text, extra = {}) {
@@ -186,13 +200,13 @@ class Game {
       this._setTimer(this.cinematic, () => this._endPrologue());
     } else {
       this.prologue = false;
-      this._setTimer(this.durations.intro, next);
+      this._setTimer(this._dur('intro'), next);
     }
   }
 
   _endPrologue() {
     this.prologue = false;
-    this._setTimer(this.durations.intro, this._introNext);
+    this._setTimer(this._dur('intro'), this._introNext);
     this._changed();
   }
 
@@ -386,7 +400,8 @@ class Game {
     const innocents = ids.filter((id) => id !== killerId);
 
     const missions = {};
-    const missionPool = shuffle(this.L.MISSIONS);
+    // Stubborn needs two interrogations: not in a quick game.
+    const missionPool = shuffle(this.L.MISSIONS.filter((m) => !(this.settings.quick && m.id === 'stubborn')));
     innocents.forEach((pid, i) => {
       const m = missionPool[i % missionPool.length];
       const targetId = m.needsTarget ? pick(ids.filter((x) => x !== pid)) : null;
@@ -397,6 +412,8 @@ class Game {
       mode: 'classic',
       lang: this.settings.lang,
       story: this.settings.story,
+      quick: !!this.settings.quick,
+      totalRounds: this.settings.quick ? QUICK_ROUNDS : TOTAL_ROUNDS,
       beginner: !!this.settings.beginner,
       id: `${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`,
       ids,
@@ -583,7 +600,7 @@ class Game {
     });
 
     this.phase = 'discuss';
-    this._setTimer(this.settings.discussSeconds, () => this._endDiscuss());
+    this._setTimer(this._discussSecs(), () => this._endDiscuss());
     this._changed();
   }
 
@@ -606,7 +623,7 @@ class Game {
   }
 
   _endDiscuss() {
-    if (this.round < TOTAL_ROUNDS) {
+    if (this.round < this.g.totalRounds) {
       this.phase = 'vote';
       this.g.votes[this.round] = {};
       this._setTimer(this._dur('vote'), () => this._endVote());
@@ -708,7 +725,7 @@ class Game {
         case 'guardian': success = (counts[m.targetId] || 0) === 0; break;
         case 'silent': success = g.pins[pid] === 0; break;
         case 'herald': success = g.pins[pid] >= 3; break;
-        case 'shadow': success = v.length === TOTAL_ROUNDS && v.every((r) => r === v[0]); break;
+        case 'shadow': success = v.length === g.totalRounds && v.every((r) => r === v[0]); break;
         case 'unseen': success = !spotlit.includes(pid); break;
         case 'stubborn': {
           const picks = [g.votes[1] && g.votes[1][pid], g.votes[2] && g.votes[2][pid], fv[pid] && fv[pid].suspect];
@@ -863,7 +880,7 @@ class Game {
   _scheduleReveal() {
     // The knife trail (last «دست‌به‌دست» step) animates row by row: give it longer.
     const long = this._items() && this.g.revealStep === Items.ITEM_REVEAL_LAST;
-    this._setTimer(this.durations.revealStep * (long ? 2 : 1), () => this._advanceReveal());
+    this._setTimer(this._dur('revealStep') * (long ? 2 : 1), () => this._advanceReveal());
   }
 
   _advanceReveal() {
@@ -1010,7 +1027,7 @@ class Game {
       lang: this.lang(),
       story: this.story(),
       round: this.round,
-      totalRounds: g && g.mode === 'items' ? g.totalRounds : TOTAL_ROUNDS,
+      totalRounds: g ? g.totalRounds : TOTAL_ROUNDS,
       // A paused timer carries the time left instead of an end time.
       timer: this.paused ? { paused: true, left: this.paused.left, duration: this.paused.duration } : this.timer,
       paused: !!this.paused,

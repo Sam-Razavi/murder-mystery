@@ -141,7 +141,8 @@
         <div class="seg">${C.modes.map((m) => `<button data-act="setMode" data-v="${m.id}" class="${mode.id === m.id ? 'sel' : ''}">${esc(m.name)}</button>`).join('')}</div>
         <div class="note">${esc(mode.text)}</div>
         ${mode.id === 'classic' ? `<div class="sub">${t('کدام داستان؟')}</div>${seg('story', Object.keys(ALL.stories).map((id) => [id, esc(ALL.stories[id][S.lang || 'fa'].story.title)]))}
-        <div class="note">${esc(C.story.eyebrow)} — ${esc(C.story.subtitle)}</div>` : ''}
+        <div class="note">${esc(C.story.eyebrow)} — ${esc(C.story.subtitle)}</div>
+        <div class="sub">${t('طول بازی')}</div>${seg('quick', [[false, t('کامل — ۳ دور، حدود ۲۰ دقیقه')], [true, t('سریع — ۲ دور، حدود ۱۰ دقیقه')]])}` : ''}
         ${mode.id === 'items' ? `<div class="sub">${t('تعداد دورهای پچ‌پچ (هر ۲ دور یک گفت‌وگو)')}</div>${seg('itemRounds', [[4, t('{n} — کوتاه', { n: 4 })], [6, num(6)], [8, t('{n} — بلند', { n: 8 })]])}
         <div class="sub">${t('زمان جواب دادن در هر دور')}</div>${seg('gossipSeconds', [30, 40, 60].map((v) => [v, t('{n} ثانیه', { n: v })]))}
         <div class="sub">${t('دورهای بی‌صدا: گاهی هیچ‌کس کار مخفی نمی‌گیرد')}</div>${seg('quietRounds', [[false, t('خاموش')], [true, t('روشن')]])}

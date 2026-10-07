@@ -11,7 +11,7 @@
         { icon: '🔎', title: 'جست‌وجوی عمارت', text: 'هر دور هر کس یک اتاق را انتخاب می‌کند و پنهانی یک مدرک پیدا می‌کند. مدرک‌های واقعی هیچ‌وقت با هم تناقض ندارند.' },
         { icon: '🗡️', title: 'مدرک جعلی', text: 'قاتل هر دور یک مدرک دروغ در یکی از اتاق‌ها می‌کارد. نفر بعدی که آن اتاق را بگردد، دروغ را پیدا می‌کند. اگر دو مدرک تناقض داشتند، یکی‌شان جعلی است!' },
         { icon: '💬', title: 'بحث و بازجویی', text: 'با «نشان بده» مدرکت را روی تلویزیون بگذار. بعد همه رأی می‌دهند چه کسی بازجویی شود: اتاق‌هایی که گشته روی تلویزیون لو می‌رود و باید از خودش دفاع کند.' },
-        { icon: '⚖️', title: 'اتهام نهایی', text: 'بعد از سه دور هر کس قاتل، سلاح و مکان را حدس می‌زند. جواب درست امتیاز دارد. اگر بیشترین رأی به قاتل نرسد، قاتل فرار می‌کند و امتیاز می‌گیرد. آماده‌اید؟' },
+        { icon: '⚖️', title: 'اتهام نهایی', text: 'در آخر هر کس قاتل، سلاح و مکان را حدس می‌زند. جواب درست امتیاز دارد. اگر بیشترین رأی به قاتل نرسد، قاتل فرار می‌کند و امتیاز می‌گیرد. آماده‌اید؟' },
       ],
       items: [
         { icon: '🕯️', title: 'شب یلدا، عمارت فرهمند', text: 'آقابزرگ مُرد. وقتی چراغ‌ها برگشت، هر کس چیزی در دست داشت. هر که شب را با چاقو شروع کرده قاتل است — اما چاقوها از همان لحظه دست‌به‌دست شده‌اند.' },
@@ -29,7 +29,7 @@
         { icon: '🔎', title: 'Search the mansion', text: 'Each round everyone picks a room on their phone and privately finds a clue. True clues never contradict each other.' },
         { icon: '🗡️', title: 'Forged clues', text: 'Every round the killer plants one fake clue in a room. The next person to search that room finds the lie. If two clues contradict each other, one of them is forged!' },
         { icon: '💬', title: 'Discuss and interrogate', text: 'Press “Show” to put a clue on the TV. Then everyone votes on who to interrogate: the rooms they searched are exposed on the TV and they must defend themselves.' },
-        { icon: '⚖️', title: 'Final accusation', text: 'After three rounds everyone names the killer, the weapon and the room. Right answers score points. If the killer does not get the most votes, they escape and score. Ready?' },
+        { icon: '⚖️', title: 'Final accusation', text: 'At the end everyone names the killer, the weapon and the room. Right answers score points. If the killer does not get the most votes, they escape and score. Ready?' },
       ],
       items: [
         { icon: '🕯️', title: 'Yalda night, Farahmand mansion', text: 'Agha-bozorg is dead. When the lights came back, everyone was holding something. Whoever started the night with the knife is a killer — but the knives have been changing hands ever since.' },

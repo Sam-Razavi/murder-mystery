@@ -87,7 +87,7 @@ const MISSIONS = [
   { id: 'guardian', title: 'Guardian angel', text: "Don't let {T} get a single vote in the final accusation.", needsTarget: true },
   { id: 'silent', title: 'Golden silence', text: 'Never show a clue on the TV.' },
   { id: 'herald', title: 'Town crier', text: 'Show at least 3 clues on the TV.' },
-  { id: 'shadow', title: 'Shadow', text: 'Search the same room all three rounds.' },
+  { id: 'shadow', title: 'Shadow', text: 'Search the same room every round.' },
   { id: 'unseen', title: 'Invisible', text: 'Never get pulled in for interrogation.' },
   { id: 'stubborn', title: 'Stubborn', text: 'Vote for the same person in both interrogations and the final accusation.' },
   { id: 'pointer', title: 'Pointing finger', text: 'Get {T} the most votes in one of the interrogations.', needsTarget: true },

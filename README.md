@@ -69,7 +69,9 @@ Bots wait until a real person has joined, so a person is always the host (bots n
 - **End of the night:** from the results screen, the host taps «🌙 پایان شب» / "End the night". The TV crowns tonight's champion and hands out awards (best liar, sharpest detective, mission master, most wins), and each phone shows the player's own numbers. From there the host goes back to the lobby (scores stay) or starts a fresh night.
 - **TV scaling:** the TV is sized in `rem`, which follows whichever is tighter: the width, or the height of a 16:9 screen. Ultrawide screens and browsers that aren't fullscreen shrink the layout instead of overflowing it.
 
-## How a game plays (≈20–25 min)
+## How a game plays (≈20–25 min, or ≈10 in a quick game)
+
+**Quick game (host setting, classic):** 2 rounds instead of 3, timers about 25% shorter and discussions capped at 1:30. That makes a game about 10 minutes, so there's time for "one more". The *Stubborn* mission needs two interrogations, so it isn't dealt in a quick game.
 
 1. **Lobby:** Players join on their phones and pick an emoji portrait. The first person to join is the host 👑 and controls start/skip from their phone. Everyone presses «آماده‌ام» (Ready), and the host can start once every online player is ready.
 2. **Intro:** Everyone is secretly assigned a character (e.g. the bankrupt eldest son or the family lawyer). Each character has visible **traits** (👓 glasses, ✋ left-handed, 🚬 smoker, 🌹 rose perfume). One player is told they are the **killer** and learns the weapon and the room. Every innocent player gets a **secret mission** worth bonus points.

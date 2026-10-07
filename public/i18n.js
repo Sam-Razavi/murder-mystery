@@ -137,7 +137,7 @@
     "<b>به سؤال‌های پچ‌پچ جواب می‌دهید</b> — و همان موقع یک نفر (از ۹ نفر به بالا: دو نفر) پنهانی سرک می‌کشد، معاوضه می‌کند، می‌دزدد یا جابه‌جا می‌کند.": "<b>You answer gossip questions</b> — and meanwhile one player (two from 9 players up) secretly snoops, swaps, steals or shuffles.",
     "<b>ردّ چاقو را بگیرید.</b> در رأی نهایی به کسی رأی بدهید که چاقو را <u>اول</u> داشت.": "<b>Follow the knife.</b> In the final vote, vote for whoever had the knife <u>first</u>.",
     "<b>هر کدام نقشی مخفی می‌گیرید.</b> یکی از شما قاتل است و خودش می‌داند.": "<b>You each get a secret role.</b> One of you is the killer, and knows it.",
-    "<b>سه دور اتاق‌های خانه را می‌گردید</b> و مدرک پیدا می‌کنید — اما قاتل مدرک جعلی می‌کارد.": "<b>For three rounds you search the house</b> and find clues — but the killer plants fakes.",
+    "<b>{n} دور اتاق‌های خانه را می‌گردید</b> و مدرک پیدا می‌کنید — اما قاتل مدرک جعلی می‌کارد.": "<b>For {n} rounds you search the house</b> and find clues — but the killer plants fakes.",
     "<b>بحث کنید، بازجویی کنید،</b> و در آخر بگویید قاتل کیست، با چه سلاحی و کجا.": "<b>Argue, interrogate,</b> and finally name the killer, the weapon and the room.",
     "با گوشی اسکن کنید": "Scan with your phone",
     "📱 به گوشی‌تان نگاه کنید — نقش مخفی‌تان آنجاست. مواظب باشید کسی نبیند!": "📱 Look at your phone — your secret role is there. Don't let anyone see!",
@@ -370,6 +370,9 @@
     '🔊 برای فعال شدن صدا کلیک کنید یا یک کلید بزنید': '🔊 Click or press any key to enable sound',
     '🔇 صدا بی‌صدا است — برای روشن کردن کلید M را بزنید': '🔇 Sound is muted — press M to unmute',
     'کدام داستان؟': 'Which story?',
+    'طول بازی': 'Game length',
+    'کامل — ۳ دور، حدود ۲۰ دقیقه': 'Full — 3 rounds, about 20 min',
+    'سریع — ۲ دور، حدود ۱۰ دقیقه': 'Quick — 2 rounds, about 10 min',
     // ---------------------------------------------------------- end of the night
     'اول این بازی را تمام کنید.': 'Finish this game first.',
     'بهترین دروغگو': 'Best liar',
