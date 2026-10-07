@@ -262,6 +262,7 @@ const methods = {
       if (pts) p.score += pts.total;
     });
     this._recordStats();
+    try { this.onGameEnd(this._outcome()); } catch (err) { console.error('balance log:', err.message); }
     this.gamesPlayed += 1;
     this.phase = 'reveal';
     this.g.revealStep = 0;

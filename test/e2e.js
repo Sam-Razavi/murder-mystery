@@ -4,6 +4,7 @@ process.env.PORT = process.env.PORT || '3199';
 process.env.TIME_SCALE = process.env.TIME_SCALE || '40';
 process.env.MIN_PLAYERS = '4';
 process.env.SAVE_FILE = 'off'; // never touch a real saved night
+process.env.GAME_LOG = 'off'; // nor the real balance log
 process.env.CINEMATIC_SECONDS = '0'; // the prologue has its own test in test/engine.js
 
 const { io } = require('socket.io-client');

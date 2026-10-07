@@ -6,7 +6,8 @@
   "scripts": {
     "start": "node server.js",
     "bots": "node scripts/bots.js",
-    "test": "node test/engine.js && node test/items.js && node test/screens.js && node test/e2e.js"
+    "test": "node test/engine.js && node test/items.js && node test/screens.js && node test/e2e.js",
+    "stats": "node scripts/stats.js"
   },
   "license": "UNLICENSED",
   "dependencies": {

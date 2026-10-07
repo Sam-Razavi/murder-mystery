@@ -61,7 +61,18 @@ app.get('/healthz', (req, res) => res.json({ ok: true }));
 // playerId -> Set(socketId)
 const playerSockets = new Map();
 
-const game = new Game({ timeScale: TIME_SCALE, minPlayers: MIN_PLAYERS, cinematic: CINEMATIC, onChange: broadcast });
+// Balance log: one line of numbers per finished game (npm run stats reads it).
+// GAME_LOG=off turns it off.
+const GAME_LOG = process.env.GAME_LOG === 'off' ? null : (process.env.GAME_LOG || path.join(__dirname, 'data', 'games.jsonl'));
+function logGame(outcome) {
+  if (!GAME_LOG) return;
+  try {
+    fs.mkdirSync(path.dirname(GAME_LOG), { recursive: true });
+    fs.appendFileSync(GAME_LOG, `${JSON.stringify(outcome)}\n`);
+  } catch (err) { console.error('Could not log the game:', err.message); }
+}
+
+const game = new Game({ timeScale: TIME_SCALE, minPlayers: MIN_PLAYERS, cinematic: CINEMATIC, onChange: broadcast, onGameEnd: logGame });
 
 // ---- the night survives a restart (players, scores, stats, settings) ----
 // SAVE_FILE=off turns it off. A save older than SAVE_MAX_HOURS is a new night.

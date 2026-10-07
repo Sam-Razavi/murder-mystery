@@ -385,6 +385,23 @@ async function playOne(n, gameNo, lang = 'fa', story = 'yalda') {
   check('night: new night resets', ng2.newNight('a').ok && ng2.phase === 'lobby' && ng2.gamesPlayed === 0 && !Object.keys(ng2.stats).length && ng2.players.every((p) => p.score === 0));
   ng2.dispose();
 
+  // Balance log: one outcome per finished game, numbers only (no names or ids).
+  const outcomes = [];
+  const lg2 = new Game({ timeScale: 1000, minPlayers: 4, onGameEnd: (o) => outcomes.push(o) });
+  pids.forEach((id) => lg2.join(id, `Secret${id}`));
+  pids.forEach((id) => lg2.setReady(id, true));
+  for (const mode of ['classic', 'items']) {
+    lg2.setSetting('a', 'mode', mode);
+    lg2.start('a');
+    for (let i = 0; i < 80 && lg2.phase !== 'reveal'; i++) lg2.skip('a');
+    lg2.skipReveal('a');
+  }
+  check('balance log: one outcome per game', outcomes.length === 2 && outcomes[0].mode === 'classic' && outcomes[1].mode === 'items');
+  check('balance log: classic numbers', typeof outcomes[0].caught === 'boolean' && outcomes[0].forgeries >= 1 && outcomes[0].players === 4 && outcomes[0].bots === 0);
+  check('balance log: items numbers', typeof outcomes[1].innocentsWin === 'boolean' && outcomes[1].killers === 1);
+  check('balance log: no names or ids', !/Secret|"[abcd]"/.test(JSON.stringify(outcomes)));
+  lg2.dispose();
+
   // Save / restore: scores, stats, settings and the host survive a restart.
   const sv = new Game({ timeScale: 1000, minPlayers: 4 });
   pids.forEach((id) => sv.join(id, `N${id}`));

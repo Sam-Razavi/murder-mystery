@@ -70,6 +70,7 @@ class Game {
     this.tutorialSeen = false; // the host has opened the slides at least once
     this.maxPlayers = MAX_PLAYERS;
     this.onChange = opts.onChange || (() => {});
+    this.onGameEnd = opts.onGameEnd || (() => {}); // gets _outcome() after each game (balance log)
     this.players = []; // {id, name, score, connected, joinedAt}
     this.vipId = null;
     this.phase = 'lobby';
@@ -634,6 +635,7 @@ class Game {
       if (pts) p.score += pts.total;
     });
     this._recordStats();
+    try { this.onGameEnd(this._outcome()); } catch (err) { console.error('balance log:', err.message); }
     this.gamesPlayed += 1;
     this.phase = 'reveal';
     this.g.revealStep = 0;
@@ -740,6 +742,41 @@ class Game {
       }
       if (isKiller === killersWin) st.wins += 1;
     });
+  }
+
+  // One finished game in numbers, for the balance log (no names, no ids).
+  // Bot games are marked so the stats can leave them out.
+  _outcome() {
+    const { g } = this;
+    const r = g.results;
+    const base = {
+      t: new Date().toISOString(), mode: g.mode, lang: g.lang, beginner: !!g.beginner,
+      players: g.ids.length, bots: g.ids.filter(isBot).length,
+    };
+    if (g.mode === 'items') {
+      return {
+        ...base, story: 'yalda', rounds: g.totalRounds, killers: r.killers.length, rules: g.rules,
+        innocentsWin: r.innocentsWin, tie: r.tie,
+        votesOnKillers: Object.values(g.finalVotes).filter((v) => r.killers.includes(v)).length,
+        votes: Object.keys(g.finalVotes).length,
+        actions: r.log.filter((e) => e.type !== 'quiet').length,
+      };
+    }
+    const innocentsVoted = Object.entries(g.finalVotes).filter(([pid]) => pid !== r.killerId);
+    return {
+      ...base, story: g.story || 'yalda',
+      caught: r.caught,
+      killerVotes: (r.tally.find((x) => x.playerId === r.killerId) || {}).votes || 0,
+      innocentsRight: innocentsVoted.filter(([, v]) => v.suspect === r.killerId).length,
+      innocentsVoted: innocentsVoted.length,
+      weaponRight: r.weaponRight.length, roomRight: r.roomRight.length,
+      forgeries: r.forgeries.length,
+      forgeriesDelivered: r.forgeries.filter((f) => f.deliveredTo).length,
+      forgeriesPinned: r.forgeries.filter((f) => f.pinnedBy.length).length,
+      cluesPinned: g.board.length,
+      killerInterrogated: g.spotlights.some((s) => s.playerId === r.killerId),
+      missionsDone: r.missions.filter((m) => m.success).length,
+    };
   }
 
   // Awards for the end-of-night screen: each goes to everyone tied on the top
