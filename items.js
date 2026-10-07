@@ -12,6 +12,7 @@ const ITEM_ROUNDS = 6; // default gossip rounds per game (host can pick 4/6/8)
 const ROUNDS_PER_DISCUSS = 2; // a discussion after every 2 gossip rounds
 const ACTION_TYPES = ['snoop', 'swap', 'steal', 'shuffle'];
 const ITEM_REVEAL_LAST = 3;
+const ITEM_BLACKOUT_SECONDS = 8; // lights out: the TV goes dark, two items swap
 const QUIET_CHANCE = 0.25; // "quiet rounds" house rule: chance a round has no secret action
 
 const killersFor = (n) => (n <= 4 ? 1 : n <= 8 ? 2 : 3);
@@ -53,6 +54,10 @@ const methods = {
       totalRounds: this.settings.itemRounds || ITEM_ROUNDS,
       // Optional house rules, fixed for the whole game.
       rules: { quietRounds: !!this.settings.quietRounds, killersKnow: !!this.settings.killersKnow },
+      // Twists: once, before a gossip round from round 2 on, two items swap in the dark.
+      twists: !!this.settings.twists,
+      blackoutRound: this.settings.twists ? 2 + Math.floor(Math.random() * ((this.settings.itemRounds || ITEM_ROUNDS) - 1)) : null,
+      blackoutDone: false,
       log: [], // one entry per round (secret action or quiet round), for the final reveal
       notes: Object.fromEntries(ids.map((id) => [id, [{ round: 0, type: 'start', item: start[id] }]])),
       actorQueue: [],
@@ -99,7 +104,7 @@ const methods = {
     g.gossip = { round: this.round, question, answers: {} };
     // Quiet rounds (optional): sometimes nobody gets an action, but never two
     // rounds in a row, so the game still moves items.
-    const prev = g.log[g.log.length - 1];
+    const prev = g.log.filter((e) => e.type !== 'blackout').pop(); // the dark is not a round
     const quiet = g.rules.quietRounds && !(prev && prev.type === 'quiet') && Math.random() < QUIET_CHANCE;
     g.turns = [];
     if (!quiet) {
@@ -230,7 +235,7 @@ const methods = {
       this._setTimer(this.settings.discussSeconds, () => this._itEndDiscuss());
       this._changed();
     } else {
-      this._itStartGossip();
+      this._itNextRound();
     }
   },
 
@@ -240,8 +245,37 @@ const methods = {
       this._setTimer(this._dur('final'), () => this._itEndFinal());
       this._changed();
     } else {
-      this._itStartGossip();
+      this._itNextRound();
     }
+  },
+
+  // ---------------------------------------------------------------- lights out (twists)
+
+  _itNextRound() {
+    const { g } = this;
+    if (g.twists && !g.blackoutDone && this.round + 1 === g.blackoutRound) this._itBlackout();
+    else this._itStartGossip();
+  },
+
+  _itBlackout() {
+    this.g.blackoutDone = true;
+    this.phase = 'blackout';
+    this._setTimer(ITEM_BLACKOUT_SECONDS, () => this._itEndBlackout());
+    this._changed();
+  },
+
+  // Two random players' items swap in the dark. It goes in the log (and the
+  // knife trail) as its own row; the two only learn that their item changed.
+  _itEndBlackout() {
+    const { g } = this;
+    const round = this.round + 1;
+    const [a, b] = shuffle(g.ids).slice(0, 2);
+    const before = { ...g.hold };
+    this._itExchange(a, b);
+    const moves = g.ids.filter((id) => before[id] !== g.hold[id]).map((id) => ({ playerId: id, from: before[id], to: g.hold[id] }));
+    g.log.push({ round, actorId: null, type: 'blackout', targets: [a, b], auto: false, seen: null, moves, holdAfter: { ...g.hold } });
+    moves.forEach((m) => g.notes[m.playerId].push({ round, type: 'changed', from: m.from, to: m.to, dark: true }));
+    this._itStartGossip();
   },
 
   // ---------------------------------------------------------------- final vote
@@ -337,7 +371,7 @@ const methods = {
       items: g.items,
       rules: g.rules,
       // With quiet rounds on, the count would reveal which rounds were quiet.
-      actionsSoFar: g.rules.quietRounds ? null : g.log.filter((e) => e.type !== 'quiet').length,
+      actionsSoFar: g.rules.quietRounds ? null : g.log.filter((e) => e.type !== 'quiet' && e.type !== 'blackout').length,
       actionsPerRound: g.actionsPerRound,
       discussEvery: ROUNDS_PER_DISCUSS,
       question: ['gossip', 'gossipResult'].includes(this.phase) ? g.gossip.question : null,

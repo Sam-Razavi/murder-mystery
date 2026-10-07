@@ -11,6 +11,7 @@ const STORIES = {
 };
 const { tr } = require('./public/i18n');
 const Items = require('./items');
+const Twists = require('./twists');
 
 const TOTAL_ROUNDS = 3;
 const TUTORIAL_STEPS = 6; // slides in public/guide.js, same count for both modes
@@ -24,6 +25,7 @@ const DEFAULT_DURATIONS = {
   revealStep: 8,
   gossip: 40, // items mode: answer the gossip question (+ secret action)
   gossipResult: 8,
+  blackout: 18, // lights out (twists)
 };
 
 const MODES = ['classic', 'items'];
@@ -44,13 +46,14 @@ const SETTING_OPTIONS = {
   caseFile: [true, false], // classic: TV sums up what the pinned clues prove
   story: Object.keys(STORIES), // classic: which mystery
   quick: [false, true], // classic: 2 rounds and shorter timers (~10 minutes)
+  twists: [true, false], // lights out, burned evidence, Kamali's hunch (twists.js; items: lights out)
 };
 const LIVE_SETTINGS = ['discussSeconds', 'caseFile'];
 const BEGINNER_SLOWDOWN = 1.5; // action timers in beginner mode
-const ACTION_KEYS = ['search', 'vote', 'spotlight', 'final', 'gossip']; // what beginner mode slows down
+const ACTION_KEYS = ['search', 'vote', 'spotlight', 'final', 'gossip', 'blackout']; // what beginner mode slows down
 const QUICK_ROUNDS = 2; // classic quick game: 2 rounds instead of 3
 const QUICK_SPEEDUP = 0.75; // ...with shorter timers
-const QUICK_KEYS = ['intro', 'search', 'vote', 'spotlight', 'final', 'revealStep'];
+const QUICK_KEYS = ['intro', 'search', 'vote', 'spotlight', 'final', 'revealStep', 'blackout'];
 const QUICK_DISCUSS_MAX = 90; // seconds
 
 const shuffle = (arr) => {
@@ -83,7 +86,7 @@ class Game {
     this.round = 0;
     this.settings = {
       discussSeconds: 150, mode: 'classic', lang: 'fa', itemRounds: 6, gossipSeconds: 40, quietRounds: false, killersKnow: false,
-      beginner: true, caseFile: true, story: 'yalda', quick: false,
+      beginner: true, caseFile: true, story: 'yalda', quick: false, twists: true,
     };
     this.g = null; // per-game state
     this.timer = null; // {endsAt, duration}
@@ -432,6 +435,7 @@ class Game {
     });
     this.L.ROOMS.forEach((r) => { this.g.decks[r.id] = []; this.g.planted[r.id] = []; });
     this._buildDecks();
+    this._twSetup();
   }
 
   _killerTraits() {
@@ -573,6 +577,7 @@ class Game {
     } else {
       g.visits[g.killerId].push(rid());
     }
+    this._twBurn(); // a room's next clue may go up in smoke (twists.js)
 
     shuffle(g.innocents).forEach((pid) => {
       const roomId = g.searchChoice[pid] || rid();
@@ -600,6 +605,7 @@ class Game {
     });
 
     this.phase = 'discuss';
+    this._twHunch(); // last round: Kamali pins a hunch (twists.js)
     this._setTimer(this._discussSecs(), () => this._endDiscuss());
     this._changed();
   }
@@ -615,6 +621,7 @@ class Game {
     if (!card) return { ok: false, error: this._t('این کارت را نداری.') };
     if (card.pinned) return { ok: false, error: this._t('قبلاً نشانش داده‌ای.') };
     if (card.kind === 'nothing') return { ok: false, error: this._t('این کارت چیزی برای نشان دادن ندارد.') };
+    if (card.lost) return { ok: false, error: this._t('این مدرک در تاریکی از بین رفته.') };
     card.pinned = true;
     g.pins[pid] += 1;
     g.board.push({ cardId, playerId: pid, text: card.text, kind: card.kind, about: card.about || null, round: card.round, pinRound: this.round, at: Date.now() });
@@ -657,7 +664,7 @@ class Game {
     const counts = this._tally(votes);
     const max = Math.max(0, ...Object.values(counts));
     if (max === 0) {
-      this._startSearch();
+      this._nextRound();
       return;
     }
     const top = Object.keys(counts).filter((id) => counts[id] === max);
@@ -668,7 +675,7 @@ class Game {
       ballots: Object.entries(votes).map(([from, to]) => ({ from, to })),
     });
     this.phase = 'spotlight';
-    this._setTimer(this._dur('spotlight'), () => this._startSearch());
+    this._setTimer(this._dur('spotlight'), () => this._nextRound());
     this._changed();
   }
 
@@ -815,7 +822,7 @@ class Game {
         innocentsWin: r.innocentsWin, tie: r.tie,
         votesOnKillers: Object.values(g.finalVotes).filter((v) => r.killers.includes(v)).length,
         votes: Object.keys(g.finalVotes).length,
-        actions: r.log.filter((e) => e.type !== 'quiet').length,
+        actions: r.log.filter((e) => e.type !== 'quiet' && e.type !== 'blackout').length,
       };
     }
     const innocentsVoted = Object.entries(g.finalVotes).filter(([pid]) => pid !== r.killerId);
@@ -832,6 +839,11 @@ class Game {
       cluesPinned: g.board.length,
       killerInterrogated: g.spotlights.some((s) => s.playerId === r.killerId),
       missionsDone: r.missions.filter((m) => m.success).length,
+      twists: !!g.twists,
+      vanished: g.vanished.length,
+      foiled: !!(g.blackout && g.blackout.result && g.blackout.result.foiled),
+      burned: !!g.burned,
+      hunch: !!g.hunch,
     };
   }
 
@@ -924,6 +936,7 @@ class Game {
       intro: () => this._itStartGossip(),
       gossip: () => this._itEndGossip(),
       gossipResult: () => this._itAfterGossipResult(),
+      blackout: () => this._itEndBlackout(),
       discuss: () => this._itEndDiscuss(),
       final: () => this._itEndFinal(),
       reveal: () => this._advanceReveal(),
@@ -932,7 +945,8 @@ class Game {
       search: () => this._endSearch(),
       discuss: () => this._endDiscuss(),
       vote: () => this._endVote(),
-      spotlight: () => this._startSearch(),
+      spotlight: () => this._nextRound(),
+      blackout: () => this._endBlackout(),
       final: () => this._endFinal(),
       reveal: () => this._advanceReveal(),
     };
@@ -991,6 +1005,9 @@ class Game {
     if (this._items()) return this._itHasActed(pid);
     switch (this.phase) {
       case 'search': return pid === g.killerId ? !!g.forgeryChoice : !!g.searchChoice[pid];
+      case 'blackout':
+        if (!g.board.some((b) => b.playerId)) return true; // nothing to reach for
+        return pid === g.killerId ? !!g.blackout.douse : !!g.blackout.guards[pid];
       case 'vote': return !!(g.votes[this.round] && g.votes[this.round][pid]);
       case 'final': return !!g.finalVotes[pid];
       default: return false;
@@ -1000,12 +1017,12 @@ class Game {
   _checkAllDone() {
     if (this.paused) return; // resuming checks again
     const items = this._items();
-    if (!(items ? ['gossip', 'final'] : ['search', 'vote', 'final']).includes(this.phase)) return;
+    if (!(items ? ['gossip', 'final'] : ['search', 'vote', 'final', 'blackout']).includes(this.phase)) return;
     const active = this._gamePlayers().filter((p) => p.connected);
     if (!active.length || !active.every((p) => this._hasActed(p.id))) return;
     const enders = items
       ? { gossip: () => this._itEndGossip(), final: () => this._itEndFinal() }
-      : { search: () => this._endSearch(), vote: () => this._endVote(), final: () => this._endFinal() };
+      : { search: () => this._endSearch(), vote: () => this._endVote(), final: () => this._endFinal(), blackout: () => this._endBlackout() };
     const phase = this.phase;
     this._advanceSoon(() => { if (this.phase === phase) enders[phase](); });
   }
@@ -1063,11 +1080,12 @@ class Game {
 
     state.game = {
       id: g.id,
-      board: g.board.map(({ cardId, playerId, text, kind, about, round, pinRound }) => ({ cardId, playerId, text, kind, about, round, pinRound })),
+      board: g.board.map(({ cardId, playerId, text, kind, about, round, pinRound, detective }) => ({ cardId, playerId, text, kind, about, round, pinRound, detective: !!detective })),
       spotlight: this.phase === 'spotlight' ? g.spotlights[g.spotlights.length - 1] : null,
       spotlights: g.spotlights.map(({ round, playerId, votes }) => ({ round, playerId, votes })),
       revealStep: this.phase === 'reveal' ? g.revealStep : (this.phase === 'results' ? 99 : -1),
       reveal: null,
+      ...this._twPublic(),
     };
 
     if (g.results && ['reveal', 'results'].includes(this.phase)) {
@@ -1097,7 +1115,7 @@ class Game {
     out.role = isKiller ? 'killer' : 'innocent';
     out.hand = g.hands[pid].map((c) => ({
       id: c.id, kind: c.kind, text: c.text, about: c.about || null, round: c.round, foundIn: c.foundIn, hallway: !!c.hallway,
-      pinned: !!c.pinned, isNew: g.newCards[pid].includes(c.id),
+      pinned: !!c.pinned, lost: !!c.lost, isNew: g.newCards[pid].includes(c.id),
       ...(isKiller ? { forged: true } : {}),
     }));
     out.visits = g.visits[pid].slice();
@@ -1118,7 +1136,7 @@ class Game {
     if (g.results && this.phase === 'results') {
       out.myPoints = g.results.points.find((x) => x.playerId === pid) || null;
     }
-    return out;
+    return this._twPrivate(pid, out);
   }
 
   // ---------------------------------------------------------------- save / restore
@@ -1162,6 +1180,6 @@ class Game {
   dispose() { this._clearTimer(); this._phaseToken += 1; }
 }
 
-Object.assign(Game.prototype, Items.methods);
+Object.assign(Game.prototype, Items.methods, Twists.methods);
 
 module.exports = { Game, STORIES, TOTAL_ROUNDS, DEFAULT_DURATIONS, SETTING_OPTIONS, MAX_PLAYERS, CLASSIC_MAX };

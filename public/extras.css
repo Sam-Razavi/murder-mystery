@@ -152,3 +152,21 @@ html[dir="rtl"] .cin-skip { right: auto; left: calc(2 * var(--u)); }
   .kamali { transition: opacity .3s; transform: none; }
   .kamali-art *, .kamali.talking .mouth { animation: none !important; }
 }
+
+/* ---------- twists on the TV ---------- */
+/* lights out: a dark stage around a flickering candle */
+.blackout { height: 100%; display: grid; place-content: center; justify-items: center; text-align: center; gap: 1rem;
+  background: radial-gradient(circle at 50% 38%, rgba(255, 170, 80, .22), rgba(0, 0, 0, .86) 42%); border-radius: 1.4rem; }
+.bo-candle { font-size: 9rem; line-height: 1; filter: drop-shadow(0 0 3rem rgba(255, 170, 80, .8)); animation: bo-flicker 1.6s ease-in-out infinite; }
+.bo-candle .art { width: 1.1em; height: 1.1em; }
+.blackout .lead { max-width: 52rem; color: var(--text); }
+@keyframes bo-flicker { 0%, 100% { opacity: 1; } 40% { opacity: .82; } 55% { opacity: .95; } 70% { opacity: .78; } }
+/* the clue the dark took leaves an empty pin */
+.card.ghost { background: transparent; color: var(--muted); border: 2px dashed rgba(240, 208, 138, .35); box-shadow: none; }
+.card.ghost::before { background: rgba(240, 208, 138, .3); }
+.card.ghost .by { color: var(--muted); border-top-color: rgba(240, 208, 138, .2); }
+/* Kamali's hunch: gold-edged */
+.card.hunch { box-shadow: 0 0 0 .22rem var(--gold), 0 .5rem 1.4rem rgba(0, 0, 0, .45); }
+.avatar.kam-mini { background: #283257; overflow: hidden; }
+.avatar.kam-mini svg { width: 100%; height: 100%; transform: scale(1.6) translateY(18%); }
+@media (prefers-reduced-motion: reduce) { .bo-candle { animation: none; } }

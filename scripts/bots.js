@@ -89,12 +89,17 @@ async function act(b, s) {
   try {
     if (s.phase === 'search') {
       if (me.role === 'killer' && me.forgeryOptions && me.forgeryOptions.length) {
+        if (me.canBurn && Math.random() < 0.3) await b.emit('act:burn', { roomId: pick(b.content.rooms).id }); // twists
         await b.emit('act:forge', { key: pick(me.forgeryOptions).key, roomId: pick(b.content.rooms).id });
       } else await b.emit('act:search', { roomId: pick(b.content.rooms).id });
     } else if (s.phase === 'discuss' && s.me.hand) {
       const fresh = s.me.hand.filter((c) => !c.pinned && c.kind !== 'nothing');
       // Innocents share what they found; the killer shows a fake only now and then.
       if (fresh.length && (me.role !== 'killer' || Math.random() < 0.35)) await b.emit('act:pin', { cardId: pick(fresh).id });
+    } else if (s.phase === 'blackout' && s.mode !== 'items') {
+      // Lights out: the killer reaches for a clue, everyone else guards one.
+      const clues = (s.game.board || []).filter((c) => c.playerId);
+      if (clues.length) await b.emit('act:dark', { cardId: pick(clues).cardId });
     } else if (s.phase === 'vote') {
       await b.emit('act:vote', { targetId: pick(classicOptions(b, s, others).suspects).id });
     } else if (s.phase === 'final') {

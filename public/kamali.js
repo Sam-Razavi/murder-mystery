@@ -84,6 +84,13 @@
       itFinal: ['با هم رأی بدهید. تساوی یعنی قاتل‌ها آزاد می‌شوند.'],
       itWin: ['ردّ چاقو را تا آخر گرفتید. آفرین!'],
       itLose: ['چاقو گم شد… و قاتل‌ها با آن. امشب حق با آن‌ها بود.'],
+      blackout: ['چراغ‌ها! کسی دستش را دراز کرده… از مدارکتان محافظت کنید!', 'تاریکی بهترین دوست قاتل است. زود باشید، از یک مدرک نگهبانی کنید!'],
+      itBlackout: ['چراغ‌ها رفت… در تاریکی، دست‌ها بی‌کار نمی‌مانند.'],
+      vanished: ['وقتی چراغ‌ها برگشت، مدرک {name} نبود! چه کسی از غیب شدنش سود می‌برد؟', 'مدرک {name} در تاریکی دود شد و رفت… بپرسید آن مدرک چه می‌گفت.'],
+      foiled: ['دستی در تاریکی سراغ مدرک {name} رفت… اما نگهبانی شده بود! قاتل حالا عصبانی است.'],
+      darkEmpty: ['تاریکی آمد و رفت… خوشبختانه چیزی روی تابلو نبود که بدزدند.'],
+      hunch: ['اجازه بدهید بنده هم حدسی بزنم… روی تابلو گذاشتمش. به آن اعتماد کنید.', 'سی سال تجربه، حضرات. حدسم را روی تابلو گذاشتم؛ هرگز اشتباه نمی‌کنم.'],
+      ashes: ['خاکستر؟ کسی مدرکی را سوزانده… قاتل از چیزی می‌ترسید.'],
     },
     en: {
       welcome: ['Ladies and gentlemen… Kāragāh Kamali, at your service. Scan the code and take your seats; it will be a long night.', 'Ah, tonight’s guests! I am Kamali, detective. Please join with your phones.'],
@@ -109,6 +116,13 @@
       itFinal: ['Vote together. A tie, and the killers go free.'],
       itWin: ['You followed the knife to the very end. Well done!'],
       itLose: ['The knife was lost… and the killers with it. Tonight, they win.'],
+      blackout: ['The lights! Someone is reaching out… guard your evidence!', 'Darkness is a killer’s best friend. Quickly, guard a clue!'],
+      itBlackout: ['The lights are gone… and in the dark, hands do not stay idle.'],
+      vanished: ['When the lights came back, {name}’s clue was gone! Who gains from that?', '{name}’s clue vanished in the dark… ask what that clue said.'],
+      foiled: ['A hand reached for {name}’s clue in the dark… but it was guarded! The killer is furious now.'],
+      darkEmpty: ['The dark came and went… luckily there was nothing on the board to take.'],
+      hunch: ['Allow me a hunch of my own… I have pinned it to the board. Trust it.', 'Thirty years of experience, my friends. My hunch is on the board; I am never wrong.'],
+      ashes: ['Ashes? Someone burned a clue… the killer was afraid of something.'],
     },
   };
 

@@ -110,7 +110,7 @@
   const art = (id, anim = false) => (window.Art && Art.has(id) ? Art.item(id, { anim, title: item(id).name }) : item(id).icon);
   const itemsMode = () => S && S.mode === 'items';
   const SEAT_COLORS = ['#c9a227', '#e0335c', '#2fb3a6', '#7b6fd0', '#d77ab3', '#6a9a4b', '#d9823b', '#4a9fb5'];
-  const KIND_ICON = { weapon: '🗡️', room: '🚪', trait: '🔍', alibi: '🕰️', motive: '✉️' };
+  const KIND_ICON = { weapon: '🗡️', room: '🚪', trait: '🔍', alibi: '🕰️', motive: '✉️', ashes: '🔥' };
 
   function colorOf(p) {
     if (p && p.charId) return ch(p.charId).color;
@@ -212,6 +212,8 @@
     const rows = [];
     rows.push(`<li><span class="ri">📌</span><div>${pinned.length ? t('{n} مدرک روی تابلو آمد', { n: pinned.length }) : t('هیچ مدرکی روی تابلو نیامد')}
       ${pinned.length ? `<div class="recap-tags">${pinned.slice(0, 3).map((b) => Z.clueTag(b.about, tagHelp())).join('')}${pinned.length > 3 ? `<span class="more">${t('+ {n} مدرک دیگر', { n: pinned.length - 3 })}</span>` : ''}</div>` : ''}</div></li>`);
+    const dark = S.game.blackoutResult;
+    if (dark && dark.round === S.round) rows.push(`<li><span class="ri">🕯️</span><div>${blackoutText(dark).replace(/^🕯️\s*/u, '')}</div></li>`);
     rows.push(`<li><span class="ri">🎤</span><div>${sp ? t('بازجویی شد: {name} ({n} رأی)', { name: who(sp.playerId), n: sp.votes }) : t('کسی بازجویی نشد')}</div></li>`);
     if (S.settings.caseFile) {
       const f = boardFacts();
@@ -236,21 +238,48 @@
     </section>`;
   }
 
+  // Kamali's face, small, for his hunch card and the dark (public/kamali.js).
+  const kamaliFace = () => (window.Kamali ? `<span class="avatar kam-mini">${Kamali.svg('sus')}</span>` : '');
+
   function boardHtml() {
     const b = S.game.board.slice().reverse();
-    if (!b.length) return `<div class="board"><div class="board-empty">${t('هنوز کسی مدرکی نشان نداده.')}<br>${t('روی گوشی دکمه‌ی «نشان بده» را بزنید تا مدرکتان اینجا بیاید.')}</div></div>`;
-    const dense = b.length > 6;
-    const denser = b.length > 12;
+    // Clues the dark took leave an empty pin behind (twists: lights out).
+    const ghosts = (S.game.vanished || []).map((v) => `<div class="card ghost"><span class="kind">🕯️</span>
+      <p>${t('این مدرک در تاریکی غیب شد.')}</p><div class="by">${avatar(pl(v.playerId))}<span>${who(v.playerId)}</span></div></div>`);
+    if (!b.length && !ghosts.length) return `<div class="board"><div class="board-empty">${t('هنوز کسی مدرکی نشان نداده.')}<br>${t('روی گوشی دکمه‌ی «نشان بده» را بزنید تا مدرکتان اینجا بیاید.')}</div></div>`;
+    const dense = b.length + ghosts.length > 6;
+    const denser = b.length + ghosts.length > 12;
     const max = denser ? 20 : dense ? 12 : 6;
     const items = b.slice(0, max).map((c, i) => {
       const isNew = !seenCards.has(c.cardId); seenCards.add(c.cardId);
       const p = pl(c.playerId);
-      return `<div class="card ${isNew ? 'anim' : ''} ${i === 0 && isNew ? 'fresh' : ''}"><span class="kind">${KIND_ICON[c.kind] || '📄'}</span>
+      const by = c.detective ? `${kamaliFace()}<span><b>${t('کارآگاه کمالی')}</b> <i class="sep"></i> ${t('حدس')}</span>`
+        : `${avatar(p)}<span>${who(c.playerId)} <i class="sep"></i> ${t('دور {n}', { n: c.round })}</span>`;
+      return `<div class="card ${isNew ? 'anim' : ''} ${i === 0 && isNew ? 'fresh' : ''} ${c.detective ? 'hunch' : ''}"><span class="kind">${c.detective ? '🔎' : KIND_ICON[c.kind] || '📄'}</span>
         <p>${esc(c.text)}</p>${Z.clueTag(c.about, tagHelp())}
-        <div class="by">${avatar(p)}<span>${who(c.playerId)} <i class="sep"></i> ${t('دور {n}', { n: c.round })}</span></div></div>`;
+        <div class="by">${by}</div></div>`;
     });
     const more = b.length > max ? `<div class="board-more">${t('+ {n} مدرک قدیمی‌تر روی گوشی صاحبانشان', { n: b.length - max })}</div>` : '';
-    return `<div class="board ${denser ? 'dense denser' : dense ? 'dense' : ''}">${items.join('')}${more}</div>`;
+    return `<div class="board ${denser ? 'dense denser' : dense ? 'dense' : ''}">${items.join('')}${ghosts.join('')}${more}</div>`;
+  }
+
+  // ---- lights out (twists): the TV goes dark around a candle ----
+  function viewBlackout() {
+    const items = itemsMode();
+    return `<section class="blackout stage-in">
+      <div class="bo-candle">${window.Art && Art.has('candle') ? Art.item('candle', { anim: true }) : '🕯️'}</div>
+      <h2 class="h-big">${t('چراغ‌ها خاموش شد!')}</h2>
+      <p class="lead">${items ? t('در تاریکی، چیزهای دو نفر جابه‌جا می‌شود… کسی نمی‌داند چه کسی.')
+        : t('در تاریکی، یک نفر دستش را به طرف تابلوی شواهد دراز می‌کند… روی گوشی از یک مدرک نگهبانی کنید!')}</p>
+    </section>`;
+  }
+
+  // What the dark did, for the recap and Kamali (classic).
+  function blackoutText(res) {
+    if (!res) return '';
+    if (res.empty) return t('🕯️ چراغ‌ها خاموش شد، اما تابلو خالی بود.');
+    if (res.foiled) return t('🕯️ در تاریکی کسی سراغ مدرک {name} رفت — اما نگهبان‌ها نگذاشتند!', { name: who(res.ownerId) });
+    return t('🕯️ در تاریکی مدرک {name} از روی تابلو غیب شد.', { name: who(res.ownerId) });
   }
 
   const tagHelp = () => ({ C, artOf, nameOf: plainWho });
@@ -701,6 +730,7 @@
   // ---- "what's happening now" bar under the header (item 1) ----
   // The steps of this round, what to do right now, and who we are waiting for.
   function flowSteps() {
+    if (S.phase === 'blackout') return ['blackout']; // between two rounds
     if (itemsMode()) {
       const last = S.round >= S.totalRounds;
       const talk = last || S.round % (S.game.discussEvery || 2) === 0;
@@ -716,7 +746,9 @@
       gossipResult: t('📺 ببینید بقیه چه جوابی دادند.'),
       discuss: t('🗣️ حرف بزنید: چه کسی شب را با چاقو شروع کرد؟'),
       final: t('📱 روی گوشی به کسی رأی بدهید که شب را با چاقو شروع کرد.'),
+      blackout: t('🕯️ در تاریکی بمانید…'),
     } : {
+      blackout: t('🕯️ روی گوشی از یک مدرک روی تابلو نگهبانی کنید.'),
       search: t('📱 روی گوشی یک اتاق را برای گشتن انتخاب کنید.'),
       discuss: t('🗣️ مدارک را مقایسه کنید و با «نشان بده» روی تلویزیون بیاورید.'),
       vote: t('📱 روی گوشی رأی بدهید: چه کسی بازجویی شود؟'),
@@ -727,7 +759,7 @@
   }
 
   function flowWait() {
-    if (!['search', 'vote', 'final', 'gossip'].includes(S.phase)) return '';
+    if (!['search', 'vote', 'final', 'gossip'].includes(S.phase) && !(S.phase === 'blackout' && !itemsMode())) return '';
     const left = S.players.filter((p) => p.inGame && p.connected && !p.done);
     if (!left.length) return `<span class="ok">${t('✓ همه انجام دادند')}</span>`;
     if (left.length > 4) return t('منتظر {n} نفر…', { n: left.length });
@@ -747,7 +779,7 @@
 
   function stripHtml() {
     if (['lobby', 'results', 'summary', 'reveal', 'intro', 'gossipResult'].includes(S.phase)) return '';
-    const showDone = ['search', 'vote', 'final', 'gossip'].includes(S.phase);
+    const showDone = ['search', 'vote', 'final', 'gossip'].includes(S.phase) || (S.phase === 'blackout' && !itemsMode());
     return S.players.filter((p) => p.inGame).map((p) => {
       const done = showDone && p.done ? '<span class="done">✓</span>' : '';
       if (!p.charId) {
@@ -762,11 +794,11 @@
 
   const VIEWS = {
     lobby: viewLobby, intro: viewIntro, search: viewSearch, discuss: viewDiscuss,
-    vote: viewVote, spotlight: viewSpotlight, final: viewFinal, reveal: viewReveal, results: viewResults, summary: viewSummary,
+    vote: viewVote, spotlight: viewSpotlight, final: viewFinal, reveal: viewReveal, results: viewResults, summary: viewSummary, blackout: viewBlackout,
   };
   const IT_VIEWS = {
     lobby: viewLobby, intro: itViewIntro, gossip: itViewGossip, gossipResult: itViewGossipResult,
-    discuss: itViewDiscuss, final: itViewFinal, reveal: itViewReveal, results: viewResults, summary: viewSummary,
+    discuss: itViewDiscuss, final: itViewFinal, reveal: itViewReveal, results: viewResults, summary: viewSummary, blackout: viewBlackout,
   };
 
   // Title card shown on the curtain when a new phase starts.
@@ -787,7 +819,7 @@
   }
   // No curtain for the lobby, the very first paint, the short gossip result,
   // or the steps inside the reveal (those have their own staging).
-  const wantsCurtain = (firstPaint) => !Scene.reduced && !firstPaint && S.phase !== 'lobby' && S.phase !== 'gossipResult' && !S.prologue
+  const wantsCurtain = (firstPaint) => !Scene.reduced && !firstPaint && S.phase !== 'lobby' && S.phase !== 'gossipResult' && S.phase !== 'blackout' && !S.prologue
     && !(S.phase === 'reveal' && S.game.revealStep > 0);
   let replayEntrance = false;
   let fxTimers = [];
@@ -868,7 +900,12 @@
     const at = `${gid}:${p}:${S.round}:${step}`;
     if (phaseChanged) {
       if (p === 'intro') sayOnce(at, items ? 'itIntro' : 'intro', { vars: { victim: C.story.victim }, mood: 'sus' }, wait);
-      else if (p === 'search') sayOnce(at, S.round === 1 ? 'search1' : 'search', {}, wait);
+      else if (p === 'blackout') sayOnce(at, items ? 'itBlackout' : 'blackout', { mood: 'surprised' }, 600);
+      else if (p === 'search') {
+        const dark = S.game.blackoutResult;
+        if (dark && dark.round === S.round) sayOnce(`${gid}:dark`, dark.empty ? 'darkEmpty' : dark.foiled ? 'foiled' : 'vanished', { vars: { name: plainWho(dark.ownerId) }, mood: dark.foiled ? 'pleased' : 'sus' }, wait);
+        else sayOnce(at, S.round === 1 ? 'search1' : 'search', {}, wait);
+      }
       else if (p === 'discuss') sayOnce(at, items ? 'itDiscuss' : 'discuss', {}, wait);
       else if (p === 'vote') sayOnce(at, 'vote', { mood: 'sus' }, wait);
       else if (p === 'spotlight') sayOnce(at, 'spotlight', { vars: { name: plainWho(S.game.spotlight.playerId) }, mood: 'sus' }, wait);
@@ -881,6 +918,10 @@
       } else if (p === 'summary') sayOnce(at, 'summary', { mood: 'pleased' }, wait);
     }
     if (S.paused) sayOnce(`${at}:pause`, 'pause', { mood: 'pleased' });
+    if (!items && S.game && S.game.board) {
+      if (S.game.board.some((b) => b.detective)) sayOnce(`${gid}:hunch`, 'hunch', { mood: 'sus' }, wait + 2500);
+      if (S.game.board.some((b) => b.kind === 'ashes')) sayOnce(`${gid}:ashes`, 'ashes', { mood: 'surprised' });
+    }
     // What the board adds up to (only when the host shows the case file).
     if (!items && S.settings.caseFile && S.game && ['discuss', 'vote', 'spotlight', 'final'].includes(p)) {
       const f = boardFacts();
@@ -911,7 +952,7 @@
     if (S.prologue && p === 'intro') scene = 'prologue';
     else if (p === 'lobby') scene = 'lobby';
     else if (p === 'intro') scene = 'intro';
-    else if (p === 'vote' || p === 'spotlight' || p === 'final') scene = 'tense';
+    else if (p === 'vote' || p === 'spotlight' || p === 'final' || p === 'blackout') scene = 'tense';
     else if (p === 'reveal') scene = 'reveal';
     else if (p === 'results' || p === 'summary') scene = 'results';
     Music.setScene(scene);
@@ -946,7 +987,7 @@
         replayEntrance = false;
       });
     }
-    Scene.setDim(['reveal', 'results', 'summary'].includes(S.phase));
+    Scene.setDim(['reveal', 'results', 'summary', 'blackout'].includes(S.phase));
     Scene.setStory(S.story);
     // Big tables (9–12) switch the TV to a denser layout.
     const tableSize = S.phase === 'lobby' ? Math.max(S.players.length, S.modeMax) : S.players.filter((p) => p.inGame).length;
@@ -963,7 +1004,8 @@
       const later = (sec, fn) => fxTimers.push(setTimeout(fn, sec * 1000));
       const r = S.game && S.game.reveal;
       const step = S.game ? S.game.revealStep : -1;
-      if (itemsMode() && S.phase === 'gossip') Sound.whisper();
+      if (S.phase === 'blackout') { Sound.blackout(); later(1.2, () => Sound.heartbeat()); later(2, () => Sound.heartbeat()); }
+      else if (itemsMode() && S.phase === 'gossip') Sound.whisper();
       else if (itemsMode() && S.phase === 'gossipResult') Sound.swoosh();
       else if (S.phase === 'reveal' && step === 1) {
         Sound.drumroll(SUSPENSE);

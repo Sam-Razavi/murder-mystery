@@ -78,6 +78,7 @@
     else if (a.type === 'trait') { const tr = by(h.C.traits, a.id); body = t('قاتل: {x}', { x: `${h.artOf(tr)} <b>${esc(a.has ? tr.name : tr.no)}</b>` }); }
     else if (a.type === 'alibi') body = t('شاهد دارد: {x}', { x: `<b>${esc(h.nameOf(a.playerId))}</b>` });
     else if (a.type === 'motive') body = t('انگیزه داشت: {x}', { x: `<b>${esc(h.nameOf(a.playerId))}</b>` });
+    else if (a.type === 'ashes') { const r = by(h.C.rooms, a.id); body = t('سوزانده شد در: {x}', { x: `${h.artOf(r)} <b>${esc(r.name)}</b>` }); }
     return body ? `<div class="ctag ctag-${a.type}">${body}</div>` : '';
   }
 

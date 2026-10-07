@@ -149,6 +149,7 @@
         <div class="sub">${t('قاتل‌ها هم‌دیگر را می‌شناسند (از ۵ نفر به بالا)')}</div>${seg('killersKnow', [[false, t('خاموش')], [true, t('روشن')]])}` : ''}
         <div class="sub">${t('زمان هر گفت‌وگو')}</div>${seg('discussSeconds', [[90, `${num(1)}:${num(30)}`], [150, `${num(2)}:${num(30)}`], [240, `${num(4)}:${num('00')}`]])}
         <div class="sub">${t('بازی اول: زمان بیشتر و راهنمای کوتاه روی گوشی‌ها')}</div>${seg('beginner', [[true, t('روشن')], [false, t('خاموش')]])}
+        <div class="sub">${mode.id === 'items' ? t('غافلگیری: خاموشی (چیزها در تاریکی جابه‌جا می‌شوند)') : t('غافلگیری‌ها: خاموشی، مدرک سوخته، حدس کارآگاه')}</div>${seg('twists', [[true, t('روشن')], [false, t('خاموش')]])}
         ${mode.id === 'classic' ? `<div class="sub">${t('جمع‌بندی مدارک روی تلویزیون (چه چیزی رد شده، کجا تناقض هست)')}</div>${seg('caseFile', [[true, t('روشن')], [false, t('خاموش')]])}` : ''}
         ${tooMany ? `<div class="note warn">${t('بازی کلاسیک حداکثر ۸ نفره است — حالت دست‌به‌دست را انتخاب کنید.')}</div>` : ''}
         ${allReady && rulesFirst
@@ -196,6 +197,7 @@
         const f = me.forgeryChoice;
         return `<h2 class="prompt">${t('مدرک جعلی کاشته شد')}</h2>
           <div class="done-box"><b>${t('✓ در {r}', { r: esc(room(f.roomId).name) })}</b>${t('منتظر بقیه…')}</div>
+          ${me.burnChoice ? `<div class="note warn">${t('🔥 مدرک بعدی {r} را هم می‌سوزانی.', { r: esc(room(me.burnChoice).name) })}</div>` : ''}
           <div class="note warn">${t('تو امشب در {r} دیده شده‌ای. اگر بازجویی شوی، این اتاق لو می‌رود — داستانت را آماده کن.', { r: esc(room(f.roomId).name) })}</div>
           <button class="btn ghost" data-act="reforge">${t('تغییر انتخاب')}</button>`;
       }
@@ -204,7 +206,10 @@
         <p class="sub">${t('بقیه دارند اتاق‌ها را می‌گردند. یک دروغ انتخاب کن و جایی بکار. اولین کسی که آن اتاق را بگردد، آن را به‌جای مدرک واقعی پیدا می‌کند.')}</p>
         <div class="step-label">${t('۱. کدام دروغ؟')}</div>${opts}
         <div class="step-label">${t('۲. کجا بکاری؟ (تو هم آنجا دیده می‌شوی)')}</div>${roomGrid(ui.lieRoom, 'lieRoom')}
-        <button class="btn primary big" data-act="forge" ${ui.lieKey && ui.lieRoom ? '' : 'disabled'}>${t('بکار')}</button>`;
+        ${me.canBurn ? `<div class="step-label">${t('۳. 🔥 سوزاندن یک مدرک (فقط یک بار در بازی، اختیاری)')}</div>
+          <p class="sub">${t('مدرک بعدیِ اتاقی که انتخاب کنی می‌سوزد و تو می‌فهمی چه بود. هر کس آنجا را بگردد فقط خاکستر پیدا می‌کند. دوباره لمس کن تا لغو شود.')}</p>
+          ${roomGrid(ui.burnRoom, 'burnRoom')}` : ''}
+        <button class="btn primary big" data-act="forge" ${ui.lieKey && ui.lieRoom ? '' : 'disabled'}>${ui.burnRoom ? t('بکار و بسوزان') : t('بکار')}</button>`;
     }
     const sel = me.searchChoice;
     return `<h2 class="prompt">${t('کدام اتاق را می‌گردی؟')}</h2>
@@ -256,6 +261,25 @@
       <button class="btn primary big" data-act="final" ${f.suspect && f.weapon && f.room ? '' : 'disabled'}>${submitted ? t('به‌روزرسانی اتهام') : t('ثبت اتهام')}</button>`;
   }
 
+  // Lights out (twists). Every phone gets the same list of clues and one tap,
+  // so nobody can tell from a glance who is doing what: the killer's tap makes
+  // a clue vanish, an innocent's tap guards it.
+  function actionBlackout() {
+    const clues = S.game.board.filter((b) => b.playerId);
+    if (!clues.length) {
+      return `<div class="tv-look dark"><div class="big-ic">🕯️</div><h2 class="prompt">${t('چراغ‌ها خاموش شد!')}</h2><p class="sub">${t('تابلو خالی است. در تاریکی بنشین تا چراغ‌ها برگردد…')}</p></div>`;
+    }
+    const chosen = me.darkChoice;
+    return `<div class="dark-head"><span class="big-ic">🕯️</span><h2 class="prompt">${t('چراغ‌ها خاموش شد!')}</h2></div>
+      <p class="sub">${isKiller() ? t('یک مدرک را از روی تابلو غیب کن. اگر کسی از آن نگهبانی کند، دستت خالی برمی‌گردد.') : t('از یک مدرک روی تابلو نگهبانی کن. اگر کسی در تاریکی سراغش بیاید، نمی‌گذاری ببرد.')}</p>
+      ${chosen ? `<div class="done-box"><b>${t('✓ انتخاب شد')}</b>${t('تا روشن شدن چراغ‌ها می‌توانی عوضش کنی.')}</div>` : ''}
+      <div class="dark-list">${clues.map((c) => `<button class="opt dark-opt ${chosen === c.cardId ? 'sel' : ''}" data-act="dark" data-id="${esc(c.cardId)}"><p>${esc(c.text)}</p>${tag(c.about)}<span class="os">${esc(nameOf(c.playerId))}</span></button>`).join('')}</div>`;
+  }
+
+  function itActionBlackout() {
+    return `<div class="tv-look dark"><div class="big-ic">🕯️</div><h2 class="prompt">${t('چراغ‌ها خاموش شد!')}</h2><p class="sub">${t('چیزی را که دستت است محکم نگه دار… در تاریکی، چیزهای دو نفر جابه‌جا می‌شود.')}</p></div>`;
+  }
+
   function actionReveal() {
     return `<div class="tv-look"><div class="big-ic">📺</div><h2 class="prompt">${t('به تلویزیون نگاه کن!')}</h2><p class="sub">${t('حقیقت دارد آشکار می‌شود…')}</p></div>`;
   }
@@ -297,8 +321,22 @@
   }
 
   // ------------------------------------------------------------ tabs
+  // What this phone learned from the twists: the dark, and the killer's fire.
+  function twistNotes() {
+    const notes = (me.darkNotes || []).map((n) => {
+      if (n.type === 'lost') return `<div class="note warn">🕯️ ${t('در تاریکی مدرکت از روی تابلو و از دستت غیب شد: «{text}»', { text: esc(n.text) })}</div>`;
+      if (n.type === 'guarded') return `<div class="note">🛡️ ${t('در تاریکی کسی دستش را به طرف مدرکی که نگهبانش بودی دراز کرد — و نتوانست! «{text}»', { text: esc(n.text) })}</div>`;
+      if (n.type === 'doused') return `<div class="note warn">🕯️ ${t('در تاریکی مدرک {name} را غیب کردی: «{text}»', { name: esc(nameOf(n.ownerId)), text: esc(n.text) })}</div>`;
+      if (n.type === 'foiled') return `<div class="note warn">✋ ${t('دستت در تاریکی ناکام ماند — کسی از آن مدرک نگهبانی می‌کرد.')}</div>`;
+      return '';
+    });
+    if (me.burned) notes.push(`<div class="note warn">🔥 ${t('مدرکی را که در {r} سوزاندی: «{text}»', { r: esc(room(me.burned.roomId).name), text: esc(me.burned.text) })}</div>`);
+    else if (me.burnFailed) notes.push(`<div class="note">🔥 ${t('در {r} مدرکی برای سوزاندن نمانده بود — هنوز می‌توانی یک بار بسوزانی.', { r: esc(room(me.burnFailed.roomId).name) })}</div>`);
+    return notes.join('');
+  }
+
   function tabHand() {
-    let html = '';
+    let html = twistNotes();
     if (isKiller() && me.plants && me.plants.length) {
       html += `<div class="sec-title">${t('مدارکی که کاشتی')}</div>${me.plants.map((p) => `<div class="note warn">${t('دور {n}', { n: p.round })} <i class="sep"></i> ${esc(room(p.roomId).name)} — ${p.delivered ? `<b>${t('کسی برداشتش!')}</b>` : t('هنوز همان‌جاست')}</div>`).join('')}
         <div class="note">${t('⚠️ کپی هر مدرک جعلی در دست توست. اگر تو و کسی که پیدایش کرده هر دو یک مدرک را نشان دهید، تکراری بودنش لوت می‌دهد.')}</div>`;
@@ -309,12 +347,13 @@
     html += `<div class="sec-title">${t('مدارک من')}</div>`;
     html += hand.map((c) => {
       const nothing = c.kind === 'nothing';
-      const badge = c.forged ? `<span class="tag fake">${t('جعلی — فقط تو می‌دانی')}</span>` : (c.isNew ? `<span class="tag">${t('تازه')}</span>` : '');
-      const btn = nothing ? '' : (c.pinned
+      const badge = c.lost ? `<span class="tag lost">${t('🕯️ در تاریکی غیب شد')}</span>`
+        : c.forged ? `<span class="tag fake">${t('جعلی — فقط تو می‌دانی')}</span>` : (c.isNew ? `<span class="tag">${t('تازه')}</span>` : '');
+      const btn = nothing || c.lost ? '' : (c.pinned
         ? `<button class="pinbtn" disabled>${t('✓ روی تلویزیون')}</button>`
         : `<button class="pinbtn" data-act="pin" data-id="${esc(c.id)}" ${canPin ? '' : 'disabled style="opacity:.4"'}>${t('📺 نشان بده')}</button>`);
       const hall = c.hallway ? `<div class="hall">🚶 ${esc(C.hallwayNote)}</div>` : '';
-      return `<div class="clue ${c.isNew && !nothing ? 'new' : ''} ${nothing ? 'nothing' : ''}" data-cid="${esc(c.id)}">${badge}${hall}<p>${esc(c.text)}</p>${tag(c.about)}
+      return `<div class="clue ${c.isNew && !nothing ? 'new' : ''} ${nothing ? 'nothing' : ''} ${c.lost ? 'lost' : ''}" data-cid="${esc(c.id)}">${badge}${hall}<p>${esc(c.text)}</p>${tag(c.about)}
         <div class="meta"><span>${t('دور {n}', { n: c.round })} <i class="sep"></i> ${esc(room(c.foundIn) ? room(c.foundIn).name : '')}</span>${btn}</div></div>`;
     }).join('');
     return html;
@@ -391,7 +430,9 @@
       case 'swap': return t('🔄 با <b>{name}</b> معاوضه شدی: {gave} دادی و {got} گرفتی.', { name: shortName(n.targetId), gave: itemTag(n.gave), got: itemTag(n.got) }) + auto;
       case 'steal': return t('🫳 از <b>{name}</b> دزدیدی: {got} را برداشتی و {gave} را جایش گذاشتی.', { name: shortName(n.targetId), gave: itemTag(n.gave), got: itemTag(n.got) }) + auto;
       case 'shuffle': return t('🔀 چیزهای <b>{a}</b> و <b>{b}</b> را با هم جابه‌جا کردی.', { a: shortName(n.a), b: shortName(n.b) }) + auto;
-      case 'changed': return t('❗ چیزت عوض شد! {from} رفت و {to} آمد. نمی‌دانی کار چه کسی بود.', { from: itemTag(n.from), to: itemTag(n.to) });
+      case 'changed': return n.dark
+        ? t('🕯️ در تاریکی چیزت عوض شد! {from} رفت و {to} آمد.', { from: itemTag(n.from), to: itemTag(n.to) })
+        : t('❗ چیزت عوض شد! {from} رفت و {to} آمد. نمی‌دانی کار چه کسی بود.', { from: itemTag(n.from), to: itemTag(n.to) });
       default: return '';
     }
   }
@@ -524,6 +565,7 @@
       discuss: t('برچسب زیر هر مدرک می‌گوید چه چیزی را ثابت می‌کند. اگر دو مدرک با هم نخوانند، یکی جعلی است.'),
       vote: t('هر کس بیشترین رأی را بگیرد، اتاق‌هایی که گشته روی تلویزیون می‌آید.'),
       spotlight: t('ببین اتاق‌هایی که گشته با حرف‌هایش جور است یا نه.'),
+      blackout: killer ? t('مدرکی را غیب کن که به تو نزدیک می‌شود… اما شاید کسی از آن نگهبانی کند.') : t('از مدرکی نگهبانی کن که فکر می‌کنی قاتل از آن می‌ترسد.'),
       final: killer ? t('به کسی رأی بده که بقیه هم به او شک دارند.') : t('دفترچه را باز کن: هر چیزی که ضربدر نخورده هنوز ممکن است.'),
     }[S.phase] || '';
   }
@@ -536,11 +578,11 @@
   // ------------------------------------------------------------ render
   const ACTIONS = {
     lobby: actionLobby, intro: actionIntro, search: actionSearch, discuss: actionDiscuss, vote: actionVote,
-    spotlight: actionSpotlight, final: actionFinal, reveal: actionReveal, results: actionResults, summary: actionSummary,
+    spotlight: actionSpotlight, final: actionFinal, reveal: actionReveal, results: actionResults, summary: actionSummary, blackout: actionBlackout,
   };
   const IT_ACTIONS = {
     lobby: actionLobby, intro: itActionIntro, gossip: itActionGossip, gossipResult: itActionGossipResult,
-    discuss: itActionDiscuss, final: itActionFinal, reveal: actionReveal, results: actionResults, summary: actionSummary,
+    discuss: itActionDiscuss, final: itActionFinal, reveal: actionReveal, results: actionResults, summary: actionSummary, blackout: itActionBlackout,
   };
 
   function vipBar() {
@@ -577,12 +619,14 @@
       vote: t('📱 روی گوشی رأی بدهید: چه کسی بازجویی شود؟'),
       spotlight: sp ? t('🎤 {name} از خودش دفاع می‌کند — سؤال کنید!', { name: esc(nameOf(sp.playerId)) }) : '',
       final: t('📱 روی گوشی قاتل، سلاح و مکان را انتخاب کنید.'),
+      blackout: t('🕯️ روی گوشی از یک مدرک روی تابلو نگهبانی کنید.'),
     };
+    if (itemsMode()) what.blackout = t('🕯️ در تاریکی بمانید…');
     let body = '';
     if (itemsMode() && S.game && S.game.question) body = `<div class="w-q display">${esc(S.game.question)}</div>`;
     else if (!itemsMode() && S.game && S.game.board && S.game.board.length && ['discuss', 'vote', 'spotlight', 'final'].includes(S.phase)) {
       body = `<div class="sec-title">${t('تابلوی شواهد')}</div>${S.game.board.slice().reverse().map((c) => `<div class="clue"><p>${esc(c.text)}</p>${tag(c.about)}
-        <div class="meta"><span>${esc(nameOf(c.playerId))}</span><span>${t('دور {n}', { n: c.round })}</span></div></div>`).join('')}`;
+        <div class="meta"><span>${c.detective ? t('کارآگاه کمالی') : esc(nameOf(c.playerId))}</span><span>${t('دور {n}', { n: c.round })}</span></div></div>`).join('')}`;
     } else if (['reveal', 'results'].includes(S.phase)) {
       body = `<div class="tv-look"><div class="big-ic">📺</div><h2 class="prompt">${t('به تلویزیون نگاه کن!')}</h2></div>`;
     }
@@ -638,14 +682,14 @@
     const phaseKey = `${S.phase}:${S.round}${S.prologue ? ':prologue' : ''}`; // the cinematic -> story switch resets the skip confirm
     if (phaseKey !== ui.lastPhaseKey) {
       // Reset per-phase UI and point the player at what matters now.
-      if (S.phase === 'search') { ui.lieKey = null; ui.lieRoom = null; }
+      if (S.phase === 'search') { ui.lieKey = null; ui.lieRoom = null; ui.burnRoom = null; }
       if (S.phase === 'gossip') ui.secret = [];
       if (S.phase === 'final') ui.final = { suspect: null, weapon: null, room: null };
       if (S.phase === 'discuss') ui.tab = itemsMode() ? 'journal' : 'hand';
       if (S.phase === 'intro') { ui.roleVisible = false; ui.tab = itemsMode() ? 'item' : 'role'; }
       ui.vipConfirm = null;
       // Every phone buzzes the same at gossip start, so the secret actor can't be heard.
-      if (['search', 'vote', 'final', 'gossip'].includes(S.phase) || (S.phase === 'spotlight' && S.game.spotlight.playerId === me.id)) buzz(120);
+      if (['search', 'vote', 'final', 'gossip', 'blackout'].includes(S.phase) || (S.phase === 'spotlight' && S.game.spotlight.playerId === me.id)) buzz(120);
       ui.lastPhaseKey = phaseKey;
       window.scrollTo(0, 0);
     }
@@ -740,12 +784,16 @@
     search: (el) => { buzz(30); send('act:search', { roomId: el.dataset.id }); },
     lie: (el) => { ui.lieKey = el.dataset.key; render(); },
     lieRoom: (el) => { ui.lieRoom = el.dataset.id; render(); },
+    burnRoom: (el) => { ui.burnRoom = ui.burnRoom === el.dataset.id ? null : el.dataset.id; render(); },
+    dark: (el) => { buzz(30); send('act:dark', { cardId: el.dataset.id }); },
     forge: () => {
       if (!ui.lieKey || !ui.lieRoom) return;
+      // The burn goes first: the forgery may be the last thing the round waits for.
+      if (me.canBurn && (ui.burnRoom || me.burnChoice)) send('act:burn', { roomId: ui.burnRoom || null });
       send('act:forge', { key: ui.lieKey, roomId: ui.lieRoom });
       ui.lieKey = null; ui.lieRoom = null; buzz(30);
     },
-    reforge: () => { ui.lieKey = me.forgeryChoice.key; ui.lieRoom = me.forgeryChoice.roomId; render(); },
+    reforge: () => { ui.lieKey = me.forgeryChoice.key; ui.lieRoom = me.forgeryChoice.roomId; ui.burnRoom = me.burnChoice || null; render(); },
     pin: (el) => { buzz(30); send('act:pin', { cardId: el.dataset.id }); },
     vote: (el) => { buzz(30); send('act:vote', { targetId: el.dataset.id }); },
     fSuspect: (el) => { ui.final.suspect = el.dataset.id; render(); },

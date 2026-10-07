@@ -57,6 +57,12 @@ The TV has a narrator: **Kāragāh Kamali (کارآگاه کمالی)**, a Qajar
 
 He slides in from the corner with a short sound and a speech bubble to react to the game: each phase, the person in the spotlight, a contradiction or duplicate clue appearing on the board (when the case file is on), the last weapon or room left, a pause, and the verdict. His lines are in `public/kamali.js`, in both languages.
 
+## Twists (host setting, on by default)
+
+- **Lights out** (once per game, between two rounds): the TV goes dark around a flickering candle. Every phone shows the clues on the evidence board, so a glance gives nothing away. The killer taps one to make it vanish, and everyone else taps one to guard it. A guarded clue survives: the TV says someone reached for it, and its guards learn it on their phones. Otherwise it is gone for good, from the board and from its owner's hand, and an empty pin shows whose clue it was. If the killer doesn't choose, the dark takes one at random. In «دست‌به‌دست», two random players' items swap in the dark instead; the two only learn that their item changed, and the knife trail shows it.
+- **Burned evidence** (killer, once per game): while forging, the killer may also burn a room. Its next true clue goes up in smoke, and the killer learns what it said. Whoever searches there finds ashes, which they can pin.
+- **Kamali's hunch** (at the start of the last discussion): the detective pins one true fact the board hasn't settled yet, a weapon or room that wasn't involved, on a gold-edged card.
+
 ## Easier to follow
 
 - **"What's happening now" bar (TV):** under the header during play. It shows this round's steps with the current one highlighted, one line on what to do right now, and who the game is still waiting for.

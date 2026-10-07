@@ -77,13 +77,25 @@ async function playOne(n, lang = 'fa') {
   check(`[${n}] game uses the rounds setting`, g.totalRounds === rounds && game.publicState().totalRounds === rounds);
   check(`[${n}] rounds locked mid-game`, !game.setSetting('p0', 'itemRounds', 4).ok);
   for (let r = 1; r <= rounds; r++) {
+    if (game.phase === 'blackout') {
+      // Lights out (twists): exactly two players' items swap, once, from round 2 on.
+      check(`[${n}] lights out from round 2, once`, r >= 2 && !g.log.some((e) => e.type === 'blackout'));
+      const pre = { ...g.hold };
+      game.skip('p0');
+      const e = g.log[g.log.length - 1];
+      check(`[${n}] lights out logged for round ${r}`, e.type === 'blackout' && e.round === r && e.actorId === null && e.targets.length === 2);
+      const [a, b] = e.targets;
+      check(`[${n}] lights out swaps exactly the two`, g.hold[a] === pre[b] && g.hold[b] === pre[a] && ids.filter((id) => id !== a && id !== b).every((id) => g.hold[id] === pre[id]));
+      check(`[${n}] lights out: the moved are told, in the dark`, e.moves.every((m) => g.notes[m.playerId].some((x) => x.round === r && x.type === 'changed' && x.dark && x.from === m.from && x.to === m.to)));
+      check(`[${n}] lights out: items conserved, killers unchanged`, sorted(g.hold) === startMultiset && ids.filter((id) => g.start[id] === KNIFE).join() === g.killers.join());
+    }
     check(`[${n}] r${r} gossip phase (${game.phase})`, game.phase === 'gossip' && game.round === r);
     leakCheck(`r${r} gossip`);
     const turns = g.turns.slice();
     if (!turns.length) {
       check(`[${n}] quiet only when the rule is on`, quiet);
       check(`[${n}] quiet round: no phone gets an action`, ids.every((id) => !game.privateState(id).turn));
-      const prev = g.log[g.log.length - 1];
+      const prev = g.log.filter((e) => e.type !== 'blackout').pop();
       check(`[${n}] never two quiet rounds in a row`, !prev || prev.type !== 'quiet');
       const before = { ...g.hold };
       ids.forEach((id) => game.itAnswer(id, pick(ids.filter((x) => x !== id))));
@@ -165,7 +177,7 @@ async function playOne(n, lang = 'fa') {
     check(`[${n}] replay ends at the real holdings`, ids.every((id) => replay[id] === g.hold[id]));
     // One net "your item changed" notice per player per round, only when it differs from what they knew.
     ids.forEach((id) => {
-      const told = g.notes[id].filter((x) => x.round === r && x.type === 'changed');
+      const told = g.notes[id].filter((x) => x.round === r && x.type === 'changed' && !x.dark);
       check(`[${n}] net change notice`, told.length === (g.hold[id] !== known[id] ? 1 : 0)
         && (!told.length || (told[0].from === known[id] && told[0].to === g.hold[id])));
     });
@@ -180,6 +192,7 @@ async function playOne(n, lang = 'fa') {
       game.skip('p0');
     }
   }
+  check(`[${n}] lights out happened once`, g.log.filter((e) => e.type === 'blackout').length === 1);
   const firstN = actors.slice(0, Math.min(n, actors.length));
   check(`[${n}] everyone acts once before anyone acts twice`, new Set(firstN).size === firstN.length);
 

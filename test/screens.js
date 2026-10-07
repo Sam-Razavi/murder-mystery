@@ -123,6 +123,16 @@ async function run(mode, lang, story) {
 
   if (mode === 'classic') {
     for (let r = 1; r <= 3; r++) {
+      if (game.phase === 'blackout') {
+        // Lights out: everyone sees the board's clues; the killer douses, the rest guard.
+        show(`lights out r${r}`);
+        const clues = game.g.board.filter((b) => b.playerId).map((b) => b.cardId);
+        check(`${tag}: phones offer the board in the dark`, !clues.length || phones.every((ph) => ph.doc.querySelector('[data-act="dark"]')));
+        // The killer goes for the first clue; the others guard the last (so it vanishes when there are two or more).
+        if (clues.length) ids.forEach((id) => game.darkPick(id, id === game.g.killerId ? clues[0] : clues[clues.length - 1]));
+        show(`lights out r${r} chosen`);
+        game.skip('p0');
+      }
       show(`search r${r}`);
       if (r === 1) {
         // A phone drops: the latecomer is offered the seat, the host is asked.

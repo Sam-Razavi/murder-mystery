@@ -203,6 +203,8 @@ io.on('connection', (socket) => {
   socket.on('act:pin', guarded(({ cardId }) => game.pin(playerId, cardId)));
   socket.on('act:vote', guarded(({ targetId }) => game.vote(playerId, targetId)));
   socket.on('act:final', guarded((p) => game.final(playerId, p)));
+  socket.on('act:dark', guarded(({ cardId }) => game.darkPick(playerId, cardId))); // twists: lights out
+  socket.on('act:burn', guarded(({ roomId }) => game.burn(playerId, roomId === undefined ? null : roomId))); // twists: burned evidence
   // items mode
   socket.on('act:answer', guarded(({ targetId }) => game.itAnswer(playerId, targetId)));
   socket.on('act:secret', guarded(({ targets }) => game.itAct(playerId, { targets })));

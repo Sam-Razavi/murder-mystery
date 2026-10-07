@@ -65,12 +65,35 @@ async function playOne(n, gameNo, lang = 'fa', story = 'yalda') {
   game.skip('p0'); // intro -> search
 
   for (let r = 1; r <= 3; r++) {
+    if (game.phase === 'blackout') {
+      // Lights out (twists): the killer may douse a clue, innocents guard one.
+      check(`[${n}] lights out only from round 2`, r >= 2 && g.blackout.round === r);
+      const clues = g.board.filter((b) => b.playerId).map((b) => b.cardId);
+      check(`[${n}] dark: innocent's tap guards, killer's tap douses`, !clues.length || (game.darkPick(ids.find((x) => x !== killer), clues[0]).ok && !g.blackout.douse));
+      const douse = clues.length && Math.random() < 0.7 ? pick(clues) : null;
+      if (douse) game.darkPick(killer, douse);
+      ids.filter((id) => id !== killer).forEach((id) => { if (clues.length) game.darkPick(id, pick(clues)); });
+      const guarded = new Set(Object.values(g.blackout.guards));
+      const boardBefore = g.board.map((b) => b.cardId);
+      if (clues.length && douse) await sleep(5); else await sleep(60);
+      const res = g.blackout.result;
+      check(`[${n}] lights out resolved`, !!res && game.phase === 'search');
+      if (clues.length) {
+        const gone = boardBefore.filter((id) => !g.board.some((b) => b.cardId === id));
+        check(`[${n}] dark: at most one clue gone`, gone.length <= 1);
+        check(`[${n}] dark: a guarded clue survives, an unguarded one vanishes`, res.foiled ? gone.length === 0 : gone.length === 1 && !guarded.has(gone[0]));
+        if (douse) check(`[${n}] dark: the killer's pick is the target`, res.foiled ? guarded.has(douse) : gone[0] === douse);
+        if (!res.foiled) check(`[${n}] dark: the owner's card is lost`, ids.some((id) => g.hands[id].some((c) => c.id === gone[0] && c.lost)));
+      }
+    }
     check(`[${n}] round ${r} search phase`, game.phase === 'search' && game.round === r);
     const kp = game.privateState(killer);
     check(`[${n}] killer has forgery options r${r}`, kp.forgeryOptions.length >= 1);
     check(`[${n}] innocent cannot forge`, !game.forge(ids.find((x) => x !== killer), kp.forgeryOptions[0].key, 'library').ok);
+    check(`[${n}] innocent cannot burn`, !game.burn(ids.find((x) => x !== killer), 'library').ok);
     // Plant in a room an innocent will search, sometimes.
     const plantRoom = pick(C.ROOMS).id;
+    if (kp.canBurn && Math.random() < 0.4) game.burn(killer, Math.random() < 0.5 ? plantRoom : pick(C.ROOMS).id);
     game.forge(killer, pick(kp.forgeryOptions).key, plantRoom);
     const before = Object.fromEntries(ids.map((id) => [id, g.hands[id].length]));
     const leaveOneOut = Math.random() < 0.2; // someone forgets to search -> timer path
@@ -82,6 +105,16 @@ async function playOne(n, gameNo, lang = 'fa', story = 'yalda') {
     else await sleep(5);
     check(`[${n}] r${r} moved to discuss (${game.phase})`, game.phase === 'discuss');
     noPersian(`r${r} discuss`);
+    if (g.burned && g.burned.round === r) {
+      check(`[${n}] burn: once per game`, !game.privateState(killer).canBurn);
+      check(`[${n}] burn: the burned clue was a true one`, !!g.burned.text && !ids.some((id) => g.hands[id].some((c) => c.text === g.burned.text && !c.forged)));
+    }
+    if (r === 3) {
+      // Kamali's hunch: one true weapon or room, from the detective, in the last discussion.
+      const h = g.board.find((b) => b.detective);
+      check(`[${n}] hunch pinned in the last discussion`, !!h && h.pinRound === 3 && !h.playerId);
+      if (h) check(`[${n}] hunch is true`, h.about.type === 'weapon' ? h.about.id !== g.weapon : h.about.id !== g.room);
+    } else check(`[${n}] no hunch before the last round`, !g.board.some((b) => b.detective));
     ids.forEach((id) => {
       const got = g.hands[id].length - before[id];
       if (id === killer) check(`[${n}] killer got 1 forged copy`, got === 1);
@@ -412,7 +445,9 @@ async function playOne(n, gameNo, lang = 'fa', story = 'yalda') {
     qg.skip('a');
     check('quick: discussion capped at 1:30', qg.phase === 'discuss' && Math.round(qg.timer.duration) === 90);
     qg.skip('a'); // -> vote
-    qg.skip('a'); // -> search round 2 (no votes)
+    qg.skip('a'); // -> lights out (twists: always before round 2 in a quick game) or search round 2
+    check('quick: lights out falls before round 2', qg.phase === 'blackout');
+    qg.skip('a'); // -> search round 2
     qg.skip('a');
     qg.skip('a');
     check('quick: final after round 2', qg.phase === 'final' && qg.round === 2);
