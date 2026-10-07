@@ -803,6 +803,18 @@
     Sound.blip();
   }
 
+  // Host pause: a card over the stage until the host resumes.
+  function syncPause() {
+    let el = $('pauseCard');
+    if (!S.paused) { if (el) el.remove(); return; }
+    if (el) return;
+    el = document.createElement('div');
+    el.id = 'pauseCard';
+    el.className = 'pause-card';
+    el.innerHTML = `<div><div class="pi">⏸</div><h2>${t('بازی متوقف شد')}</h2><p>${t('میزبان از روی گوشی‌اش ادامه می‌دهد.')}</p></div>`;
+    document.body.appendChild(el);
+  }
+
   function syncMusic() {
     if (!window.Music) return;
     const p = S.phase;
@@ -851,6 +863,7 @@
     $('app').classList.toggle('many', tableSize > 8);
     $('strip').innerHTML = stripHtml();
     $('flow').innerHTML = flowHtml();
+    syncPause();
 
     if (S.phase === 'reveal' && itemsMode() && S.game.revealStep === 3) drawTrails();
     if (phaseChanged) {

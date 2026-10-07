@@ -317,6 +317,28 @@ async function playOne(n, gameNo, lang = 'fa') {
   check('without beginner: normal search timer (40s)', ng.phase === 'search' && Math.round(ng.timer.duration / 1000) === 40 && ng.publicState().beginner === false);
   ng.dispose();
 
+  // Host pause: freezes the timer, blocks auto-advance, resumes where it was.
+  const pg = new Game({ timeScale: 1000, minPlayers: 4 });
+  const pids = ['a', 'b', 'c', 'd'];
+  pids.forEach((id) => pg.join(id, id));
+  pids.forEach((id) => pg.setReady(id, true));
+  pg.start('a');
+  pg.skip('a'); // intro -> search
+  check('pause: non-host refused', !pg.togglePause('b').ok && !pg.paused);
+  check('pause: host pauses', pg.togglePause('a').ok && pg.publicState().paused === true && pg.publicState().timer.paused === true);
+  const left = pg.publicState().timer.left;
+  await sleep(120); // far past the 60ms search timer at 1000×
+  check('pause: timer does not fire', pg.phase === 'search' && pg.publicState().timer.left === left);
+  pids.forEach((id) => (id === pg.g.killerId ? pg.forge(id, pg.g.forgeryOptions[0].key, 'library') : pg.search(id, 'library')));
+  await sleep(30);
+  check('pause: everyone done still waits', pg.phase === 'search');
+  check('pause: host resumes', pg.togglePause('a').ok && !pg.paused && pg.timer);
+  await sleep(30);
+  check('pause: everyone done advances after resume', pg.phase === 'discuss');
+  pg.togglePause('a');
+  check('pause: skip ends the pause', pg.skip('a').ok && !pg.paused && pg.phase === 'vote');
+  pg.dispose();
+
   // The host's first look at the slides is remembered (the phone's start button uses it).
   const tg = new Game({ minPlayers: 4 });
   ['a', 'b', 'c', 'd'].forEach((id) => tg.join(id, id));

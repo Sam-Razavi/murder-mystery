@@ -496,8 +496,9 @@
     }[S.phase] || '';
   }
   const tipHtml = () => {
+    const paused = S.paused ? `<div class="note warn paused-note">⏸ ${me.isVip ? t('بازی متوقف است — برای ادامه ▶ را بزن.') : t('میزبان بازی را متوقف کرده.')}</div>` : '';
     const text = S.beginner && inGame() ? tipText() : '';
-    return text ? `<div class="tip"><span aria-hidden="true">💡</span><span>${text}</span></div>` : '';
+    return paused + (text ? `<div class="tip"><span aria-hidden="true">💡</span><span>${text}</span></div>` : '');
   };
 
   // ------------------------------------------------------------ render
@@ -520,7 +521,9 @@
     if (S.phase === 'intro' && S.prologue) labels.intro = t('رد کردن سینمایی'); // first skip ends the cinematic only
     const confirming = ui.vipConfirm === S.phase;
     const toResults = S.phase === 'reveal' ? `<button class="btn" data-act="vipSkipReveal">${t('⏩ نتیجه')}</button>` : '';
-    setHTML(bar, `<span class="lbl">${t('👑 میزبان')}</span><button class="btn ${confirming ? 'confirm' : ''}" data-act="vipSkip">${confirming ? t('مطمئنی؟ دوباره بزن') : `⏭ ${labels[S.phase]}`}</button>${toResults}`);
+    const canPause = S.paused || (S.timer && !S.prologue);
+    const pause = canPause ? `<button class="btn ${S.paused ? 'gold' : ''} pause-btn" data-act="vipPause" aria-label="${S.paused ? t('ادامه') : t('مکث')}">${S.paused ? '▶' : '⏸'}</button>` : '';
+    setHTML(bar, `<span class="lbl">${t('👑 میزبان')}</span>${pause}<button class="btn ${confirming ? 'confirm' : ''}" data-act="vipSkip">${confirming ? t('مطمئنی؟ دوباره بزن') : `⏭ ${labels[S.phase]}`}</button>${toResults}`);
   }
 
   function render() {
@@ -605,6 +608,7 @@
       render();
     },
     vipSkipReveal: () => send('vip:skipReveal'),
+    vipPause: () => { buzz(30); send('vip:pause'); },
     tutorial: (el) => send('vip:tutorial', { action: el.dataset.v }),
     showRole: () => {
       ui.roleVisible = true;

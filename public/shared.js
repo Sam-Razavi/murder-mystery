@@ -38,6 +38,7 @@
 
   function remaining(timer) {
     if (!timer) return null;
+    if (timer.paused) return timer.left; // host pause: frozen
     return Math.max(0, timer.endsAt - now());
   }
 

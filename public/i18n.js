@@ -373,6 +373,13 @@
     'رد کردن سینمایی': 'Skip cinematic',
     '🔊 برای فعال شدن صدا کلیک کنید یا یک کلید بزنید': '🔊 Click or press any key to enable sound',
     '🔇 صدا بی‌صدا است — برای روشن کردن کلید M را بزنید': '🔇 Sound is muted — press M to unmute',
+    // ---------------------------------------------------------- host pause
+    'الان چیزی برای مکث نیست.': 'There is nothing to pause right now.',
+    'بازی متوقف شد': 'Game paused',
+    'میزبان از روی گوشی‌اش ادامه می‌دهد.': 'The host will resume from their phone.',
+    'مکث': 'Pause',
+    'بازی متوقف است — برای ادامه ▶ را بزن.': 'The game is paused — tap ▶ to resume.',
+    'میزبان بازی را متوقف کرده.': 'The host has paused the game.',
     // ---------------------------------------------------------- clue tags (shared.js)
     'سلاح نیست: {x}': 'Not the weapon: {x}',
     'محل قتل نیست: {x}': 'Not the murder room: {x}',

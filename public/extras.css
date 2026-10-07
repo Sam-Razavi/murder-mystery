@@ -105,3 +105,10 @@ html[dir="rtl"] .cin-skip { right: auto; left: calc(2 * var(--u)); }
 .sound-hint { position: fixed; top: 1.2vh; left: 50%; transform: translateX(-50%); z-index: 70; font: inherit; font-size: calc(1.15 * var(--u)); color: var(--gold-soft); background: rgba(18, 9, 15, .85);
   border: 1px solid var(--line); border-radius: 99rem; padding: .5vh calc(1.6 * var(--u)); cursor: pointer; animation: hint-pulse 2.4s ease-in-out infinite; }
 @keyframes hint-pulse { 0%, 100% { opacity: .65; } 50% { opacity: 1; } }
+
+/* ---------- host pause (tv.js syncPause) ---------- */
+.pause-card { position: fixed; inset: 0; z-index: 45; display: grid; place-items: center; text-align: center;
+  background: rgba(10, 5, 10, .82); backdrop-filter: blur(5px); animation: guide-in .35s ease both; }
+.pause-card .pi { font-size: calc(9 * var(--u)); line-height: 1; color: var(--gold-soft); }
+.pause-card h2 { font-family: var(--display); font-weight: 400; font-size: calc(5 * var(--u)); color: var(--gold-soft); margin: calc(1 * var(--u)) 0 0; }
+.pause-card p { font-size: calc(1.8 * var(--u)); color: var(--text); margin: calc(.6 * var(--u)) 0 0; }

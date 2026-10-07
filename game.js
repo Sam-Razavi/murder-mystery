@@ -74,6 +74,8 @@ class Game {
     this.g = null; // per-game state
     this.timer = null; // {endsAt, duration}
     this._timerHandle = null;
+    this._timerFn = null; // what the running timer will do when it fires
+    this.paused = null; // host pause: {left, duration, fn}
     this._phaseToken = 0;
     this._cardSeq = 0;
     this.gamesPlayed = 0;
@@ -119,13 +121,42 @@ class Game {
   }
 
   _setTimer(seconds, fn) {
+    const ms = (seconds * 1000) / this.timeScale;
+    this._armTimer(ms, ms, fn);
+  }
+
+  // Run fn after `ms` (of a phase `duration` long), unless the phase moves on first.
+  _armTimer(ms, duration, fn) {
     this._clearTimer();
     const token = ++this._phaseToken;
-    const ms = (seconds * 1000) / this.timeScale;
-    this.timer = { endsAt: Date.now() + ms, duration: ms };
+    this._timerFn = fn;
+    this.timer = { endsAt: Date.now() + ms, duration };
     this._timerHandle = setTimeout(() => {
       if (token === this._phaseToken) fn();
     }, ms);
+  }
+
+  // Host pause: freezes the phase timer (players can still tap; nothing
+  // advances until the host resumes). Not during the cinematic, which runs on
+  // its own clock on the TV.
+  togglePause(byId_) {
+    if (!this._isVip(byId_)) return { ok: false, error: this._t('فقط میزبان می‌تواند.') };
+    if (this.paused) {
+      const { left, duration, fn } = this.paused;
+      this._armTimer(left, duration, fn);
+      this._changed();
+      this._checkAllDone();
+      return { ok: true };
+    }
+    if (!this.timer || !this._timerFn || this.prologue) return { ok: false, error: this._t('الان چیزی برای مکث نیست.') };
+    const left = Math.max(0, this.timer.endsAt - Date.now());
+    const { duration } = this.timer;
+    const fn = this._timerFn;
+    this._phaseToken += 1;
+    this._clearTimer();
+    this.paused = { left, duration, fn };
+    this._changed();
+    return { ok: true };
   }
 
   // Intro phase. With a cinematic configured, the TV first plays a prologue
@@ -153,6 +184,8 @@ class Game {
     if (this._timerHandle) clearTimeout(this._timerHandle);
     this._timerHandle = null;
     this.timer = null;
+    this._timerFn = null;
+    this.paused = null; // any skip or phase change also ends a pause
   }
 
   // Short pause before advancing once everyone has submitted, so the last
@@ -785,6 +818,7 @@ class Game {
   }
 
   _checkAllDone() {
+    if (this.paused) return; // resuming checks again
     const items = this._items();
     if (!(items ? ['gossip', 'final'] : ['search', 'vote', 'final']).includes(this.phase)) return;
     const active = this._gamePlayers().filter((p) => p.connected);
@@ -813,7 +847,9 @@ class Game {
       lang: this.lang(),
       round: this.round,
       totalRounds: g && g.mode === 'items' ? g.totalRounds : TOTAL_ROUNDS,
-      timer: this.timer,
+      // A paused timer carries the time left instead of an end time.
+      timer: this.paused ? { paused: true, left: this.paused.left, duration: this.paused.duration } : this.timer,
+      paused: !!this.paused,
       prologue: this.phase === 'intro' && this.prologue,
       tutorial: this.phase === 'lobby' ? this.tutorial : null,
       tutorialSeen: this.tutorialSeen,
