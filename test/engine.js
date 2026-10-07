@@ -308,6 +308,17 @@ async function playOne(n, gameNo, lang = 'fa', story = 'yalda') {
   }
   check('cinema en: no Persian', !PERSIAN.test(JSON.stringify(CINEMA.en)));
   check('guide step count matches the engine', steps === 6);
+  // Kāragāh Kamali: the same moments in both languages, same placeholders, English free of Persian.
+  require('../public/kamali.js');
+  const KL = global.window.Kamali.LINES;
+  check('kamali: same moments in both languages', JSON.stringify(Object.keys(KL.fa).sort()) === JSON.stringify(Object.keys(KL.en).sort()));
+  const holes = (s) => (s.match(/\{\w+\}/g) || []).sort().join();
+  Object.keys(KL.fa).forEach((k) => {
+    check(`kamali ${k}: lines in both languages`, KL.fa[k].length > 0 && KL.en[k].length > 0);
+    check(`kamali ${k}: same placeholders`, new Set([...KL.fa[k], ...KL.en[k]].map(holes)).size === 1);
+  });
+  check('kamali en: no Persian', !PERSIAN.test(JSON.stringify(KL.en)));
+  check('kamali: portrait for every mood', ['neutral', 'sus', 'surprised', 'pleased'].every((m) => global.window.Kamali.svg(m).includes(`m-${m}`)));
   delete global.window;
 
   // Bots (ids "bot-…") never host, even when the only person drops.

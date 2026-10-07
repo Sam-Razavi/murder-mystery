@@ -51,6 +51,12 @@ Bots wait until a real person has joined, so a person is always the host (bots n
 - **Cinematic intro:** when a game starts, the TV plays a ~26 second animated prologue (Yalda night, the mansion, the clock striking twelve, the lights going out, a candle, the title card) before the story intro. The host can skip it from their phone: the first tap of the skip button ends only the cinematic, the next one skips the story intro as usual. Captions are in the game's language. Reconnecting the TV mid-cinematic resumes at the right moment. `CINEMATIC_SECONDS=0` disables it.
 - **Soundtrack (TV only, never on phones):** put your music in `public/audio/` as `theme.mp3` (loops through the lobby and game, getting quieter or louder with each phase) and optionally `intro.mp3` (plays once during the cinematic). With no files the game stays silent apart from its built-in effects. See `public/audio/README.txt`. Browsers block sound until the page is interacted with: click the TV page once, or launch Chrome with `--autoplay-policy=no-user-gesture-required`. Press **M** on the TV to mute.
 
+## Kāragāh Kamali, the detective
+
+The TV has a narrator: **Kāragāh Kamali (کارآگاه کمالی)**, a Qajar-era gentleman detective with a tall felt kolah, a grand waxed moustache, a frock coat with a watch chain and a magnifying glass. He is hand-drawn and animated: he breathes, blinks, twitches his moustache and talks as his words type out. His face changes with his mood (suspicious, surprised, pleased).
+
+He slides in from the corner with a short sound and a speech bubble to react to the game: each phase, the person in the spotlight, a contradiction or duplicate clue appearing on the board (when the case file is on), the last weapon or room left, a pause, and the verdict. His lines are in `public/kamali.js`, in both languages.
+
 ## Easier to follow
 
 - **"What's happening now" bar (TV):** under the header during play. It shows this round's steps with the current one highlighted, one line on what to do right now, and who the game is still waiting for.

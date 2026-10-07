@@ -422,6 +422,7 @@
     'بازیکن‌ها': 'Players',
     '👀 تماشاچی': '👀 Watching',
     'بازی شروع شده. وقتی میزبان به سالن انتظار برگردد، می‌توانی وارد شوی — تا آن موقع تماشا کن.': 'A game is under way. You can join when the host goes back to the lobby — until then, watch along.',
+    'کارآگاه کمالی': 'Kāragāh Kamali',
     // ---------------------------------------------------------- host pause
     'الان چیزی برای مکث نیست.': 'There is nothing to pause right now.',
     'بازی متوقف شد': 'Game paused',

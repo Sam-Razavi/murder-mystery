@@ -71,6 +71,8 @@
       },
       crash(at = 0) { noise(at, 1.6, 0.35, 5200, 0.6, 'highpass'); tone(82, at, 0.9, 'sine', 0.25); },
       blip() { tone(1046, 0, 0.12, 'sine', 0.07); tone(1568, 0.05, 0.14, 'sine', 0.05); },
+      // Kāragāh Kamali clears his throat: two plucked notes as his bubble appears.
+      kamali() { tone(392, 0, 0.2, 'triangle', 0.09); tone(523.3, 0.13, 0.3, 'triangle', 0.08); },
       // A card turning over.
       flip() { noise(0, 0.28, 0.22, 2600, 0.7); tone(520, 0.05, 0.15, 'triangle', 0.05); },
       // Items mode: a soft two-note chime as a gossip question appears.
@@ -841,6 +843,55 @@
     Sound.blip();
   }
 
+  // ---- Kāragāh Kamali speaks (public/kamali.js) ----
+  // Each moment gets one line, once: a phase starting, a contradiction showing
+  // up on the board, the last weapon or room left, a pause, the verdict.
+  const said = new Set();
+  function sayOnce(id, key, opts = {}, wait = 0) {
+    if (!window.Kamali || said.has(id)) return;
+    said.add(id);
+    const go = () => Kamali.say(S.lang || 'fa', key, { name: t('کارآگاه کمالی'), onSpeak: () => Sound.kamali(), ...opts });
+    if (wait) setTimeout(go, wait); else go();
+  }
+
+  function narrate(phaseChanged) {
+    if (!window.Kamali) return;
+    if (S.prologue || S.tutorial != null) { Kamali.hush(); return; }
+    const p = S.phase;
+    if (p === 'lobby') { if (S.players.length) sayOnce('welcome', 'welcome'); return; }
+    const items = itemsMode();
+    const gid = S.game ? S.game.id : '';
+    const step = S.game ? S.game.revealStep : -1;
+    // Let the curtain open before he speaks; hush during the verdict's drumroll.
+    const wait = phaseChanged && wantsCurtain(false) ? 1500 : 0;
+    if (phaseChanged && p === 'reveal' && step <= 1) Kamali.hush();
+    const at = `${gid}:${p}:${S.round}:${step}`;
+    if (phaseChanged) {
+      if (p === 'intro') sayOnce(at, items ? 'itIntro' : 'intro', { vars: { victim: C.story.victim }, mood: 'sus' }, wait);
+      else if (p === 'search') sayOnce(at, S.round === 1 ? 'search1' : 'search', {}, wait);
+      else if (p === 'discuss') sayOnce(at, items ? 'itDiscuss' : 'discuss', {}, wait);
+      else if (p === 'vote') sayOnce(at, 'vote', { mood: 'sus' }, wait);
+      else if (p === 'spotlight') sayOnce(at, 'spotlight', { vars: { name: plainWho(S.game.spotlight.playerId) }, mood: 'sus' }, wait);
+      else if (p === 'gossip' && S.round === 1) sayOnce(at, 'gossip1', { mood: 'sus' }, wait);
+      else if (p === 'final') sayOnce(at, items ? 'itFinal' : 'final', { mood: 'surprised' }, wait);
+      else if (p === 'reveal' && step === 2) {
+        const r = S.game.reveal;
+        const good = items ? r.innocentsWin : r.caught;
+        sayOnce(at, items ? (good ? 'itWin' : 'itLose') : (good ? 'caught' : 'escaped'), { mood: good ? 'pleased' : 'surprised' });
+      } else if (p === 'summary') sayOnce(at, 'summary', { mood: 'pleased' }, wait);
+    }
+    if (S.paused) sayOnce(`${at}:pause`, 'pause', { mood: 'pleased' });
+    // What the board adds up to (only when the host shows the case file).
+    if (!items && S.settings.caseFile && S.game && ['discuss', 'vote', 'spotlight', 'final'].includes(p)) {
+      const f = boardFacts();
+      f.conflicts.forEach((c) => sayOnce(`${gid}:conflict:${c.type}:${c.id || c.text || ''}`, c.type === 'dupe' ? 'dupe' : c.type === 'nofit' ? 'nofit' : 'conflict', { mood: 'surprised' }));
+      const w = C.weapons.filter((x) => !f.weaponsOut.has(x.id));
+      const r = C.rooms.filter((x) => !f.roomsOut.has(x.id));
+      if (w.length === 1) sayOnce(`${gid}:oneWeapon`, 'oneWeapon', { vars: { x: w[0].name }, mood: 'pleased' });
+      if (r.length === 1) sayOnce(`${gid}:oneRoom`, 'oneRoom', { vars: { x: r[0].name }, mood: 'pleased' });
+    }
+  }
+
   // Host pause: a card over the stage until the host resumes.
   function syncPause() {
     let el = $('pauseCard');
@@ -932,6 +983,7 @@
     const boardLen = S.game && S.game.board ? S.game.board.length : 0;
     if (boardLen > lastBoardLen && !phaseChanged) Sound.pin();
     lastBoardLen = boardLen;
+    narrate(phaseChanged);
     lastKey = key;
   }
 

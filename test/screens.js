@@ -12,7 +12,7 @@ const { screenContent } = require('../bundle');
 const PERSIAN = /[؀-ۿ]/;
 const CONTENT = screenContent('http://localhost:3100/');
 const pub = (f) => path.join(__dirname, '..', 'public', f);
-const TV_SCRIPTS = ['i18n.js', 'shared.js', 'art.js', 'faces.js', 'scene.js', 'guide.js', 'cinema.js', 'audio.js', 'tv.js'];
+const TV_SCRIPTS = ['i18n.js', 'shared.js', 'art.js', 'faces.js', 'scene.js', 'guide.js', 'cinema.js', 'audio.js', 'kamali.js', 'tv.js'];
 const PHONE_SCRIPTS = ['i18n.js', 'shared.js', 'art.js', 'faces.js', 'guide.js', '../node_modules/nosleep.js/dist/NoSleep.min.js', 'play.js'];
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
