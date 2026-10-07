@@ -359,6 +359,20 @@
     "صفر کردن امتیازها": "Reset scores",
     "برای اضافه شدن نفر جدید، به سالن انتظار برگرد.": "To add new players, go back to the lobby.",
     "میزبان دور بعد را شروع می‌کند.": "The host will start the next round.",
+    // ---------------------------------------------------------- tutorial, cinematic, sound
+    'آموزش فقط در سالن انتظار است.': 'The tutorial is only available in the lobby.',
+    'آموزش باز نیست.': 'The tutorial is not open.',
+    'کار نامعتبر.': 'Invalid action.',
+    '📖 آموزش بازی روی تلویزیون': '📖 How to play (on the TV)',
+    'اسلاید {n} از {total}': 'Slide {n} of {total}',
+    'روی تلویزیون نمایش داده می‌شود.': 'Shown on the TV.',
+    'قبلی': 'Back',
+    'بستن آموزش': 'Close tutorial',
+    '📺 به تلویزیون نگاه کن — میزبان دارد قوانین را توضیح می‌دهد.': '📺 Look at the TV — the host is explaining the rules.',
+    'میزبان با گوشی‌اش اسلایدها را عوض می‌کند': 'The host changes slides from their phone',
+    'رد کردن سینمایی': 'Skip cinematic',
+    '🔊 برای فعال شدن صدا کلیک کنید یا یک کلید بزنید': '🔊 Click or press any key to enable sound',
+    '🔇 صدا بی‌صدا است — برای روشن کردن کلید M را بزنید': '🔇 Sound is muted — press M to unmute',
   };
 
   const FA_DIGITS = '۰۱۲۳۴۵۶۷۸۹';

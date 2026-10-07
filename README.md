@@ -25,6 +25,24 @@ Requires Node 18+. The phones and the PC have to be on the same Wi-Fi/LAN. The g
 | `PUBLIC_HOST` | auto | LAN IP for the QR code, if auto-detection picks the wrong adapter |
 | `MIN_PLAYERS` | `4` | Lower it for testing |
 | `TIME_SCALE` | `1` | >1 runs every timer faster (testing) |
+| `CINEMATIC_SECONDS` | `26` | Length of the TV cinematic before the story intro; `0` turns it off |
+
+## Playing with fewer than 4 people (bots)
+
+With 2–3 people, fill the empty seats with bots. Start the server, then in a second terminal:
+
+```bash
+npm run bots        # 2 bots (two people + two bots)
+npm run bots -- 1   # or any number, e.g. 1 bot for three people
+```
+
+Bots wait until a real person has joined, so a person is always the host (bots never take over hosting, even if the host's phone drops). They mark themselves ready, search or forge, pin clues, vote and accuse at random after a short delay, and stay for every following game. They can't talk, so judge them by their clues and votes. Bots show up as "Bot Sam", "Bot Mina", … Stop them with Ctrl+C.
+
+## Tutorial, cinematic and soundtrack
+
+- **How to play (tutorial):** in the lobby the host taps «📖 آموزش بازی روی تلویزیون» / "How to play (on the TV)". Six slides appear full-screen on the TV (a different set for each game mode, in the game's language) and the host steps through them with Back / Next / Close on their phone. Slides live in `public/guide.js`.
+- **Cinematic intro:** when a game starts, the TV plays a ~26 second animated prologue (Yalda night, the mansion, the clock striking twelve, the lights going out, a candle, the title card) before the story intro. The host can skip it from their phone: the first tap of the skip button ends only the cinematic, the next one skips the story intro as usual. Captions are in the game's language. Reconnecting the TV mid-cinematic resumes at the right moment. `CINEMATIC_SECONDS=0` disables it.
+- **Soundtrack (TV only, never on phones):** put your music in `public/audio/` as `theme.mp3` (loops through the lobby and game, getting quieter or louder with each phase) and optionally `intro.mp3` (plays once during the cinematic). With no files the game stays silent apart from its built-in effects. See `public/audio/README.txt`. Browsers block sound until the page is interacted with: click the TV page once, or launch Chrome with `--autoplay-policy=no-user-gesture-required`. Press **M** on the TV to mute.
 
 ## How a game plays (≈20–25 min)
 

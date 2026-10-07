@@ -46,6 +46,12 @@
       src.start(c.currentTime + start);
     }
     return {
+      unlock() { get(); },
+      // Cinematic prologue (public/cinema.js): clock ticks, midnight bell, lights out, heartbeat.
+      tock() { tone(210, 0, 0.06, 'square', 0.05); noise(0, 0.05, 0.05, 3200, 1.2); },
+      bell() { tone(196, 0, 3.4, 'sine', 0.3); tone(392.6, 0, 2.8, 'sine', 0.11); tone(587, 0.01, 1.9, 'triangle', 0.05); tone(98, 0, 3.6, 'sine', 0.2); },
+      blackout() { noise(0, 0.7, 0.4, 140, 0.7, 'lowpass'); tone(46, 0, 1.8, 'sine', 0.38); },
+      heartbeat() { tone(55, 0, 0.16, 'sine', 0.36); tone(52, 0.2, 0.2, 'sine', 0.28); },
       gong() { tone(110, 0, 2.6, 'sine', 0.28); tone(165, 0, 2.2, 'sine', 0.12); tone(220.5, 0.01, 1.6, 'triangle', 0.06); },
       tick() { tone(1400, 0, 0.06, 'square', 0.04); },
       pin() { tone(880, 0, 0.18, 'triangle', 0.1); tone(1320, 0.07, 0.25, 'triangle', 0.08); },
@@ -88,8 +94,10 @@
     };
   })();
 
+  window.Sound = Sound; // audio.js unlocks the effects with the soundtrack
+
   // ------------------------------------------------------------ helpers
-  const ch = (id) => C.characters.find((c) => c.id === id);
+  const ch =(id) => C.characters.find((c) => c.id === id);
   const pl = (id) => S.players.find((p) => p.id === id);
   const weapon = (id) => C.weapons.find((w) => w.id === id);
   const room = (id) => C.rooms.find((r) => r.id === id);
@@ -626,15 +634,73 @@
   }
   // No curtain for the lobby, the very first paint, the short gossip result,
   // or the steps inside the reveal (those have their own staging).
-  const wantsCurtain = (firstPaint) => !Scene.reduced && !firstPaint && S.phase !== 'lobby' && S.phase !== 'gossipResult'
+  const wantsCurtain = (firstPaint) => !Scene.reduced && !firstPaint && S.phase !== 'lobby' && S.phase !== 'gossipResult' && !S.prologue
     && !(S.phase === 'reveal' && S.game.revealStep > 0);
   let replayEntrance = false;
   let fxTimers = [];
   let lastDone = 0; // pending reveal sounds, cancelled when the screen changes
 
+  // ------------------------------------------------------------ cinematic, slides, music
+  // Prologue: cinematic over the intro phase until the host skips it or it ends.
+  function syncCinema() {
+    const on = S.phase === 'intro' && !!S.prologue && !!S.timer && !!window.Cinema;
+    if (!on) { if (window.Cinema && Cinema.active) Cinema.stop(); return; }
+    if (Cinema.active) return;
+    const dur = S.timer.duration;
+    const d = dur / 1000;
+    const cues = { 0.555: Sound.bell, 0.565: Sound.blackout, 0.72: Sound.heartbeat, 0.77: Sound.heartbeat, 0.82: Sound.sting };
+    for (let f = 0.37; f < 0.545; f += 1 / d) cues[f.toFixed(4)] = Sound.tock;
+    const story = itemsMode() ? C.itemsStory : C.story;
+    Cinema.play({
+      durationMs: dur, elapsedMs: dur - window.Z.remaining(S.timer), title: story.title, subtitle: story.subtitle,
+      texts: Guide.CINEMA[S.lang || 'fa'], skipHint: Guide.CINEMA[S.lang || 'fa'].skip, cues,
+    });
+  }
+
+  // "How to play" slides: opened and stepped from the host's phone.
+  let guideKey = '';
+  function syncGuide() {
+    let el = $('guide');
+    if (S.phase !== 'lobby' || S.tutorial == null || !window.Guide) {
+      if (el) el.remove();
+      guideKey = '';
+      return;
+    }
+    const lang = S.lang || 'fa';
+    const mode = S.settings.mode === 'items' ? 'items' : 'classic';
+    const key = `${S.tutorial}:${lang}:${mode}`;
+    if (el && key === guideKey) return;
+    guideKey = key;
+    const slides = Guide.GUIDE[lang][mode];
+    const s = slides[Math.min(S.tutorial, slides.length - 1)];
+    if (!el) { el = document.createElement('div'); el.id = 'guide'; el.className = 'guide'; document.body.appendChild(el); }
+    el.innerHTML = `<div class="guide-card"><div class="guide-ico">${s.icon}</div>
+      <div class="guide-txt"><h2>${esc(s.title)}</h2><p>${esc(s.text)}</p></div></div>
+      <div class="guide-foot"><div class="guide-dots">${slides.map((_, i) => `<span class="${i === S.tutorial ? 'on' : ''}"></span>`).join('')}</div>
+      <div class="guide-note">${t('اسلاید {n} از {total}', { n: S.tutorial + 1, total: slides.length })} <i class="sep"></i> ${t('میزبان با گوشی‌اش اسلایدها را عوض می‌کند')}</div></div>`;
+    Sound.blip();
+  }
+
+  function syncMusic() {
+    if (!window.Music) return;
+    const p = S.phase;
+    let scene = 'play';
+    if (S.prologue && p === 'intro') scene = 'prologue';
+    else if (p === 'lobby') scene = 'lobby';
+    else if (p === 'intro') scene = 'intro';
+    else if (p === 'vote' || p === 'spotlight' || p === 'final') scene = 'tense';
+    else if (p === 'reveal') scene = 'reveal';
+    else if (p === 'results') scene = 'results';
+    Music.setScene(scene);
+    Music.refresh();
+  }
+
   function render() {
     if (!C || !S) return;
-    const key = `${S.phase}:${S.round}:${S.game ? S.game.revealStep : ''}:${S.game && S.game.spotlight ? S.game.spotlight.playerId : ''}`;
+    syncCinema();
+    syncGuide();
+    syncMusic();
+    const key = `${S.phase}:${S.round}:${S.prologue ? 'p' : ''}:${S.game ? S.game.revealStep : ''}:${S.game && S.game.spotlight ? S.game.spotlight.playerId : ''}`;
     const phaseChanged = key !== lastKey;
     if (S.phase === 'lobby') { seenCards.clear(); lastBoardLen = 0; }
     $('app').querySelector('.brand').textContent = (S.settings.mode === 'items' ? C.itemsStory : C.story).title;
@@ -682,7 +748,7 @@
       } else if (itemsMode() && S.phase === 'reveal' && step === 3) Sound.swoosh();
       else if (!itemsMode() && S.phase === 'reveal' && step === 2) { later(0.3, () => Sound.flip()); later(1.4, () => Sound.flip()); }
       else if (S.phase === 'results') Sound.win();
-      else if (S.phase !== 'lobby' && (S.phase !== 'reveal' || step === 0)) Sound.gong();
+      else if (S.phase !== 'lobby' && !S.prologue && (S.phase !== 'reveal' || step === 0)) Sound.gong();
     }
     // Soft blip whenever another player finishes answering / voting.
     const doneNow = S.players.filter((p) => p.done).length;

@@ -110,7 +110,17 @@
         ${me && me.isVip && !p.connected && p.id !== me.id ? `<button data-act="kick" data-id="${esc(p.id)}">${t('حذف')}</button>` : ''}</span>`).join('')}</div>`;
     const mode = C.modes.find((m) => m.id === S.settings.mode) || C.modes[0];
     if (me && me.isVip) {
+      const guideSteps = (window.Guide && Guide.steps) || 6;
+      const guide = S.tutorial == null
+        ? `<button class="btn big" data-act="tutorial" data-v="open">${t('📖 آموزش بازی روی تلویزیون')}</button>`
+        : `<div class="note"><b>${t('اسلاید {n} از {total}', { n: S.tutorial + 1, total: guideSteps })}</b> — ${t('روی تلویزیون نمایش داده می‌شود.')}</div>
+          <div class="seg">
+            <button data-act="tutorial" data-v="prev" ${S.tutorial === 0 ? 'disabled' : ''}>${t('قبلی')}</button>
+            <button data-act="tutorial" data-v="next" class="sel" ${S.tutorial >= guideSteps - 1 ? 'disabled' : ''}>${t('بعدی')}</button>
+            <button data-act="tutorial" data-v="close">${t('بستن آموزش')}</button>
+          </div>`;
       html += `<div class="step-label">${t('👑 تو میزبانی')}</div>
+        ${guide}
         <div class="sub">${t('زبان بازی')}</div>${seg('lang', [['fa', 'فارسی'], ['en', 'English']])}
         <div class="sub">${t('کدام بازی؟')}</div>
         <div class="seg">${C.modes.map((m) => `<button data-act="setMode" data-v="${m.id}" class="${mode.id === m.id ? 'sel' : ''}">${esc(m.name)}</button>`).join('')}</div>
@@ -123,7 +133,8 @@
         ${tooMany ? `<div class="note warn">${t('بازی کلاسیک حداکثر ۸ نفره است — حالت دست‌به‌دست را انتخاب کنید.')}</div>` : ''}
         <button class="btn primary big" data-act="start" ${allReady ? '' : 'disabled'}>${allReady ? t('شروع بازی') : tooMany ? t('برای بازی کلاسیک زیادیم') : t('منتظر آماده شدن همه…')}</button>`;
     }
-    else html += `<div class="note"><b>${t('بازی: {name}', { name: esc(mode.name) })}</b> — ${esc(mode.text)}</div>`;
+    else html += `<div class="note"><b>${t('بازی: {name}', { name: esc(mode.name) })}</b> — ${esc(mode.text)}</div>`
+      + (S.tutorial != null ? `<div class="note warn">${t('📺 به تلویزیون نگاه کن — میزبان دارد قوانین را توضیح می‌دهد.')}</div>` : '');
     html += `<div class="note">${t('📺 صفحه‌ی تلویزیون را ببینید. وقتی بازی شروع شد، نقش مخفی‌ات اینجا روی گوشی می‌آید — نگذار کسی ببیند!')}</div>`;
     return html;
   }
@@ -416,6 +427,7 @@
       : { intro: t('رد کردن مقدمه'), search: t('پایان بازرسی'), discuss: t('پایان گفت‌وگو'), vote: t('پایان رأی‌گیری'), spotlight: t('دور بعد'), final: t('پایان اتهام'), reveal: t('بعدی') };
     if (!me || !me.isVip || !labels[S.phase]) { bar.classList.add('hidden'); return; }
     bar.classList.remove('hidden');
+    if (S.phase === 'intro' && S.prologue) labels.intro = t('رد کردن سینمایی'); // first skip ends the cinematic only
     const confirming = ui.vipConfirm === S.phase;
     const toResults = S.phase === 'reveal' ? `<button class="btn" data-act="vipSkipReveal">${t('⏩ نتیجه')}</button>` : '';
     setHTML(bar, `<span class="lbl">${t('👑 میزبان')}</span><button class="btn ${confirming ? 'confirm' : ''}" data-act="vipSkip">${confirming ? t('مطمئنی؟ دوباره بزن') : `⏭ ${labels[S.phase]}`}</button>${toResults}`);
@@ -432,7 +444,7 @@
       return;
     }
 
-    const phaseKey = `${S.phase}:${S.round}`;
+    const phaseKey = `${S.phase}:${S.round}${S.prologue ? ':prologue' : ''}`; // the cinematic -> story switch resets the skip confirm
     if (phaseKey !== ui.lastPhaseKey) {
       // Reset per-phase UI and point the player at what matters now.
       if (S.phase === 'search') { ui.lieKey = null; ui.lieRoom = null; }
@@ -503,6 +515,7 @@
       render();
     },
     vipSkipReveal: () => send('vip:skipReveal'),
+    tutorial: (el) => send('vip:tutorial', { action: el.dataset.v }),
     showRole: () => {
       ui.roleVisible = true;
       clearTimeout(ui.roleTimer);

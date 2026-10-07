@@ -7,6 +7,7 @@ const { tr } = require('./public/i18n');
 const Items = require('./items');
 
 const TOTAL_ROUNDS = 3;
+const TUTORIAL_STEPS = 6; // slides in public/guide.js, same count for both modes
 
 const DEFAULT_DURATIONS = {
   intro: 35,
@@ -46,12 +47,16 @@ const shuffle = (arr) => {
 };
 const pick = (arr) => arr[Math.floor(Math.random() * arr.length)];
 const byId = (list, id) => list.find((x) => x.id === id);
+const isBot = (id) => typeof id === 'string' && id.startsWith('bot-');
 
 class Game {
   constructor(opts = {}) {
     this.durations = { ...DEFAULT_DURATIONS, ...(opts.durations || {}) };
     this.timeScale = opts.timeScale || 1; // tests run the clock faster
     this.minPlayers = opts.minPlayers || 4;
+    this.cinematic = opts.cinematic || 0; // seconds of TV prologue before the intro (0 = none)
+    this.prologue = false;
+    this.tutorial = null; // lobby "how to play" slide index, or null
     this.maxPlayers = MAX_PLAYERS;
     this.onChange = opts.onChange || (() => {});
     this.players = []; // {id, name, score, connected, joinedAt}
@@ -111,6 +116,27 @@ class Game {
     }, ms);
   }
 
+  // Intro phase. With a cinematic configured, the TV first plays a prologue
+  // (the host can skip it), then the usual story intro runs.
+  _beginIntro(next) {
+    this.phase = 'intro';
+    this.round = 0;
+    this._introNext = next;
+    if (this.cinematic > 0) {
+      this.prologue = true;
+      this._setTimer(this.cinematic, () => this._endPrologue());
+    } else {
+      this.prologue = false;
+      this._setTimer(this.durations.intro, next);
+    }
+  }
+
+  _endPrologue() {
+    this.prologue = false;
+    this._setTimer(this.durations.intro, this._introNext);
+    this._changed();
+  }
+
   _clearTimer() {
     if (this._timerHandle) clearTimeout(this._timerHandle);
     this._timerHandle = null;
@@ -127,12 +153,15 @@ class Game {
     }, 900 / this.timeScale);
   }
 
+  // Bots (scripts/bots.js, ids "bot-…") never host: if the host drops and no
+  // other person is connected, the host stays with them until they reconnect.
   _ensureVip() {
     const vip = this.player(this.vipId);
-    if (vip && vip.connected) return;
-    const next = this.players.filter((p) => p.connected).sort((a, b) => a.joinedAt - b.joinedAt)[0];
+    if (vip && vip.connected && !isBot(vip.id)) return;
+    const people = this.players.filter((p) => !isBot(p.id));
+    const next = people.filter((p) => p.connected).sort((a, b) => a.joinedAt - b.joinedAt)[0];
     if (next) this.vipId = next.id;
-    else if (!vip) this.vipId = this.players[0] ? this.players[0].id : null;
+    else if (!vip || isBot(vip.id)) this.vipId = (people[0] || this.players[0] || {}).id || null;
   }
 
   _isVip(id) { return id && id === this.vipId; }
@@ -232,6 +261,7 @@ class Game {
     // results screen skips this: the same group just finished a game.
     if (this.phase === 'lobby' && !this._allReady()) return { ok: false, error: this._t('هنوز همه آماده نیستند.') };
     this.players.forEach((p) => { p.ready = false; });
+    this.tutorial = null;
     // Drop the previous game first, so setup reads the language from the
     // lobby setting rather than from the old game.
     this.g = null;
@@ -241,9 +271,7 @@ class Game {
       return { ok: true };
     }
     this._setupGame();
-    this.phase = 'intro';
-    this.round = 0;
-    this._setTimer(this.durations.intro, () => this._startSearch());
+    this._beginIntro(() => this._startSearch());
     this._changed();
     return { ok: true };
   }
@@ -647,6 +675,22 @@ class Game {
     return this.skip(byId_);
   }
 
+  // "How to play" slides on the TV, driven by the host's phone (lobby only).
+  // `tutorial` is null (closed) or the current slide index.
+  tutorialAction(byId_, action) {
+    if (!this._isVip(byId_)) return { ok: false, error: this._t('فقط میزبان می‌تواند.') };
+    if (this.phase !== 'lobby') return { ok: false, error: this._t('آموزش فقط در سالن انتظار است.') };
+    const last = TUTORIAL_STEPS - 1;
+    if (action === 'open') this.tutorial = 0;
+    else if (action === 'close') this.tutorial = null;
+    else if (this.tutorial === null) return { ok: false, error: this._t('آموزش باز نیست.') };
+    else if (action === 'next') this.tutorial = Math.min(last, this.tutorial + 1);
+    else if (action === 'prev') this.tutorial = Math.max(0, this.tutorial - 1);
+    else return { ok: false, error: this._t('کار نامعتبر.') };
+    this._changed();
+    return { ok: true };
+  }
+
   skip(byId_) {
     if (!this._isVip(byId_)) return { ok: false, error: this._t('فقط میزبان می‌تواند.') };
     const enders = this._items() ? {
@@ -665,6 +709,10 @@ class Game {
       final: () => this._endFinal(),
       reveal: () => this._advanceReveal(),
     };
+    if (this.phase === 'intro' && this.prologue) {
+      this._endPrologue(); // first skip: cinematic -> story
+      return { ok: true };
+    }
     const fn = enders[this.phase];
     if (!fn) return { ok: false, error: this._t('چیزی برای رد کردن نیست.') };
     this._phaseToken += 1;
@@ -690,6 +738,7 @@ class Game {
     this._phaseToken += 1;
     this.phase = 'lobby';
     this.round = 0;
+    this.prologue = false;
     this.g = null;
     this.players = this.players.filter((p) => p.connected);
     this._ensureVip();
@@ -749,6 +798,8 @@ class Game {
       round: this.round,
       totalRounds: g && g.mode === 'items' ? g.totalRounds : TOTAL_ROUNDS,
       timer: this.timer,
+      prologue: this.phase === 'intro' && this.prologue,
+      tutorial: this.phase === 'lobby' ? this.tutorial : null,
       serverNow: Date.now(),
       settings: this.settings,
       minPlayers: this.minPlayers,

@@ -68,9 +68,7 @@ const methods = {
 
   _itStart() {
     this._itSetup();
-    this.phase = 'intro';
-    this.round = 0;
-    this._setTimer(this.durations.intro, () => this._itStartGossip());
+    this._beginIntro(() => this._itStartGossip());
   },
 
   // ---------------------------------------------------------------- gossip + secret action

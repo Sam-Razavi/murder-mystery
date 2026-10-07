@@ -202,6 +202,75 @@ async function playOne(n, gameNo, lang = 'fa') {
   check('classic play-again refused with 12', !lg.start('b').ok && lg.phase === 'results');
   lg.dispose();
 
+  // Cinematic prologue + lobby tutorial, in both modes.
+  for (const mode of ['classic', 'items']) {
+    const cg = new Game({ timeScale: 1, minPlayers: 4, cinematic: 30 });
+    ['a', 'b', 'c', 'd'].forEach((id) => cg.join(id, id));
+    if (mode === 'items') cg.setSetting('a', 'mode', 'items');
+    const tag = `prologue ${mode}`;
+    // tutorial: host only, lobby only, clamped, cleared by start
+    check(`${tag}: tutorial closed by default`, cg.publicState().tutorial === null);
+    check(`${tag}: non-host cannot open tutorial`, !cg.tutorialAction('b', 'open').ok);
+    check(`${tag}: cannot step a closed tutorial`, !cg.tutorialAction('a', 'next').ok);
+    check(`${tag}: host opens tutorial at slide 0`, cg.tutorialAction('a', 'open').ok && cg.publicState().tutorial === 0);
+    for (let i = 0; i < 20; i++) cg.tutorialAction('a', 'next');
+    check(`${tag}: tutorial stops at the last slide (5)`, cg.publicState().tutorial === 5);
+    for (let i = 0; i < 20; i++) cg.tutorialAction('a', 'prev');
+    check(`${tag}: tutorial stops at the first slide`, cg.publicState().tutorial === 0);
+    check(`${tag}: bad tutorial action refused`, !cg.tutorialAction('a', 'explode').ok);
+    cg.players.forEach((p) => cg.setReady(p.id, true));
+    check(`${tag}: start ok with tutorial open`, cg.start('a').ok && cg.publicState().tutorial === null);
+    // prologue: first skip ends only the cinematic, second skip ends the intro
+    check(`${tag}: starts in intro with prologue`, cg.phase === 'intro' && cg.publicState().prologue === true);
+    check(`${tag}: prologue timer is the cinematic length`, Math.round(cg.timer.duration / 1000) === 30);
+    check(`${tag}: tutorial refused outside the lobby`, !cg.tutorialAction('a', 'open').ok);
+    check(`${tag}: non-host cannot skip prologue`, !cg.skip('b').ok && cg.publicState().prologue === true);
+    check(`${tag}: host skip ends the prologue only`, cg.skip('a').ok && cg.phase === 'intro' && cg.publicState().prologue === false);
+    check(`${tag}: story intro has its own timer`, Math.round(cg.timer.duration / 1000) === 35);
+    check(`${tag}: second skip leaves the intro`, cg.skip('a').ok && cg.phase !== 'intro');
+    cg.backToLobby('a');
+    check(`${tag}: lobby clears prologue`, cg.publicState().prologue === false);
+    cg.dispose();
+  }
+  // Slides and captions: 6 per mode in each language, English free of Persian,
+  // and the same count the engine clamps to.
+  global.window = {};
+  require('../public/guide.js');
+  const { GUIDE, CINEMA, steps } = global.window.Guide;
+  for (const lang of ['fa', 'en']) {
+    for (const mode of ['classic', 'items']) {
+      const slides = GUIDE[lang][mode];
+      check(`guide ${lang}/${mode}: 6 complete slides`, slides.length === 6 && slides.every((s) => s.icon && s.title && s.text));
+      if (lang === 'en') check('guide en/' + mode + ': no Persian', !PERSIAN.test(JSON.stringify(slides)));
+    }
+    check(`cinema ${lang}: captions in order`, CINEMA[lang].captions.every((c, i, a) => c[0] < c[1] && (i === 0 || a[i - 1][1] <= c[0]) && c[1] <= 1) && !!CINEMA[lang].skip);
+  }
+  check('cinema en: no Persian', !PERSIAN.test(JSON.stringify(CINEMA.en)));
+  check('guide step count matches the engine', steps === 6);
+  delete global.window;
+
+  // Bots (ids "bot-…") never host, even when the only person drops.
+  const bg = new Game({ timeScale: 1, minPlayers: 4 });
+  bg.join('bot-0', 'Bot A');
+  check('bot alone: no person to host yet', bg.vipId === 'bot-0' || bg.vipId === null);
+  bg.join('h1', 'Her'); bg.join('bot-1', 'Bot B'); bg.join('h2', 'Him');
+  check('first person becomes host over an earlier bot', bg.vipId === 'h1');
+  bg.setConnected('h1', false);
+  check('host passes to the other person, not a bot', bg.vipId === 'h2');
+  bg.setConnected('h2', false);
+  check('no person online: host stays with a person', bg.vipId === 'h1' || bg.vipId === 'h2');
+  bg.setConnected('h1', true);
+  check('a person reconnecting hosts again', bg.vipId === 'h1');
+  bg.dispose();
+
+  // Without a cinematic (the default) the intro behaves exactly as before.
+  const ng = new Game({ timeScale: 1, minPlayers: 4 });
+  ['a', 'b', 'c', 'd'].forEach((id) => ng.join(id, id));
+  ng.players.forEach((p) => ng.setReady(p.id, true));
+  ng.start('a');
+  check('no cinematic: no prologue, one skip leaves the intro', ng.publicState().prologue === false && ng.skip('a').ok && ng.phase !== 'intro');
+  ng.dispose();
+
   console.log(`\n${stats.games} games simulated, killer caught in ${stats.caught}, forged cards delivered: ${stats.delivered}`);
   console.log(`PASS ${pass}  FAIL ${fail}`);
   failures.forEach((f) => console.log('  ✗', f));

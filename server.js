@@ -1,5 +1,6 @@
 const express = require('express');
 const http = require('http');
+const fs = require('fs');
 const os = require('os');
 const path = require('path');
 const { Server } = require('socket.io');
@@ -12,6 +13,7 @@ const { tr } = require('./public/i18n');
 const PORT = Number(process.env.PORT) || 3100;
 const TIME_SCALE = Number(process.env.TIME_SCALE) || 1; // >1 = faster clock (testing)
 const MIN_PLAYERS = Number(process.env.MIN_PLAYERS) || 4;
+const CINEMATIC = process.env.CINEMATIC_SECONDS === undefined ? 26 : Number(process.env.CINEMATIC_SECONDS); // TV prologue length, 0 = off
 
 function lanIp() {
   if (process.env.PUBLIC_HOST) return process.env.PUBLIC_HOST;
@@ -35,6 +37,18 @@ const app = express();
 const server = http.createServer(app);
 const io = new Server(server, { pingInterval: 10000, pingTimeout: 8000 });
 
+// Soundtrack files the host dropped into public/audio/ (see its README):
+// intro.* for the cinematic, theme.* for the rest. Both optional.
+app.get('/audio/manifest.json', (req, res) => {
+  const dir = path.join(__dirname, 'public', 'audio');
+  let files = [];
+  try { files = fs.readdirSync(dir); } catch { /* no folder yet */ }
+  const find = (base) => {
+    const f = files.find((n) => new RegExp(`^${base}\\.(mp3|ogg|m4a|wav|webm)$`, 'i').test(n));
+    return f ? `/audio/${f}` : null;
+  };
+  res.set('Cache-Control', 'no-store').json({ theme: find('theme'), intro: find('intro') });
+});
 app.use(express.static(path.join(__dirname, 'public'), { extensions: ['html'] }));
 app.get('/', (req, res) => res.sendFile(path.join(__dirname, 'public', 'play.html')));
 app.get('/qr.svg', async (req, res) => {
@@ -46,7 +60,7 @@ app.get('/healthz', (req, res) => res.json({ ok: true }));
 // playerId -> Set(socketId)
 const playerSockets = new Map();
 
-const game = new Game({ timeScale: TIME_SCALE, minPlayers: MIN_PLAYERS, onChange: broadcast });
+const game = new Game({ timeScale: TIME_SCALE, minPlayers: MIN_PLAYERS, cinematic: CINEMATIC, onChange: broadcast });
 
 // Story content for the screens, in both languages: { fa: {...}, en: {...} }.
 // Each screen picks the bundle matching state.lang.
@@ -132,6 +146,7 @@ io.on('connection', (socket) => {
   socket.on('vip:next', guarded(() => game.next(playerId)));
   socket.on('vip:skipReveal', guarded(() => game.skipReveal(playerId)));
   socket.on('vip:lobby', guarded(() => game.backToLobby(playerId)));
+  socket.on('vip:tutorial', guarded(({ action }) => game.tutorialAction(playerId, action)));
   socket.on('vip:resetScores', guarded(() => game.resetScores(playerId)));
   socket.on('vip:kick', guarded(({ targetId }) => game.kick(playerId, targetId)));
   socket.on('vip:setting', guarded(({ key, value }) => game.setSetting(playerId, key, value)));
