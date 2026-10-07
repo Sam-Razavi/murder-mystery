@@ -38,7 +38,7 @@ const classic = games.filter((g) => g.mode === 'classic');
 for (const story of [...new Set(classic.map((g) => g.story))]) {
   const list = classic.filter((g) => g.story === story);
   const escaped = count(list, (g) => !g.caught);
-  console.log(`\nClassic — ${story} (${list.length} games)`);
+  console.log(`\nClassic — ${story} (${list.length} game${list.length === 1 ? '' : 's'})`);
   row('Killer escaped', `${pct(escaped, list.length)}  (${escaped}/${list.length})`);
   row('Innocents naming the killer (avg)', `${pct(list.reduce((s, g) => s + g.innocentsRight, 0), list.reduce((s, g) => s + g.innocentsVoted, 0))}`);
   row('Right weapon / right room (avg players)', `${avg(list, (g) => g.weaponRight)} / ${avg(list, (g) => g.roomRight)}`);
@@ -56,7 +56,7 @@ for (const story of [...new Set(classic.map((g) => g.story))]) {
 const items = games.filter((g) => g.mode === 'items');
 if (items.length) {
   const killersWon = count(items, (g) => !g.innocentsWin);
-  console.log(`\nHand to Hand (${items.length} games)`);
+  console.log(`\nHand to Hand (${items.length} game${items.length === 1 ? '' : 's'})`);
   row('Killers won', `${pct(killersWon, items.length)}  (${killersWon}/${items.length})`);
   row('…of which by a tie', pct(count(items, (g) => !g.innocentsWin && g.tie), killersWon));
   row('Votes on a killer (avg)', pct(items.reduce((s, g) => s + g.votesOnKillers, 0), items.reduce((s, g) => s + g.votes, 0)));
