@@ -373,6 +373,11 @@
     'رد کردن سینمایی': 'Skip cinematic',
     '🔊 برای فعال شدن صدا کلیک کنید یا یک کلید بزنید': '🔊 Click or press any key to enable sound',
     '🔇 صدا بی‌صدا است — برای روشن کردن کلید M را بزنید': '🔇 Sound is muted — press M to unmute',
+    // ---------------------------------------------------------- watch-only phones
+    'داستان روی تلویزیون است.': 'The story is on the TV.',
+    'بازیکن‌ها': 'Players',
+    '👀 تماشاچی': '👀 Watching',
+    'بازی شروع شده. وقتی میزبان به سالن انتظار برگردد، می‌توانی وارد شوی — تا آن موقع تماشا کن.': 'A game is under way. You can join when the host goes back to the lobby — until then, watch along.',
     // ---------------------------------------------------------- host pause
     'الان چیزی برای مکث نیست.': 'There is nothing to pause right now.',
     'بازی متوقف شد': 'Game paused',

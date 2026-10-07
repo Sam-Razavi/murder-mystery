@@ -233,3 +233,7 @@ button { font-family: inherit; }
 /* ---------- host pause ---------- */
 .vip-bar .btn.pause-btn { width: auto; flex: 0 0 3.2rem; font-size: 1.15rem; }
 .paused-note { font-weight: 700; text-align: center; }
+
+/* ---------- watch-only view (latecomers) ---------- */
+.watch .w-q { font-size: 1.6rem; line-height: 1.4; color: var(--gold-soft); text-align: center; padding: .6rem 0; }
+.watch .clue .meta { justify-content: space-between; }

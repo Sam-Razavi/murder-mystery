@@ -526,14 +526,57 @@
     setHTML(bar, `<span class="lbl">${t('👑 میزبان')}</span>${pause}<button class="btn ${confirming ? 'confirm' : ''}" data-act="vipSkip">${confirming ? t('مطمئنی؟ دوباره بزن') : `⏭ ${labels[S.phase]}`}</button>${toResults}`);
   }
 
+  // ------------------------------------------------------------ watch-only (latecomers)
+  // A phone that arrives mid-game follows the public side of it here, and
+  // gets the join form back as soon as the host returns to the lobby.
+  function watchNow() {
+    const titles = phaseTitles();
+    const sp = S.game && S.game.spotlight;
+    const what = itemsMode() ? {
+      intro: t('داستان روی تلویزیون است.'),
+      gossip: t('📱 روی گوشی به سؤال جواب بدهید.'),
+      gossipResult: t('📺 ببینید بقیه چه جوابی دادند.'),
+      discuss: t('🗣️ حرف بزنید: چه کسی شب را با چاقو شروع کرد؟'),
+      final: t('📱 روی گوشی به کسی رأی بدهید که شب را با چاقو شروع کرد.'),
+    } : {
+      intro: t('داستان روی تلویزیون است.'),
+      search: t('📱 روی گوشی یک اتاق را برای گشتن انتخاب کنید.'),
+      discuss: t('🗣️ مدارک را مقایسه کنید و با «نشان بده» روی تلویزیون بیاورید.'),
+      vote: t('📱 روی گوشی رأی بدهید: چه کسی بازجویی شود؟'),
+      spotlight: sp ? t('🎤 {name} از خودش دفاع می‌کند — سؤال کنید!', { name: esc(nameOf(sp.playerId)) }) : '',
+      final: t('📱 روی گوشی قاتل، سلاح و مکان را انتخاب کنید.'),
+    };
+    let body = '';
+    if (itemsMode() && S.game && S.game.question) body = `<div class="w-q display">${esc(S.game.question)}</div>`;
+    else if (!itemsMode() && S.game && S.game.board && S.game.board.length && ['discuss', 'vote', 'spotlight', 'final'].includes(S.phase)) {
+      body = `<div class="sec-title">${t('تابلوی شواهد')}</div>${S.game.board.slice().reverse().map((c) => `<div class="clue"><p>${esc(c.text)}</p>${tag(c.about)}
+        <div class="meta"><span>${esc(nameOf(c.playerId))}</span><span>${t('دور {n}', { n: c.round })}</span></div></div>`).join('')}`;
+    } else if (['reveal', 'results'].includes(S.phase)) {
+      body = `<div class="tv-look"><div class="big-ic">📺</div><h2 class="prompt">${t('به تلویزیون نگاه کن!')}</h2></div>`;
+    }
+    const ranked = S.players.slice().sort((a, b) => b.score - a.score);
+    const roster = `<div class="sec-title">${t('بازیکن‌ها')}</div><div class="players-mini">${ranked.map((p) => `<span class="pm">${avatar(p)}${esc(p.name)}${S.gamesPlayed ? ` <b class="num">${num(p.score)}</b>` : ''}</span>`).join('')}</div>`;
+    return `<header class="ph-top"><div class="me-chip"><div><div class="t1">${t('👀 تماشاچی')}</div><div class="t2">${esc((S.mode === 'items' ? C.itemsStory : C.story).title)}</div></div></div>
+        <div class="ph-phase"><div class="display">${esc(titles[S.phase] || '')}</div><div class="muted">${S.round ? t('دور {n} از {total}', { n: S.round, total: S.totalRounds }) : ''}</div></div>
+        <div class="ph-timer" data-timer><span data-timer-label></span></div></header>
+      <div class="action">
+        <div class="note">${t('بازی شروع شده. وقتی میزبان به سالن انتظار برگردد، می‌توانی وارد شوی — تا آن موقع تماشا کن.')}</div>
+        ${what[S.phase] ? `<h2 class="prompt">${what[S.phase]}</h2>` : ''}
+        ${body}${roster}
+      </div>`;
+  }
+
   function render() {
     if (!C || !S) return;
     const joined = !!me;
-    $('join').classList.toggle('hidden', joined);
+    const watching = !joined && S.phase !== 'lobby';
+    $('join').classList.toggle('hidden', joined || watching);
     $('joinTitle').textContent = (S.settings.mode === 'items' ? C.itemsStory : C.story).title;
     $('game').classList.toggle('hidden', !joined);
+    $('watch').classList.toggle('hidden', !watching);
     if (!joined) {
-      $('joinError').textContent = S.phase !== 'lobby' ? t('بازی در جریان است. صبر کن تا دور بعد شروع شود.') : '';
+      $('joinError').textContent = '';
+      setHTML($('watch'), watching ? watchNow() : '');
       return;
     }
 
