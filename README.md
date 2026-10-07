@@ -134,6 +134,7 @@ npm test
 ```
 - `test/items.js` plays 225 random «دست‌به‌دست» games (4–12 players), replaying every round's log against the real holdings. It checks that killers are exactly the starting knives, that items are conserved, that each action's exchange is correct, that victim notices are accurate, that the TV never sees holdings, and every tie/verdict rule.
 - `test/engine.js` plays 200 random games (4–8 players) directly against the engine. It checks that every genuine clue is true, every forged clue is a lie, the TV never sees private data, scoring adds up, and the lobby edge cases behave.
+- `test/screens.js` renders the real TV and phone screens (jsdom), fed by the real engine, through every phase of both modes, both languages and both stories, with five phones and a latecomer. It fails on any script error, an empty screen, a missing translation, or Persian on an English screen.
 - `test/e2e.js` boots the real server and plays two classic games and two «دست‌به‌دست» games (5 and 10 players) with socket bots, including a phone that drops and reconnects mid-game.
 
 ## Project layout

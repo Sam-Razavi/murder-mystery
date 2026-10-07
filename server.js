@@ -5,9 +5,8 @@ const os = require('os');
 const path = require('path');
 const { Server } = require('socket.io');
 const QRCode = require('qrcode');
-const { Game, STORIES } = require('./game');
-const C = require('./content');
-const CE = require('./content.en');
+const { Game } = require('./game');
+const { screenContent } = require('./bundle');
 const { tr } = require('./public/i18n');
 
 const PORT = Number(process.env.PORT) || 3100;
@@ -62,21 +61,8 @@ const playerSockets = new Map();
 
 const game = new Game({ timeScale: TIME_SCALE, minPlayers: MIN_PLAYERS, cinematic: CINEMATIC, onChange: broadcast });
 
-// Story content for the screens, in both languages: { fa: {...}, en: {...} }.
-// Each screen picks the bundle matching state.lang.
-const bundle = (L) => ({
-  story: L.STORY, traits: L.TRAITS, characters: L.CHARACTERS,
-  weapons: L.WEAPONS, rooms: L.ROOMS, phaseTitles: L.PHASE_TITLES, hallwayNote: L.HALLWAY_NOTE, joinUrl: JOIN_URL,
-  modes: L.MODES, itemsStory: L.ITEMS_STORY, items: [L.KNIFE, ...L.ITEMS], knifeId: L.KNIFE.id,
-  secretActions: L.SECRET_ACTIONS, itemPhaseTitles: L.ITEM_PHASE_TITLES, portraits: L.PORTRAITS,
-});
-// ...plus every classic story's bundle: { stories: { nowruz: { fa, en } } };
-// the screens pick ALL.stories[state.story][state.lang] (Z.bundleFor).
-const CONTENT = {
-  fa: bundle(C),
-  en: bundle(CE),
-  stories: Object.fromEntries(Object.entries(STORIES).map(([id, L]) => [id, { fa: bundle(L.fa), en: bundle(L.en) }])),
-};
+// Story content for the screens (bundle.js), sent to each one on connect.
+const CONTENT = screenContent(JOIN_URL);
 
 let broadcastQueued = false;
 function broadcast() {
