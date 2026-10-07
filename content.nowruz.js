@@ -54,7 +54,7 @@ const CHARACTERS = [
 ];
 
 // Ids reuse public/art.js drawings where they fit (mirror, candle, poison,
-// shawl, knife); fishbowl falls back to its emoji.
+// shawl, knife); fishbowl has its own drawing there too.
 const WEAPONS = [
   { id: 'mirror', name: 'آینه‌ی هفت‌سین', icon: '🪞', clear: 'آینه‌ی هفت‌سین سر جایش است و قاب نقره‌اش حتی یک خط برنداشته. آینه سلاح قتل نیست.' },
   { id: 'candle', name: 'شمعدان برنجی', icon: '🕯️', clear: 'شمعدان برنجی هنوز روی سفره است و شمعش تا ته سوخته؛ هیچ ضربه‌ای به آن نخورده. شمعدان سلاح قتل نیست.' },
@@ -64,7 +64,7 @@ const WEAPONS = [
   { id: 'fishbowl', name: 'تُنگ ماهی قرمز', icon: '🐟', clear: 'تُنگ ماهی قرمز سالم است و ماهی هنوز در آن می‌چرخد. تُنگ سلاح قتل نیست.' },
 ];
 
-// kitchen, garden and sardab reuse their drawings; the rest use their emoji.
+// kitchen, garden and sardab reuse their drawings; the other rooms have their own.
 const ROOMS = [
   { id: 'veranda', name: 'ایوان رو به دریا', icon: '🏡', clear: 'باران تمام روز روی ایوان باریده و هیچ ردپایی رویش نیست. قتل روی ایوان رخ نداده.' },
   { id: 'kitchen', name: 'آشپزخانه', icon: '🍲', clear: 'آشپزخانه تا لحظه‌ی تحویل سال پر از آدم بود و سبزی‌پلو روی اجاق. قتل در آشپزخانه رخ نداده.' },

@@ -259,6 +259,64 @@
     },
   };
 
+  // ---- Nowruz story: the weapon and rooms with no drawing above ----
+  Object.assign(DRAW, {
+    // Goldfish bowl from the haft-sin: the fish sways, bubbles shine.
+    fishbowl(u) {
+      const bowl = 'M18 18 Q6 30 10 44 Q16 58 32 58 Q48 58 54 44 Q58 30 46 18 Z';
+      return `<defs><linearGradient id="${u}w" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#7fd3e6"/><stop offset="1" stop-color="#2b8fb0"/></linearGradient>
+          <clipPath id="${u}c"><path d="${bowl}"/></clipPath></defs>
+        <path d="${bowl}" fill="#d6f0f8" fill-opacity=".35"/>
+        <g clip-path="url(#${u}c)"><rect x="0" y="28" width="64" height="40" fill="url(#${u}w)"/>
+          <path d="M4 28 Q16 25 32 28 Q48 31 60 28" fill="none" stroke="#fff" stroke-opacity=".6" stroke-width="1.6"/>
+          <path d="M8 58 Q18 51 28 57 Q40 50 56 57 L56 64 L8 64 Z" fill="${GOLD}" opacity=".85"/></g>
+        <g class="a-sway"><path d="M23 41 Q31 33 40 40 Q31 48 23 41 Z" fill="#f08a24" ${S}/><path d="M40 40 L47 35 L46 46 Z" fill="#f08a24" ${S}/><circle cx="28" cy="40" r="1.4" fill="${INK}"/></g>
+        <circle class="a-shine" cx="22" cy="34" r="1.7" fill="#fff"/><circle class="a-shine" cx="25.5" cy="30.5" r="1.1" fill="#fff"/>
+        <path d="${bowl}" fill="none" ${S}/>
+        <ellipse cx="32" cy="18" rx="15" ry="3.6" fill="#d6f0f8" fill-opacity=".5" stroke="${GOLD}" stroke-width="2.6"/>
+        <path class="a-shine" d="M15.5 33 Q14.5 42 19 50" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" opacity=".75"/>`;
+    },
+    // Sea-view veranda: hipped tile roof, wooden posts and railing, a glowing lantern.
+    veranda() {
+      const post = (x) => `<rect x="${x}" y="31" width="4" height="25" fill="#8a5a34" ${S}/>`;
+      return `<path d="M3 27 L16 12 L48 12 L61 27 Z" fill="#a8432a" ${S}/>
+        <path d="M12 20 L52 20" stroke="${INK}" stroke-width="1.2" opacity=".45"/>
+        <rect x="7" y="26" width="50" height="5" fill="#6b3a24" ${S}/>
+        <rect x="10" y="31" width="44" height="25" fill="${PARCH}" ${S}/>
+        <rect x="15" y="35" width="9" height="9" fill="${GOLD_SOFT}" ${S}/><rect x="40" y="35" width="9" height="9" fill="${GOLD_SOFT}" ${S}/>
+        <rect x="27.5" y="36" width="9" height="20" fill="#6b3a24" ${S}/>
+        ${post(8)}${post(52)}
+        <path d="M8 47 L27 47 M37 47 L56 47" stroke="#8a5a34" stroke-width="3.4" stroke-linecap="round"/>
+        <path d="M14 48 L14 55 M19 48 L19 55 M24 48 L24 55 M41 48 L41 55 M46 48 L46 55 M51 48 L51 55" stroke="#8a5a34" stroke-width="2" stroke-linecap="round"/>
+        <rect x="3" y="55" width="58" height="5" rx="1.5" fill="#6b3a24" ${S}/>
+        <path d="M32 31 L32 33" stroke="${INK}" stroke-width="1.6"/>
+        <circle class="a-glow" cx="32" cy="35.5" r="3.4" fill="${GOLD}" ${S}/>`;
+    },
+    // Boathouse on stilts over the Caspian, a rowing boat moored in front.
+    boathouse() {
+      return `<path d="M0 44 Q8 41 16 44 Q24 47 32 44 Q40 41 48 44 Q56 47 64 44 L64 64 L0 64 Z" fill="#2b8fb0"/>
+        ${[14, 24, 40, 50].map((x) => `<rect x="${x - 1.5}" y="36" width="3" height="16" fill="#6b3a24"/>`).join('')}
+        <path d="M10 37 L10 22 L32 10 L54 22 L54 37 Z" fill="#8a5a34" ${S}/>
+        <path d="M5 24 L32 7 L59 24 L55 26.5 L32 12 L9 26.5 Z" fill="#a8432a" ${S}/>
+        <path d="M23 37 L23 27 Q32 20 41 27 L41 37 Z" fill="${INK}"/>
+        <path d="M14 30 L20 30 M44 30 L50 30" stroke="${GOLD_SOFT}" stroke-width="2" stroke-linecap="round" opacity=".8"/>
+        <path d="M9 37 L55 37" ${S}/>
+        <path d="M13 51 Q32 61 51 51 L47 46.5 L17 46.5 Z" fill="${PARCH}" ${S}/>
+        <path d="M16 49.5 L48 49.5" stroke="${POM}" stroke-width="2"/>
+        <path class="a-shine" d="M4 58 Q9 56 14 58 M26 60 Q31 58 36 60 M48 57 Q53 55 58 57" fill="none" stroke="#fff" stroke-width="1.6" stroke-linecap="round" opacity=".7"/>`;
+    },
+    // Terraced tea field on the hills, with a fresh leaf in front.
+    teafield() {
+      const band = (y, c) => `<path d="M0 ${y} Q32 ${y - 12} 64 ${y} L64 ${y + 9} Q32 ${y - 3} 0 ${y + 9} Z" fill="${c}" ${S}/>`;
+      return `${band(30, '#6aa845')}${band(39, '#579a3b')}${band(48, '#468a31')}
+        <path d="M0 57 Q32 45 64 57 L64 64 L0 64 Z" fill="#3a7629" ${S}/>
+        <path d="M6 33 L6 30 M18 28 L18 25 M30 27 L30 24 M44 28 L44 25 M58 32 L58 29" stroke="${INK}" stroke-width="1.2" opacity=".35"/>
+        <g class="a-sway"><path d="M41 4 Q58 6 55 23 Q40 25 38 9 Z" fill="#8bcf5b" ${S}/>
+          <path d="M40 8 Q47 13 53 21" fill="none" stroke="#3a7629" stroke-width="1.6" stroke-linecap="round"/>
+          <path d="M28 12 Q37 12 37 21 Q28 23 26 15 Z" fill="#7cc04f" ${S}/></g>`;
+    },
+  });
+
   // Item illustration. `anim` turns on the idle animation (big displays only;
   // small chips stay still so a full timeline doesn't shimmer).
   function item(id, { anim = false, title = '' } = {}) {
