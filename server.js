@@ -60,6 +60,8 @@ app.get('/healthz', (req, res) => res.json({ ok: true }));
 
 // playerId -> Set(socketId)
 const playerSockets = new Map();
+// guestId -> socket of a phone waiting for the host to give it a seat
+const guestSockets = new Map();
 
 // Balance log: one line of numbers per finished game (npm run stats reads it).
 // GAME_LOG=off turns it off.
@@ -206,7 +208,28 @@ io.on('connection', (socket) => {
   socket.on('act:secret', guarded(({ targets }) => game.itAct(playerId, { targets })));
   socket.on('act:accuse', guarded(({ targetId }) => game.itFinal(playerId, targetId)));
 
+  // Seat takeover: a phone that hasn't joined asks for an offline seat; on
+  // the host's OK that phone is told the seat's id and reconnects as it.
+  socket.on('guest:takeover', ({ guestId, name, targetId } = {}, cb) => {
+    if (playerId) return reply(cb, { ok: false, error: tr(game.lang(), 'تو همین حالا در بازی هستی.') });
+    const result = game.requestTakeover(guestId, name, targetId);
+    if (result.ok) guestSockets.set(guestId, socket);
+    reply(cb, result);
+  });
+  socket.on('vip:takeover', guarded(({ guestId, allow }) => {
+    const guest = guestSockets.get(guestId);
+    if (allow && !guest && game._isVip(playerId)) { // the asking phone has gone: decline instead
+      game.answerTakeover(playerId, guestId, false);
+      return { ok: false, error: tr(game.lang(), 'آن گوشی دیگر وصل نیست.') };
+    }
+    const result = game.answerTakeover(playerId, guestId, !!allow);
+    if (result.adopt && guest) guest.emit('adopt', { id: result.adopt });
+    if (result.ok || game._isVip(playerId)) guestSockets.delete(guestId); // answered (a refused non-host keeps it)
+    return { ok: result.ok, error: result.error };
+  }));
+
   socket.on('disconnect', () => {
+    for (const [gid, s] of guestSockets) if (s === socket) guestSockets.delete(gid);
     if (!playerId) return;
     const set = playerSockets.get(playerId);
     if (set) {

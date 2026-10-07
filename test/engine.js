@@ -385,6 +385,34 @@ async function playOne(n, gameNo, lang = 'fa', story = 'yalda') {
   check('night: new night resets', ng2.newNight('a').ok && ng2.phase === 'lobby' && ng2.gamesPlayed === 0 && !Object.keys(ng2.stats).length && ng2.players.every((p) => p.score === 0));
   ng2.dispose();
 
+  // Seat takeover rules.
+  const tk = new Game({ timeScale: 1000, minPlayers: 4 });
+  pids.forEach((id) => tk.join(id, `P${id}`));
+  pids.forEach((id) => tk.setReady(id, true));
+  check('takeover: refused in the lobby', !tk.requestTakeover('g1', 'New', 'b').ok);
+  tk.start('a');
+  check('takeover: refused for an online seat', !tk.requestTakeover('g1', 'New', 'b').ok);
+  tk.setConnected('b', false);
+  check('takeover: refused with a taken name', !tk.requestTakeover('g1', 'Pa', 'b').ok);
+  check('takeover: refused without a name', !tk.requestTakeover('g1', '  ', 'b').ok);
+  check('takeover: refused for a player id as guest', !tk.requestTakeover('c', 'New', 'b').ok);
+  check('takeover: the seat\'s own name is fine', tk.requestTakeover('g1', 'Pb', 'b').ok);
+  check('takeover: newest request for a seat wins', tk.requestTakeover('g2', 'New', 'b').ok && tk.takeovers.length === 1 && tk.takeovers[0].guestId === 'g2');
+  check('takeover: public, with names', tk.publicState().takeovers[0].name === 'New');
+  check('takeover: host only', !tk.answerTakeover('c', 'g2', true).ok);
+  check('takeover: deny removes it', tk.answerTakeover('a', 'g2', false).ok && tk.takeovers.length === 0 && tk.player('b').name === 'Pb');
+  tk.requestTakeover('g3', 'Newer', 'b');
+  const ans = tk.answerTakeover('a', 'g3', true);
+  check('takeover: allow renames the seat and hands over its id', ans.ok && ans.adopt === 'b' && tk.player('b').name === 'Newer');
+  tk.requestTakeover('g4', 'Late', 'b');
+  tk.setConnected('b', true);
+  check('takeover: owner coming back drops requests', tk.takeovers.length === 0);
+  tk.setConnected('c', false);
+  tk.requestTakeover('g5', 'Late', 'c');
+  tk.backToLobby('a');
+  check('takeover: lobby clears requests', tk.takeovers.length === 0 && tk.publicState().takeovers.length === 0);
+  tk.dispose();
+
   // Balance log: one outcome per finished game, numbers only (no names or ids).
   const outcomes = [];
   const lg2 = new Game({ timeScale: 1000, minPlayers: 4, onGameEnd: (o) => outcomes.push(o) });

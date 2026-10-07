@@ -529,7 +529,7 @@
   const tipHtml = () => {
     const paused = S.paused ? `<div class="note warn paused-note">⏸ ${me.isVip ? t('بازی متوقف است — برای ادامه ▶ را بزن.') : t('میزبان بازی را متوقف کرده.')}</div>` : '';
     const text = S.beginner && inGame() ? tipText() : '';
-    return paused + (text ? `<div class="tip"><span aria-hidden="true">💡</span><span>${text}</span></div>` : '');
+    return takeoverRequests() + paused + (text ? `<div class="tip"><span aria-hidden="true">💡</span><span>${text}</span></div>` : '');
   };
 
   // ------------------------------------------------------------ render
@@ -586,15 +586,31 @@
       body = `<div class="tv-look"><div class="big-ic">📺</div><h2 class="prompt">${t('به تلویزیون نگاه کن!')}</h2></div>`;
     }
     const ranked = S.players.slice().sort((a, b) => b.score - a.score);
-    const roster = `<div class="sec-title">${t('بازیکن‌ها')}</div><div class="players-mini">${ranked.map((p) => `<span class="pm">${avatar(p)}${esc(p.name)}${S.gamesPlayed ? ` <b class="num">${num(p.score)}</b>` : ''}</span>`).join('')}</div>`;
-    return `<header class="ph-top"><div class="me-chip"><div><div class="t1">${t('👀 تماشاچی')}</div><div class="t2">${esc((S.mode === 'items' ? C.itemsStory : C.story).title)}</div></div></div>
+    const roster = `<div class="sec-title">${t('بازیکن‌ها')}</div><div class="players-mini">${ranked.map((p) => `<span class="pm ${p.connected ? '' : 'off'}">${avatar(p)}${esc(p.name)}${S.gamesPlayed ? ` <b class="num">${num(p.score)}</b>` : ''}</span>`).join('')}</div>`;
+    return {
+      head: `<header class="ph-top"><div class="me-chip"><div><div class="t1">${t('👀 تماشاچی')}</div><div class="t2">${esc((S.mode === 'items' ? C.itemsStory : C.story).title)}</div></div></div>
         <div class="ph-phase"><div class="display">${esc(titles[S.phase] || '')}</div><div class="muted">${S.round ? t('دور {n} از {total}', { n: S.round, total: S.totalRounds }) : ''}</div></div>
         <div class="ph-timer" data-timer><span data-timer-label></span></div></header>
-      <div class="action">
-        <div class="note">${t('بازی شروع شده. وقتی میزبان به سالن انتظار برگردد، می‌توانی وارد شوی — تا آن موقع تماشا کن.')}</div>
-        ${what[S.phase] ? `<h2 class="prompt">${what[S.phase]}</h2>` : ''}
-        ${body}${roster}
-      </div>`;
+        <div class="action"><div class="note">${t('بازی شروع شده. وقتی میزبان به سالن انتظار برگردد، می‌توانی وارد شوی — تا آن موقع تماشا کن.')}</div></div>`,
+      body: `<div class="action">${what[S.phase] ? `<h2 class="prompt">${what[S.phase]}</h2>` : ''}${body}${roster}</div>`,
+    };
+  }
+
+  // Offline seats a latecomer could take over (not once the game is decided).
+  const openSeats = () => (['reveal', 'results', 'summary'].includes(S.phase) ? [] : S.players.filter((p) => p.inGame && !p.connected));
+  function takeoverSeats() {
+    const mine = (S.takeovers || []).find((x) => x.guestId === myId);
+    if (mine) {
+      return `<div class="done-box"><b>${t('⏳ منتظر اجازه‌ی میزبان…')}</b>${t('جای {name} را خواستی.', { name: esc(nameOf(mine.targetId)) })}</div>`;
+    }
+    return `<div class="grid2">${openSeats().map((p) => `<button class="opt" data-act="takeSeat" data-id="${esc(p.id)}">${avatar(p)}<span class="on">${esc(nameOf(p.id))}<span class="os">${t('جای او را بگیر')}</span></span></button>`).join('')}</div>`;
+  }
+
+  // Host: seat requests, at the top of every screen until answered.
+  function takeoverRequests() {
+    if (!me.isVip || !S.takeovers || !S.takeovers.length) return '';
+    return S.takeovers.map((x) => `<div class="note warn take-req"><b>${t('{name} می‌خواهد جای {seat} بازی کند.', { name: esc(x.name), seat: esc(nameOf(x.targetId)) })}</b>
+      <div class="grid2"><button class="btn gold" data-act="answerTake" data-id="${esc(x.guestId)}" data-v="1">${t('اجازه بده')}</button><button class="btn" data-act="answerTake" data-id="${esc(x.guestId)}" data-v="0">${t('نه')}</button></div></div>`).join('');
   }
 
   function render() {
@@ -609,7 +625,12 @@
     $('watch').classList.toggle('hidden', !watching);
     if (!joined) {
       $('joinError').textContent = '';
-      setHTML($('watch'), watching ? watchNow() : '');
+      const w = watching ? watchNow() : { head: '', body: '' };
+      setHTML($('watchHead'), w.head);
+      setHTML($('watchBody'), w.body);
+      const seats = watching && (openSeats().length || (S.takeovers || []).some((x) => x.guestId === myId));
+      $('takeover').classList.toggle('hidden', !seats);
+      if (seats) setHTML($('takeSeats'), takeoverSeats());
       return;
     }
 
@@ -688,6 +709,13 @@
     },
     vipSkipReveal: () => send('vip:skipReveal'),
     vipPause: () => { buzz(30); send('vip:pause'); },
+    takeSeat: (el) => {
+      const name = $('takeName').value.trim() || store.get('ziafat:name', '') || '';
+      if (!name) { toast(t('اسمت را بنویس.')); $('takeName').focus(); return; }
+      store.set('ziafat:name', name);
+      send('guest:takeover', { guestId: myId, name, targetId: el.dataset.id });
+    },
+    answerTake: (el) => send('vip:takeover', { guestId: el.dataset.id, allow: el.dataset.v === '1' }),
     tutorial: (el) => send('vip:tutorial', { action: el.dataset.v }),
     showRole: () => {
       ui.roleVisible = true;
@@ -735,6 +763,7 @@
 
   if (window.Art) $('join').insertAdjacentHTML('beforeend', `<div class="join-skyline" aria-hidden="true">${window.Art.mansion()}</div>`);
   $('nameInput').value = store.get('ziafat:name', '') || '';
+  $('takeName').value = store.get('ziafat:name', '') || '';
   $('joinForm').addEventListener('submit', (e) => {
     e.preventDefault();
     const name = $('nameInput').value.trim();
@@ -750,6 +779,13 @@
     socket.emit('player:hello', { id: myId }, () => {});
   });
   socket.on('disconnect', () => $('offline').classList.remove('hidden'));
+  // The host let this phone take over a seat: become that player.
+  socket.on('adopt', ({ id } = {}) => {
+    if (!id) return;
+    myId = id;
+    store.set('ziafat:id', id);
+    socket.emit('player:hello', { id }, () => {});
+  });
   socket.on('content', (c) => { ALL = c; C = Z.bundleFor(ALL, S); render(); });
   socket.on('state', (s) => {
     S = s; me = s.me;

@@ -25,7 +25,17 @@
     </section>
 
     <!-- latecomers: the public game, watch-only, until the next lobby -->
-    <section id="watch" class="watch hidden"></section>
+    <section id="watch" class="watch hidden">
+      <div id="watchHead"></div>
+      <!-- static, so typing a name survives re-renders; the seats list is redrawn -->
+      <div id="takeover" class="action takeover hidden">
+        <div class="sec-title" data-i18n="جای یک نفر خالی شده">جای یک نفر خالی شده</div>
+        <p class="sub" data-i18n="گوشی یک بازیکن قطع شده. می‌توانی با اجازه‌ی میزبان نقش او را ادامه بدهی.">گوشی یک بازیکن قطع شده. می‌توانی با اجازه‌ی میزبان نقش او را ادامه بدهی.</p>
+        <input id="takeName" maxlength="14" placeholder="اسمت" data-i18n-ph="اسمت" enterkeyhint="done">
+        <div id="takeSeats"></div>
+      </div>
+      <div id="watchBody"></div>
+    </section>
 
     <section id="game" class="hidden">
       <header class="ph-top">

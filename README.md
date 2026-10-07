@@ -65,6 +65,7 @@ Bots wait until a real person has joined, so a person is always the host (bots n
 
 - **Pause (⏸ in the host bar):** freezes the phase timer, for example when someone gets up for tea. Players can still tap, but nothing advances until the host taps ▶. The TV shows a pause card and every phone shows a banner. Pausing isn't available during the cinematic.
 - **Latecomers watch:** a phone that scans the QR code mid-game gets a watch-only view (phase, timer, what's happening, the evidence board or the gossip question, and the players) instead of an error. The join form comes back when the host returns to the lobby.
+- **Take over a dropped seat:** if a player's phone drops mid-game, a latecomer's watch screen offers that seat. They type their name and tap the seat, and the host gets an Allow / No prompt on their phone. On Allow, the latecomer's phone becomes that player: same character, role, clues and journal, under the newcomer's name. If the original phone reconnects first, the request is dropped.
 - **End of the night:** from the results screen, the host taps «🌙 پایان شب» / "End the night". The TV crowns tonight's champion and hands out awards (best liar, sharpest detective, mission master, most wins), and each phone shows the player's own numbers. From there the host goes back to the lobby (scores stay) or starts a fresh night.
 - **TV scaling:** the TV is sized in `rem`, which follows whichever is tighter: the width, or the height of a 16:9 screen. Ultrawide screens and browsers that aren't fullscreen shrink the layout instead of overflowing it.
 

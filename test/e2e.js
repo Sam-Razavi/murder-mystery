@@ -215,6 +215,28 @@ async function backToLobby(bots) {
   await waitFor(() => back.state && back.state.me, 'reconnect');
   check('reconnected phone keeps its role', back.state.me.role === roleBefore);
   bots[2] = back;
+
+  // Seat takeover: a phone drops for good; a newcomer asks for its seat and the host allows it.
+  const role3 = game.g.killerId === 'bot3' ? 'killer' : 'innocent';
+  bots[3].sock.close();
+  await waitFor(() => tv.state.players.find((p) => p.id === 'bot3').connected === false, 'bot3 offline');
+  const newbie = makeBot('guest-navid', 'نوید');
+  newbie.sock.on('connect', () => newbie.sock.emit('player:hello', { id: 'guest-navid' }));
+  newbie.sock.on('adopt', ({ id }) => newbie.sock.emit('player:hello', { id }));
+  await waitFor(() => newbie.state && newbie.state.phase === 'intro', 'newcomer watches');
+  check('takeover: a name already in use is refused', !(await newbie.emit('guest:takeover', { guestId: 'guest-navid', name: 'سام', targetId: 'bot3' })).ok);
+  check('takeover: an online seat is refused', !(await newbie.emit('guest:takeover', { guestId: 'guest-navid', name: 'نوید', targetId: 'bot1' })).ok);
+  check('takeover: request for an offline seat', (await newbie.emit('guest:takeover', { guestId: 'guest-navid', name: 'نوید', targetId: 'bot3' })).ok);
+  await waitFor(() => bots[0].state.takeovers.length === 1, 'host sees the request');
+  check('takeover: only the host can answer', !(await bots[1].emit('vip:takeover', { guestId: 'guest-navid', allow: true })).ok);
+  check('takeover: host allows', (await bots[0].emit('vip:takeover', { guestId: 'guest-navid', allow: true })).ok);
+  await waitFor(() => newbie.state.me && newbie.state.me.id === 'bot3', 'newcomer becomes bot3');
+  check('takeover: newcomer plays the seat\'s role', newbie.state.me.role === role3);
+  check('takeover: seat shows the new name, online', tv.state.players.some((p) => p.id === 'bot3' && p.name === 'نوید' && p.connected));
+  check('takeover: request cleared', tv.state.takeovers.length === 0);
+  newbie.id = 'bot3';
+  newbie.name = 'نوید';
+  bots[3] = newbie;
   await bots[0].emit('vip:lobby');
   await waitFor(() => bots[0].state.phase === 'lobby', 'back to lobby');
   check('scores survive back-to-lobby', tv.state.players.some((p) => p.score > 0) || true);

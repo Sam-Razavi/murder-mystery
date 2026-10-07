@@ -88,6 +88,7 @@ class Game {
     this._cardSeq = 0;
     this.gamesPlayed = 0;
     this.stats = {}; // per player, for the whole night (end-of-night summary)
+    this.takeovers = []; // newcomers asking for an offline seat: {guestId, name, targetId}
   }
 
   // ---------------------------------------------------------------- helpers
@@ -252,10 +253,47 @@ class Game {
     return { ok: true };
   }
 
+  // ---------------------------------------------------------------- seat takeover
+  // A phone that arrives mid-game can ask to play an offline player's seat
+  // (their character, clues and journal) under its own name; the host decides.
+
+  requestTakeover(guestId, rawName, targetId) {
+    const name = String(rawName || '').trim().replace(/\s+/g, ' ').slice(0, 14);
+    if (typeof guestId !== 'string' || !guestId || guestId.length > 64 || this.player(guestId)) return { ok: false, error: this._t('شناسه نامعتبر.') };
+    if (!name) return { ok: false, error: this._t('اسمت را بنویس.') };
+    if (this.phase === 'lobby' || !this.g) return { ok: false, error: this._t('الان می‌توانی عادی وارد شوی.') };
+    const target = this.player(targetId);
+    if (!target || !this._inGame(targetId) || target.connected) return { ok: false, error: this._t('این جا دیگر خالی نیست.') };
+    if (this.players.some((p) => p.id !== targetId && p.name.toLowerCase() === name.toLowerCase())) return { ok: false, error: this._t('این اسم را کس دیگری برداشته.') };
+    // One request per phone and per seat (the newest wins).
+    this.takeovers = this.takeovers.filter((t) => t.guestId !== guestId && t.targetId !== targetId);
+    this.takeovers.push({ guestId, name, targetId });
+    this._changed();
+    return { ok: true };
+  }
+
+  // Host: allow or deny. On allow the seat gets the newcomer's name and the
+  // server hands that phone the seat's id (it then reconnects as that player).
+  answerTakeover(byId_, guestId, allow) {
+    if (!this._isVip(byId_)) return { ok: false, error: this._t('فقط میزبان می‌تواند.') };
+    const t = this.takeovers.find((x) => x.guestId === guestId);
+    if (!t) return { ok: false, error: this._t('این درخواست دیگر نیست.') };
+    this.takeovers = this.takeovers.filter((x) => x !== t);
+    const target = this.player(t.targetId);
+    if (allow && (!target || target.connected || !this._inGame(t.targetId))) {
+      this._changed();
+      return { ok: false, error: this._t('صاحب این جا برگشته.') };
+    }
+    if (allow) target.name = t.name;
+    this._changed();
+    return allow ? { ok: true, adopt: t.targetId } : { ok: true };
+  }
+
   setConnected(id, connected) {
     const p = this.player(id);
     if (!p) return;
     p.connected = connected;
+    if (connected) this.takeovers = this.takeovers.filter((t) => t.targetId !== id); // the owner is back
     this._ensureVip();
     if (this.phase !== 'lobby') this._checkAllDone();
     this._changed();
@@ -322,6 +360,7 @@ class Game {
     if (this.phase === 'lobby' && !this._allReady()) return { ok: false, error: this._t('هنوز همه آماده نیستند.') };
     this.players.forEach((p) => { p.ready = false; });
     this.tutorial = null;
+    this.takeovers = [];
     // Drop the previous game first, so setup reads the language from the
     // lobby setting rather than from the old game.
     this.g = null;
@@ -911,6 +950,7 @@ class Game {
     this.round = 0;
     this.prologue = false;
     this.g = null;
+    this.takeovers = [];
     this.players = this.players.filter((p) => p.connected);
     this._ensureVip();
     this._changed();
@@ -987,6 +1027,8 @@ class Game {
       modeMax: (g ? g.mode : this.settings.mode) === 'items' ? MAX_PLAYERS : CLASSIC_MAX,
       gamesPlayed: this.gamesPlayed,
       summary: this.phase === 'summary' ? this._summary() : null,
+      // Pending seat requests (the asking phone finds its own by guestId).
+      takeovers: this.phase === 'lobby' ? [] : this.takeovers.map(({ guestId, name, targetId }) => ({ guestId, name, targetId })),
       vipId: this.vipId,
       players: this.players.map((p) => ({
         id: p.id, name: p.name, score: p.score, connected: p.connected, ready: !!p.ready, portrait: p.portrait,

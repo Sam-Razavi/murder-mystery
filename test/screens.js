@@ -124,6 +124,17 @@ async function run(mode, lang, story) {
   if (mode === 'classic') {
     for (let r = 1; r <= 3; r++) {
       show(`search r${r}`);
+      if (r === 1) {
+        // A phone drops: the latecomer is offered the seat, the host is asked.
+        game.setConnected('p3', false);
+        show('seat open');
+        check(`${tag}: latecomer is offered the seat`, !!latecomer.doc.querySelector('#takeover:not(.hidden) [data-act="takeSeat"]'));
+        game.requestTakeover('guest-zed', 'Zed', 'p3');
+        show('takeover requested');
+        check(`${tag}: host is asked`, !!phones[0].doc.querySelector('[data-act="answerTake"]'));
+        game.answerTakeover('p0', 'guest-zed', false);
+        game.setConnected('p3', true);
+      }
       game.togglePause('p0');
       show(`search r${r} paused`);
       game.togglePause('p0');
