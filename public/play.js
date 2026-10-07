@@ -49,6 +49,8 @@
     return `<span class="avatar" style="background:${color}">${esc(letter)}</span>`;
   }
   const nameOf = (pid) => { const p = pl(pid); return p ? (p.charId ? `${ch(p.charId).name} (${p.name})` : p.name) : t('؟'); };
+  // One-line "what this clue proves" tag (public/shared.js).
+  const tag = (about) => Z.clueTag(about, { C, artOf, nameOf });
   const traitIcons = (charId) => C.traits.filter((t, i) => ch(charId).traits[i]).map((t) => artOf(t)).join('');
   const traitTags = (charId) => C.traits.map((t, i) => ch(charId).traits[i]
     ? `<span class="trait">${artOf(t)} ${esc(t.name)}</span>` : `<span class="trait no">${esc(t.name)}</span>`).join('');
@@ -96,6 +98,8 @@
     const tooMany = n > S.modeMax; // classic takes at most 8
     const allReady = n >= S.minPlayers && waiting === 0 && !tooMany;
     const meReady = !!(pl(me.id) && pl(me.id).ready);
+    // First game in beginner mode: the start button walks the host through the slides first.
+    const rulesFirst = S.beginner && !S.tutorialSeen && S.gamesPlayed === 0 && S.tutorial == null;
     let html = `<h2 class="prompt">${me ? t('به مهمانی خوش آمدی!') : ''}</h2>
       <p class="sub">${n < S.minPlayers ? t('منتظر بقیه‌ایم — دست‌کم {min} نفر لازم است (الان {n} نفر).', { min: S.minPlayers, n })
         : waiting ? t('{n} نفر هنوز «آماده‌ام» را نزده‌اند.', { n: waiting }) : t('همه آماده‌اند. میزبان بازی را شروع می‌کند.')}</p>
@@ -130,8 +134,12 @@
         <div class="sub">${t('دورهای بی‌صدا: گاهی هیچ‌کس کار مخفی نمی‌گیرد')}</div>${seg('quietRounds', [[false, t('خاموش')], [true, t('روشن')]])}
         <div class="sub">${t('قاتل‌ها هم‌دیگر را می‌شناسند (از ۵ نفر به بالا)')}</div>${seg('killersKnow', [[false, t('خاموش')], [true, t('روشن')]])}` : ''}
         <div class="sub">${t('زمان هر گفت‌وگو')}</div>${seg('discussSeconds', [[90, `${num(1)}:${num(30)}`], [150, `${num(2)}:${num(30)}`], [240, `${num(4)}:${num('00')}`]])}
+        <div class="sub">${t('بازی اول: زمان بیشتر و راهنمای کوتاه روی گوشی‌ها')}</div>${seg('beginner', [[true, t('روشن')], [false, t('خاموش')]])}
+        ${mode.id === 'classic' ? `<div class="sub">${t('جمع‌بندی مدارک روی تلویزیون (چه چیزی رد شده، کجا تناقض هست)')}</div>${seg('caseFile', [[true, t('روشن')], [false, t('خاموش')]])}` : ''}
         ${tooMany ? `<div class="note warn">${t('بازی کلاسیک حداکثر ۸ نفره است — حالت دست‌به‌دست را انتخاب کنید.')}</div>` : ''}
-        <button class="btn primary big" data-act="start" ${allReady ? '' : 'disabled'}>${allReady ? t('شروع بازی') : tooMany ? t('برای بازی کلاسیک زیادیم') : t('منتظر آماده شدن همه…')}</button>`;
+        ${allReady && rulesFirst
+          ? `<button class="btn primary big" data-act="tutorial" data-v="open">${t('📖 اول قوانین، بعد شروع')}</button><button class="btn ghost" data-act="start">${t('بدون آموزش شروع کن')}</button>`
+          : `<button class="btn primary big" data-act="start" ${allReady ? '' : 'disabled'}>${allReady ? t('شروع بازی') : tooMany ? t('برای بازی کلاسیک زیادیم') : t('منتظر آماده شدن همه…')}</button>`}`;
     }
     else html += `<div class="note"><b>${t('بازی: {name}', { name: esc(mode.name) })}</b> — ${esc(mode.text)}</div>`
       + (S.tutorial != null ? `<div class="note warn">${t('📺 به تلویزیون نگاه کن — میزبان دارد قوانین را توضیح می‌دهد.')}</div>` : '');
@@ -177,7 +185,7 @@
           <div class="note warn">${t('تو امشب در {r} دیده شده‌ای. اگر بازجویی شوی، این اتاق لو می‌رود — داستانت را آماده کن.', { r: esc(room(f.roomId).name) })}</div>
           <button class="btn ghost" data-act="reforge">${t('تغییر انتخاب')}</button>`;
       }
-      const opts = me.forgeryOptions.map((o) => `<button class="opt lie ${ui.lieKey === o.key ? 'sel' : ''}" data-act="lie" data-key="${esc(o.key)}"><p>«${esc(o.text)}»</p><span class="hint">🎭 ${esc(o.hint)}</span></button>`).join('');
+      const opts = me.forgeryOptions.map((o) => `<button class="opt lie ${ui.lieKey === o.key ? 'sel' : ''}" data-act="lie" data-key="${esc(o.key)}"><p>«${esc(o.text)}»</p>${tag(o.about)}<span class="hint">🎭 ${esc(o.hint)}</span></button>`).join('');
       return `<h2 class="prompt">${t('🔪 وقت جعل مدرک')}</h2>
         <p class="sub">${t('بقیه دارند اتاق‌ها را می‌گردند. یک دروغ انتخاب کن و جایی بکار. اولین کسی که آن اتاق را بگردد، آن را به‌جای مدرک واقعی پیدا می‌کند.')}</p>
         <div class="step-label">${t('۱. کدام دروغ؟')}</div>${opts}
@@ -212,7 +220,7 @@
   function actionSpotlight() {
     const sp = S.game.spotlight;
     if (sp.playerId === me.id) {
-      return `<h2 class="prompt" style="color:var(--pom-bright)">${t('تو زیر نور چراغی!')}</h2>
+      return `<h2 class="prompt" style="color:var(--pom-text)">${t('تو زیر نور چراغی!')}</h2>
         <p class="sub">${t('{n} نفر به تو رأی دادند. اتاق‌هایی که گشته‌ای روی تلویزیون است. از خودت دفاع کن!', { n: sp.votes })}</p>`;
     }
     return `<h2 class="prompt">${t('{name} بازجویی می‌شود', { name: esc(nameOf(sp.playerId)) })}</h2><p class="sub">${t('به تلویزیون نگاه کن و سؤال‌پیچش کن.')}</p>`;
@@ -269,27 +277,46 @@
     html += `<div class="sec-title">${t('مدارک من')}</div>`;
     html += hand.map((c) => {
       const nothing = c.kind === 'nothing';
-      const tag = c.forged ? `<span class="tag fake">${t('جعلی — فقط تو می‌دانی')}</span>` : (c.isNew ? `<span class="tag">${t('تازه')}</span>` : '');
+      const badge = c.forged ? `<span class="tag fake">${t('جعلی — فقط تو می‌دانی')}</span>` : (c.isNew ? `<span class="tag">${t('تازه')}</span>` : '');
       const btn = nothing ? '' : (c.pinned
         ? `<button class="pinbtn" disabled>${t('✓ روی تلویزیون')}</button>`
         : `<button class="pinbtn" data-act="pin" data-id="${esc(c.id)}" ${canPin ? '' : 'disabled style="opacity:.4"'}>${t('📺 نشان بده')}</button>`);
       const hall = c.hallway ? `<div class="hall">🚶 ${esc(C.hallwayNote)}</div>` : '';
-      return `<div class="clue ${c.isNew && !nothing ? 'new' : ''} ${nothing ? 'nothing' : ''}" data-cid="${esc(c.id)}">${tag}${hall}<p>${esc(c.text)}</p>
+      return `<div class="clue ${c.isNew && !nothing ? 'new' : ''} ${nothing ? 'nothing' : ''}" data-cid="${esc(c.id)}">${badge}${hall}<p>${esc(c.text)}</p>${tag(c.about)}
         <div class="meta"><span>${t('دور {n}', { n: c.round })} <i class="sep"></i> ${esc(room(c.foundIn) ? room(c.foundIn).name : '')}</span>${btn}</div></div>`;
     }).join('');
     return html;
   }
 
+  // What the player's own clues rule out, as suggested ✕ marks (item 4). The
+  // killer's cards are all lies, so they get no suggestions.
+  function autoRuledOut() {
+    if (isKiller()) return () => false;
+    const f = Z.caseFacts(me.hand, C);
+    return (k) => {
+      const id = k.slice(2);
+      if (k[0] === 'w') return f.weaponsOut.has(id);
+      if (k[0] === 'r') return f.roomsOut.has(id);
+      if (id === me.id) return true; // you know you're innocent
+      const p = pl(id);
+      return f.alibis.has(id) || (!!p && !!p.charId && f.knownTraits > 0 && !f.fits(ch(p.charId).traits));
+    };
+  }
+
   function tabNotes() {
     const nb = nbGet();
-    const mark = (k) => (nb[k] === 'x' ? '✕' : nb[k] === 'q' ? t('؟') : '');
-    const row = (k, inner) => `<button class="nb-row ${nb[k] || ''}" data-act="nb" data-k="${esc(k)}">${inner}<span class="mark">${mark(k)}</span></button>`;
+    const auto = autoRuledOut();
+    // A row the player never touched shows the suggestion; tapping confirms it.
+    const state = (k) => (nb[k] === undefined && auto(k) ? 'auto' : nb[k] || '');
+    const mark = (k) => (nb[k] === 'x' || state(k) === 'auto' ? '✕' : nb[k] === 'q' ? t('؟') : '');
+    const row = (k, inner) => `<button class="nb-row ${state(k)}" data-act="nb" data-k="${esc(k)}">${inner}<span class="mark">${mark(k)}</span></button>`;
     const suspects = S.players.filter((p) => p.charId).map((p) => row(`p:${p.id}`,
-      `${avatar(p)}<span class="nm">${esc(ch(p.charId).name)}<small>${esc(p.name)}</small></span><span class="ti">${traitIcons(p.charId)}</span>`)).join('');
+      `${avatar(p)}<span class="nm">${esc(ch(p.charId).name)}<small>${esc(p.name)}${p.id === me.id ? ` ${t('(خودت)')}` : ''}</small></span><span class="ti">${traitIcons(p.charId)}</span>`)).join('');
     const ws = C.weapons.map((w) => row(`w:${w.id}`, `<span class="oi">${artOf(w)}</span><span class="nm">${esc(w.name)}</span>`)).join('');
     const rs = C.rooms.map((r) => row(`r:${r.id}`, `<span class="oi">${artOf(r)}</span><span class="nm">${esc(r.name)}</span>`)).join('');
     const legend = C.traits.map((t) => `${artOf(t)} ${esc(t.name)}`).join(' <i class="sep"></i> ');
     return `<div class="nb-help">${t('لمس کن: ✕ = رد شد')} <i class="sep"></i> ${t('؟ = مشکوک')} <i class="sep"></i> ${t('دوباره = پاک')}</div>
+      ${isKiller() ? '' : `<div class="note nb-auto"><span class="mark-demo">✕</span> ${t('ضربدرهای خط‌چین را مدارک خودت پیشنهاد می‌دهند — شاید یکی‌شان جعلی باشد. برای تأیید لمس کن.')}</div>`}
       <div class="sec-title">${t('مظنون‌ها')}</div><div class="nb">${suspects}</div><div class="nb-help">${legend}</div>
       <div class="sec-title">${t('سلاح‌ها')}</div><div class="nb">${ws}</div>
       <div class="sec-title">${t('اتاق‌ها')}</div><div class="nb">${rs}</div>`;
@@ -340,10 +367,47 @@
   const journalKey = () => `ziafat:seen:${S.game ? S.game.id : 'x'}`;
   const unseenNotes = () => Math.max(0, (me.notes || []).length - store.get(journalKey(), 1));
 
+  // Hard facts distilled from the journal (item 7). A snoop in round 1 sees a
+  // starting item (moves only happen when a round ends). So does a swap or
+  // steal in round 1 when it is the only action that round.
+  function factsBox() {
+    const K = C.knifeId;
+    const soloRounds = S.game.actionsPerRound === 1;
+    const starts = {};
+    const knives = [];
+    const seen = []; // later snoops: what someone held at that moment
+    const changed = [];
+    me.notes.forEach((n) => {
+      const vars = { r: n.round, name: shortName(n.targetId) };
+      if (n.type === 'snoop') {
+        if (n.round === 1) starts[n.targetId] = n.item;
+        if (n.item === K) knives.push(t('دور {r}: دستِ <b>{name}</b> چاقو بود.', vars));
+        else if (n.round > 1) seen.push(t('دور {r}: دستِ <b>{name}</b> {item} بود.', { ...vars, item: itemTag(n.item) }));
+      } else if (n.type === 'swap' || n.type === 'steal') {
+        if (n.round === 1 && soloRounds) starts[n.targetId] = n.got;
+        if (n.got === K) knives.push(t('دور {r}: چاقو را از <b>{name}</b> گرفتی.', vars));
+        if (n.gave === K) knives.push(t('دور {r}: چاقو را به <b>{name}</b> دادی.', vars));
+      } else if (n.type === 'changed') {
+        changed.push(num(n.round));
+        if (n.to === K) knives.push(t('دور {r}: یک چاقو به دستت رسید.', vars));
+        if (n.from === K) knives.push(t('دور {r}: چاقو از دستت رفت.', vars));
+      }
+    });
+    const rows = [`<li>${t('شب را با {item} شروع کردی.', { item: itemTag(me.startItem) })}</li>`];
+    Object.entries(starts).forEach(([pid, it]) => rows.push(it === K
+      ? `<li class="hot">🔪 ${t('<b>{name}</b> شب را با چاقو شروع کرد — قاتل است!', { name: shortName(pid) })}</li>`
+      : `<li>✓ ${t('<b>{name}</b> شب را با {item} شروع کرد — بی‌گناه است.', { name: shortName(pid), item: itemTag(it) })}</li>`));
+    knives.forEach((k) => rows.push(`<li>🔪 ${k}</li>`));
+    seen.forEach((s) => rows.push(`<li>🕵️ ${s}</li>`));
+    if (changed.length) rows.push(`<li>❗ ${t('چیزت در دور {list} عوض شد.', { list: changed.join(t('، ')) })}</li>`);
+    if (rows.length === 1) rows.push(`<li class="muted">${t('هنوز چیز دیگری با چشم خودت ندیده‌ای.')}</li>`);
+    return `<div class="facts"><div class="sec-title">${t('چیزهایی که مطمئنی')}</div><ul>${rows.join('')}</ul></div>`;
+  }
+
   function tabJournal() {
     if (!ui.roleVisible) return itemCard();
     store.set(journalKey(), me.notes.length);
-    return `<div class="sec-title">${t('دفترچه‌ی مخفی')}</div>
+    return `${factsBox()}<div class="sec-title">${t('دفترچه‌ی مخفی')}</div>
       <div class="nb-help">${t('فقط تو این‌ها را می‌بینی. می‌توانی راستش را بگویی، پنهانش کنی، یا دروغ بگویی.')}</div>
       ${me.notes.slice().reverse().map((n) => `<div class="jn ${n.type}"><span class="r">${n.round ? t('دور {n}', { n: n.round }) : t('شروع')}</span><p>${noteText(n)}</p></div>`).join('')}
       <button class="btn ghost" data-act="hideRole">${t('پنهان کن')}</button>`;
@@ -410,6 +474,32 @@
       ${playerList(me.myFinal, 'accuse')}`;
   }
 
+  // ------------------------------------------------------------ beginner tips (item 5)
+  // One-line rule reminder at the top of each phase, in beginner mode only.
+  function tipText() {
+    const killer = isKiller();
+    if (itemsMode()) {
+      return {
+        intro: t('نقشت را چیزی تعیین می‌کند که شب را با آن شروع کردی — نه چیزی که بعداً دستت می‌آید.'),
+        gossip: t('جواب این سؤال فقط برای سرگرمی است. مهم کار مخفی است که همین حالا یک نفر انجام می‌دهد.'),
+        discuss: t('بالای دفترچه‌ی مخفی‌ات «چیزهایی که مطمئنی» را ببین و بپرس چه کسی اول چاقو داشت.'),
+        final: killer ? t('رأی را به سمت یک بی‌گناه ببر — تساوی هم به نفع قاتل‌هاست.') : t('همه با هم به یک نفر رأی بدهید — تساوی یعنی بُرد قاتل‌ها.'),
+      }[S.phase] || '';
+    }
+    return {
+      intro: killer ? t('هیچ‌کس نمی‌داند تو قاتلی. عادی رفتار کن و مدرک جعلی‌ات را جای خوبی بکار.') : t('نقشت را به کسی نشان نده. مأموریت مخفی‌ات امتیاز اضافه دارد.'),
+      search: killer ? t('تو در اتاقی که مدرک می‌کاری «دیده می‌شوی». دروغی بکار که شک را از تو دور کند.') : t('مدرکی که پیدا می‌کنی فقط مال توست. مدرک‌های واقعی هیچ‌وقت با هم تناقض ندارند.'),
+      discuss: t('برچسب زیر هر مدرک می‌گوید چه چیزی را ثابت می‌کند. اگر دو مدرک با هم نخوانند، یکی جعلی است.'),
+      vote: t('هر کس بیشترین رأی را بگیرد، اتاق‌هایی که گشته روی تلویزیون می‌آید.'),
+      spotlight: t('ببین اتاق‌هایی که گشته با حرف‌هایش جور است یا نه.'),
+      final: killer ? t('به کسی رأی بده که بقیه هم به او شک دارند.') : t('دفترچه را باز کن: هر چیزی که ضربدر نخورده هنوز ممکن است.'),
+    }[S.phase] || '';
+  }
+  const tipHtml = () => {
+    const text = S.beginner && inGame() ? tipText() : '';
+    return text ? `<div class="tip"><span aria-hidden="true">💡</span><span>${text}</span></div>` : '';
+  };
+
   // ------------------------------------------------------------ render
   const ACTIONS = {
     lobby: actionLobby, intro: actionIntro, search: actionSearch, discuss: actionDiscuss, vote: actionVote,
@@ -466,7 +556,7 @@
     $('phRound').textContent = S.round ? t('دور {n} از {total}', { n: S.round, total: S.totalRounds }) : '';
 
     const playing = inGame();
-    setHTML($('action'), (playing || S.phase === 'lobby') ? (itemsMode() ? IT_ACTIONS : ACTIONS)[S.phase]() : `<p class="sub">${t('بازی در جریان است…')}</p>`);
+    setHTML($('action'), (playing || S.phase === 'lobby') ? tipHtml() + (itemsMode() ? IT_ACTIONS : ACTIONS)[S.phase]() : `<p class="sub">${t('بازی در جریان است…')}</p>`);
 
     if (playing && S.phase !== 'intro' && itemsMode()) {
       if (!['item', 'journal', 'notes'].includes(ui.tab)) ui.tab = 'item';

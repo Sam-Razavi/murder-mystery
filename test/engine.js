@@ -15,6 +15,14 @@ function check(label, cond) {
 const pick = (a) => a[Math.floor(Math.random() * a.length)];
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
+// The screens' shared helpers (clue tags, case file) need a minimal browser.
+global.window = { I18N: require('../public/i18n') };
+global.document = { querySelectorAll: () => [], documentElement: {} };
+global.requestAnimationFrame = () => {};
+require('../public/shared.js');
+const { Z } = global.window;
+delete global.window;
+
 async function playOne(n, gameNo, lang = 'fa') {
   const C = lang === 'en' ? CE : CF;
   const game = new Game({ timeScale: 1000, minPlayers: 4 });
@@ -70,7 +78,7 @@ async function playOne(n, gameNo, lang = 'fa') {
       if (leaveOneOut && i === 0) return;
       game.search(id, Math.random() < 0.5 ? plantRoom : pick(C.ROOMS).id);
     });
-    if (leaveOneOut) await sleep(60); // search timer at 1000x = 40ms
+    if (leaveOneOut) await sleep(100); // search timer at 1000x = 40ms (60ms in beginner mode)
     else await sleep(5);
     check(`[${n}] r${r} moved to discuss (${game.phase})`, game.phase === 'discuss');
     noPersian(`r${r} discuss`);
@@ -134,6 +142,34 @@ async function playOne(n, gameNo, lang = 'fa') {
       || C.TRAITS.some((t, i) => c.text.includes(kChar.traits[i] ? t.noClue : t.yesClue));
     check(`[${n}] forged card is a lie`, lie);
   });
+  // every card says in data what it proves, and that matches its text
+  allCards.filter((c) => c.kind !== 'nothing').forEach((c) => {
+    const a = c.about || {};
+    check(`[${n}] card has about of its kind`, a.type === c.kind);
+    if (a.type === 'weapon') check(`[${n}] weapon about matches text`, c.text === C.WEAPONS.find((w) => w.id === a.id).clear);
+    if (a.type === 'room') check(`[${n}] room about matches text`, c.text === C.ROOMS.find((r) => r.id === a.id).clear);
+    if (a.type === 'trait') {
+      const t = C.TRAITS.find((tt) => tt.id === a.id);
+      check(`[${n}] trait about matches text`, c.text === (a.has ? t.yesClue : t.noClue));
+      check(`[${n}] trait about true unless forged`, (a.has === !!kChar.traits[C.TRAITS.indexOf(t)]) === !c.forged);
+    }
+    if (a.type === 'alibi') check(`[${n}] alibi about names the right player`, (a.playerId === killer) === !!c.forged);
+  });
+  // the case file over every genuine clue: no conflicts, never rules out the truth
+  const trueCards = allCards.filter((c) => !c.forged).map((c) => ({ about: c.about, text: c.text, playerId: 'x' }));
+  const facts = Z.caseFacts(trueCards, { weapons: C.WEAPONS, rooms: C.ROOMS, traits: C.TRAITS });
+  check(`[${n}] true clues never conflict`, facts.conflicts.length === 0);
+  check(`[${n}] true clues never clear the real weapon/room`, !facts.weaponsOut.has(g.weapon) && !facts.roomsOut.has(g.room));
+  check(`[${n}] killer always fits the true trait clues`, facts.fits(kChar.traits));
+  check(`[${n}] killer never has a true alibi`, !facts.alibis.has(killer));
+  // board entries carry what they prove and the round they were pinned in
+  g.board.forEach((b) => check(`[${n}] board entry has about + pinRound`, b.about && b.about.type === b.kind && b.pinRound >= 1 && b.pinRound <= 3));
+  // a forged clue pinned by both its finder and the killer shows up as a duplicate
+  const plant = g.plants.find((p) => p.deliveredTo);
+  if (plant) {
+    const both = [{ about: { type: 'motive' }, text: plant.text, playerId: plant.deliveredTo }, { about: { type: 'motive' }, text: plant.text, playerId: killer }];
+    check(`[${n}] duplicate pinned clue is flagged`, Z.caseFacts(both, { weapons: C.WEAPONS, rooms: C.ROOMS, traits: C.TRAITS }).conflicts.some((x) => x.type === 'dupe'));
+  }
   // innocents never see a forged flag
   ids.filter((id) => id !== killer).forEach((id) => {
     check(`[${n}] no forged flag leaks`, game.privateState(id).hand.every((c) => c.forged === undefined));
@@ -269,7 +305,26 @@ async function playOne(n, gameNo, lang = 'fa') {
   ng.players.forEach((p) => ng.setReady(p.id, true));
   ng.start('a');
   check('no cinematic: no prologue, one skip leaves the intro', ng.publicState().prologue === false && ng.skip('a').ok && ng.phase !== 'intro');
+  check('beginner mode is on by default and public', ng.publicState().beginner === true && ng.g.beginner === true);
+  check('beginner: search timer is 1.5× (60s)', ng.phase === 'search' && Math.round(ng.timer.duration / 1000) === 60);
+  check('beginner setting locked mid-game', !ng.setSetting('a', 'beginner', 'false').ok);
+  check('case file can be switched mid-game', ng.setSetting('a', 'caseFile', 'false').ok && ng.settings.caseFile === false);
+  ng.backToLobby('a');
+  check('beginner can be turned off in the lobby', ng.setSetting('a', 'beginner', 'false').ok && ng.settings.beginner === false);
+  ng.players.forEach((p) => ng.setReady(p.id, true));
+  ng.start('a');
+  ng.skip('a');
+  check('without beginner: normal search timer (40s)', ng.phase === 'search' && Math.round(ng.timer.duration / 1000) === 40 && ng.publicState().beginner === false);
   ng.dispose();
+
+  // The host's first look at the slides is remembered (the phone's start button uses it).
+  const tg = new Game({ minPlayers: 4 });
+  ['a', 'b', 'c', 'd'].forEach((id) => tg.join(id, id));
+  check('tutorial not seen at first', tg.publicState().tutorialSeen === false);
+  tg.tutorialAction('a', 'open');
+  tg.tutorialAction('a', 'close');
+  check('tutorial seen after opening it', tg.publicState().tutorialSeen === true);
+  tg.dispose();
 
   console.log(`\n${stats.games} games simulated, killer caught in ${stats.caught}, forged cards delivered: ${stats.delivered}`);
   console.log(`PASS ${pass}  FAIL ${fail}`);

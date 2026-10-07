@@ -42,6 +42,7 @@ const methods = {
     this.g = {
       mode: 'items',
       lang: this.settings.lang,
+      beginner: !!this.settings.beginner,
       id: `${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`,
       ids,
       killers: ids.filter((id) => start[id] === this.L.KNIFE.id),
@@ -107,7 +108,7 @@ const methods = {
         g.turns.push({ round: this.round, actorId, type: pick(ACTION_TYPES), done: false, targets: null, result: null, auto: false });
       }
     }
-    this._setTimer(this.settings.gossipSeconds || this.durations.gossip, () => this._itEndGossip());
+    this._setTimer(this._dur('gossip'), () => this._itEndGossip());
     this._changed();
   },
 
@@ -236,7 +237,7 @@ const methods = {
   _itEndDiscuss() {
     if (this.round >= this.g.totalRounds) {
       this.phase = 'final';
-      this._setTimer(this.durations.final, () => this._itEndFinal());
+      this._setTimer(this._dur('final'), () => this._itEndFinal());
       this._changed();
     } else {
       this._itStartGossip();
@@ -336,6 +337,7 @@ const methods = {
       // With quiet rounds on, the count would reveal which rounds were quiet.
       actionsSoFar: g.rules.quietRounds ? null : g.log.filter((e) => e.type !== 'quiet').length,
       actionsPerRound: g.actionsPerRound,
+      discussEvery: ROUNDS_PER_DISCUSS,
       question: ['gossip', 'gossipResult'].includes(this.phase) ? g.gossip.question : null,
       gossipResult: this.phase === 'gossipResult' ? g.gossips[g.gossips.length - 1] : null,
       gossips: g.gossips.map(({ round, question, tally }) => ({ round, question, top: tally.filter((t) => t.votes && t.votes === tally[0].votes).map((t) => t.playerId) })),

@@ -73,14 +73,14 @@
 .cin-cap .k { font-size: 1.5vw; letter-spacing: .28em; color: var(--gold); min-height: 1.6vw; margin-bottom: .8vw; text-transform: uppercase; text-shadow: 0 0 1.4vw rgba(0, 0, 0, .9); }
 html[dir="rtl"] .cin-cap .k { letter-spacing: .05em; }
 .cin-cap .l { font-size: 3.3vw; line-height: 1.45; color: var(--parchment); text-shadow: 0 .2vw 2vw rgba(0, 0, 0, .95), 0 0 .5vw rgba(0, 0, 0, .9); }
-.cin-cap.kill .l { font-family: var(--display); font-size: 5vw; color: var(--pom-bright); text-shadow: 0 0 2.4vw rgba(224, 51, 92, .55), 0 .2vw 1.4vw #000; }
+.cin-cap.kill .l { font-family: var(--display); font-size: 5vw; color: var(--pom-text); text-shadow: 0 0 2.4vw rgba(224, 51, 92, .55), 0 .2vw 1.4vw #000; }
 .cin-title { inset: 0; z-index: 5; display: grid; place-content: center; justify-items: center; gap: 1.2vw; text-align: center; animation-name: cin-title; }
 @keyframes cin-title { 0%, 92% { opacity: 0; transform: scale(.94); } 96%, 100% { opacity: 1; transform: scale(1); } }
 .cin-title .tt { font-size: 10vw; line-height: 1.1; color: var(--gold-soft); text-shadow: 0 0 3vw rgba(217, 164, 65, .55), 0 .3vw 1.5vw #000; }
 .cin-title .ss { font-size: 2vw; color: var(--parchment); }
 .cin-title .orn { position: relative; width: 30vw; height: 2px; background: linear-gradient(90deg, transparent, var(--gold), transparent); }
 .cin-title .orn::before { content: ''; position: absolute; left: 50%; top: 50%; width: .9vw; height: .9vw; background: var(--gold); transform: translate(-50%, -50%) rotate(45deg); }
-.cin-skip { right: 2vw; bottom: 1.6vh; z-index: 6; font-size: 1.05vw; color: rgba(245, 230, 200, .5); animation-name: cin-skip; }
+.cin-skip { right: 2vw; bottom: 1.6vh; z-index: 6; font-size: 1.05vw; color: rgba(245, 230, 200, .78); animation-name: cin-skip; }
 html[dir="rtl"] .cin-skip { right: auto; left: 2vw; }
 @keyframes cin-skip { 0%, 4% { opacity: 0; } 8%, 88% { opacity: 1; } 93%, 100% { opacity: 0; } }
 @media (prefers-reduced-motion: reduce) { .cin-world, .cin-fog, .cin-grain, .cin-glow { animation: none !important; } }

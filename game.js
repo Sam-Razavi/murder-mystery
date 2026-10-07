@@ -34,8 +34,11 @@ const SETTING_OPTIONS = {
   gossipSeconds: [30, 40, 60], // items mode: time to answer (+ secret action)
   quietRounds: [false, true], // items mode: some rounds have no secret action
   killersKnow: [false, true], // items mode: killers see each other
+  beginner: [true, false], // first game: slower action timers + rule tips on the phones
+  caseFile: [true, false], // classic: TV sums up what the pinned clues prove
 };
-const LIVE_SETTINGS = ['discussSeconds'];
+const LIVE_SETTINGS = ['discussSeconds', 'caseFile'];
+const BEGINNER_SLOWDOWN = 1.5; // action timers in beginner mode
 
 const shuffle = (arr) => {
   const a = arr.slice();
@@ -57,6 +60,7 @@ class Game {
     this.cinematic = opts.cinematic || 0; // seconds of TV prologue before the intro (0 = none)
     this.prologue = false;
     this.tutorial = null; // lobby "how to play" slide index, or null
+    this.tutorialSeen = false; // the host has opened the slides at least once
     this.maxPlayers = MAX_PLAYERS;
     this.onChange = opts.onChange || (() => {});
     this.players = []; // {id, name, score, connected, joinedAt}
@@ -65,6 +69,7 @@ class Game {
     this.round = 0;
     this.settings = {
       discussSeconds: 150, mode: 'classic', lang: 'fa', itemRounds: 6, gossipSeconds: 40, quietRounds: false, killersKnow: false,
+      beginner: true, caseFile: true,
     };
     this.g = null; // per-game state
     this.timer = null; // {endsAt, duration}
@@ -99,6 +104,13 @@ class Game {
     const p = this.player(pid);
     const ch = byId(this.L.CHARACTERS, this.g.chars[pid]);
     return `${ch.name} (${p ? p.name : this._t('؟')})`;
+  }
+
+  // Length of an action phase. Beginner mode (fixed per game) gives everyone
+  // more time to read and decide.
+  _dur(key) {
+    const base = key === 'gossip' ? (this.settings.gossipSeconds || this.durations.gossip) : this.durations[key];
+    return this.g && this.g.beginner ? Math.round(base * BEGINNER_SLOWDOWN) : base;
   }
 
   _card(kind, text, extra = {}) {
@@ -297,6 +309,7 @@ class Game {
     this.g = {
       mode: 'classic',
       lang: this.settings.lang,
+      beginner: !!this.settings.beginner,
       id: `${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`,
       ids,
       killerId, weapon, room, chars, missions, innocents,
@@ -324,8 +337,10 @@ class Game {
     const { g } = this;
     const pool = [];
 
-    this.L.WEAPONS.filter((w) => w.id !== g.weapon).forEach((w) => pool.push(this._card('weapon', w.clear)));
-    this.L.ROOMS.filter((r) => r.id !== g.room).forEach((r) => pool.push(this._card('room', r.clear)));
+    // Every card also says in data what it proves (`about`), so the screens can
+    // tag it and the TV can add up the evidence.
+    this.L.WEAPONS.filter((w) => w.id !== g.weapon).forEach((w) => pool.push(this._card('weapon', w.clear, { about: { type: 'weapon', id: w.id } })));
+    this.L.ROOMS.filter((r) => r.id !== g.room).forEach((r) => pool.push(this._card('room', r.clear, { about: { type: 'room', id: r.id } })));
 
     // Trait clues: 3 of 4, preferring ones that actually separate the killer
     // from at least one innocent.
@@ -337,18 +352,18 @@ class Game {
     }).slice(0, 3);
     traitIdx.forEach((i) => {
       const t = this.L.TRAITS[i];
-      pool.push(this._card('trait', kt[i] ? t.yesClue : t.noClue));
+      pool.push(this._card('trait', kt[i] ? t.yesClue : t.noClue, { about: { type: 'trait', id: t.id, has: !!kt[i] } }));
     });
 
     const alibiCount = this.players.length <= 5 ? 1 : 2;
     const alibiTemplates = shuffle(this.L.ALIBI_TEMPLATES);
     shuffle(g.innocents).slice(0, alibiCount).forEach((pid, i) => {
-      pool.push(this._card('alibi', alibiTemplates[i].replace(/\{X\}/g, this._label(pid))));
+      pool.push(this._card('alibi', alibiTemplates[i].replace(/\{X\}/g, this._label(pid)), { about: { type: 'alibi', playerId: pid } }));
     });
 
     const motiveTemplates = shuffle(this.L.MOTIVE_TEMPLATES);
     shuffle(Object.keys(g.chars)).slice(0, 2).forEach((pid, i) => {
-      pool.push(this._card('motive', motiveTemplates[i].replace(/\{X\}/g, this._label(pid))));
+      pool.push(this._card('motive', motiveTemplates[i].replace(/\{X\}/g, this._label(pid)), { about: { type: 'motive', playerId: pid } }));
     });
 
     const roomIds = shuffle(this.L.ROOMS.map((r) => r.id));
@@ -361,8 +376,8 @@ class Game {
     const list = [];
     const w = byId(this.L.WEAPONS, g.weapon);
     const r = byId(this.L.ROOMS, g.room);
-    list.push({ key: 'weapon', kind: 'weapon', text: w.clear, hint: this._t('{w} را بی‌گناه جلوه بده', { w: w.name }) });
-    list.push({ key: 'room', kind: 'room', text: r.clear, hint: this._t('{r} را پاک جلوه بده', { r: r.name }) });
+    list.push({ key: 'weapon', kind: 'weapon', text: w.clear, about: { type: 'weapon', id: w.id }, hint: this._t('{w} را بی‌گناه جلوه بده', { w: w.name }) });
+    list.push({ key: 'room', kind: 'room', text: r.clear, about: { type: 'room', id: r.id }, hint: this._t('{r} را پاک جلوه بده', { r: r.name }) });
     const kt = this._killerTraits();
     const innocentTraits = g.innocents.map((pid) => byId(this.L.CHARACTERS, g.chars[pid]).traits);
     this.L.TRAITS.forEach((t, i) => {
@@ -371,12 +386,12 @@ class Game {
         .filter((pid) => byId(this.L.CHARACTERS, g.chars[pid]).traits[i] !== kt[i])
         .map((pid) => byId(this.L.CHARACTERS, g.chars[pid]).name);
       list.push({
-        key: `trait:${t.id}`, kind: 'trait', text: kt[i] ? t.noClue : t.yesClue,
+        key: `trait:${t.id}`, kind: 'trait', text: kt[i] ? t.noClue : t.yesClue, about: { type: 'trait', id: t.id, has: !kt[i] },
         hint: this._t('شک را به {names} بینداز', { names: framed.join(this._t('، ')) }),
       });
     });
     const tpl = pick(this.L.ALIBI_TEMPLATES);
-    list.push({ key: 'alibi', kind: 'alibi', text: tpl.replace(/\{X\}/g, this._label(g.killerId)), hint: this._t('برای خودت شاهد دروغین بساز') });
+    list.push({ key: 'alibi', kind: 'alibi', text: tpl.replace(/\{X\}/g, this._label(g.killerId)), about: { type: 'alibi', playerId: g.killerId }, hint: this._t('برای خودت شاهد دروغین بساز') });
     return list;
   }
 
@@ -397,7 +412,7 @@ class Game {
     g.forgeryChoice = null;
     Object.keys(g.newCards).forEach((id) => { g.newCards[id] = []; });
     this._rollForgeryOptions();
-    this._setTimer(this.durations.search, () => this._endSearch());
+    this._setTimer(this._dur('search'), () => this._endSearch());
     this._changed();
   }
 
@@ -443,8 +458,8 @@ class Game {
     if (choice) {
       const f = g.forgeryOptions.find((x) => x.key === choice.key);
       g.usedForgeries.add(f.key);
-      const planted = this._card(f.kind, f.text, { forged: true, round: this.round, foundIn: choice.roomId });
-      const copy = this._card(f.kind, f.text, { forged: true, round: this.round, foundIn: choice.roomId, copyOf: planted.id });
+      const planted = this._card(f.kind, f.text, { forged: true, round: this.round, foundIn: choice.roomId, about: f.about });
+      const copy = this._card(f.kind, f.text, { forged: true, round: this.round, foundIn: choice.roomId, copyOf: planted.id, about: f.about });
       g.planted[choice.roomId].push(planted);
       g.plants.push({ cardId: planted.id, copyId: copy.id, text: f.text, round: this.round, roomId: choice.roomId, deliveredTo: null });
       g.hands[g.killerId].push(copy);
@@ -497,7 +512,7 @@ class Game {
     if (card.kind === 'nothing') return { ok: false, error: this._t('این کارت چیزی برای نشان دادن ندارد.') };
     card.pinned = true;
     g.pins[pid] += 1;
-    g.board.push({ cardId, playerId: pid, text: card.text, kind: card.kind, round: card.round, at: Date.now() });
+    g.board.push({ cardId, playerId: pid, text: card.text, kind: card.kind, about: card.about || null, round: card.round, pinRound: this.round, at: Date.now() });
     this._changed();
     return { ok: true };
   }
@@ -506,10 +521,10 @@ class Game {
     if (this.round < TOTAL_ROUNDS) {
       this.phase = 'vote';
       this.g.votes[this.round] = {};
-      this._setTimer(this.durations.vote, () => this._endVote());
+      this._setTimer(this._dur('vote'), () => this._endVote());
     } else {
       this.phase = 'final';
-      this._setTimer(this.durations.final, () => this._endFinal());
+      this._setTimer(this._dur('final'), () => this._endFinal());
     }
     this._changed();
   }
@@ -548,7 +563,7 @@ class Game {
       ballots: Object.entries(votes).map(([from, to]) => ({ from, to })),
     });
     this.phase = 'spotlight';
-    this._setTimer(this.durations.spotlight, () => this._startSearch());
+    this._setTimer(this._dur('spotlight'), () => this._startSearch());
     this._changed();
   }
 
@@ -687,6 +702,7 @@ class Game {
     else if (action === 'next') this.tutorial = Math.min(last, this.tutorial + 1);
     else if (action === 'prev') this.tutorial = Math.max(0, this.tutorial - 1);
     else return { ok: false, error: this._t('کار نامعتبر.') };
+    if (this.tutorial !== null) this.tutorialSeen = true;
     this._changed();
     return { ok: true };
   }
@@ -800,6 +816,9 @@ class Game {
       timer: this.timer,
       prologue: this.phase === 'intro' && this.prologue,
       tutorial: this.phase === 'lobby' ? this.tutorial : null,
+      tutorialSeen: this.tutorialSeen,
+      // Beginner mode of the running game (else the lobby setting).
+      beginner: g ? !!g.beginner : !!this.settings.beginner,
       serverNow: Date.now(),
       settings: this.settings,
       minPlayers: this.minPlayers,
@@ -824,7 +843,7 @@ class Game {
 
     state.game = {
       id: g.id,
-      board: g.board.map(({ cardId, playerId, text, kind, round }) => ({ cardId, playerId, text, kind, round })),
+      board: g.board.map(({ cardId, playerId, text, kind, about, round, pinRound }) => ({ cardId, playerId, text, kind, about, round, pinRound })),
       spotlight: this.phase === 'spotlight' ? g.spotlights[g.spotlights.length - 1] : null,
       spotlights: g.spotlights.map(({ round, playerId, votes }) => ({ round, playerId, votes })),
       revealStep: this.phase === 'reveal' ? g.revealStep : (this.phase === 'results' ? 99 : -1),
@@ -857,7 +876,7 @@ class Game {
     out.charId = g.chars[pid];
     out.role = isKiller ? 'killer' : 'innocent';
     out.hand = g.hands[pid].map((c) => ({
-      id: c.id, kind: c.kind, text: c.text, round: c.round, foundIn: c.foundIn, hallway: !!c.hallway,
+      id: c.id, kind: c.kind, text: c.text, about: c.about || null, round: c.round, foundIn: c.foundIn, hallway: !!c.hallway,
       pinned: !!c.pinned, isNew: g.newCards[pid].includes(c.id),
       ...(isKiller ? { forged: true } : {}),
     }));
@@ -866,7 +885,7 @@ class Game {
 
     if (isKiller) {
       out.truth = { weapon: g.weapon, room: g.room };
-      out.forgeryOptions = this.phase === 'search' ? g.forgeryOptions.map(({ key, text, hint }) => ({ key, text, hint })) : [];
+      out.forgeryOptions = this.phase === 'search' ? g.forgeryOptions.map(({ key, text, about, hint }) => ({ key, text, about, hint })) : [];
       out.forgeryChoice = g.forgeryChoice;
       out.plants = g.plants.map((x) => ({ text: x.text, round: x.round, roomId: x.roomId, delivered: !!x.deliveredTo }));
     } else {

@@ -9,14 +9,14 @@ button { font-family: inherit; }
 .btn.primary { background: linear-gradient(180deg, var(--pom-bright), var(--pom)); border-color: transparent; color: #fff; box-shadow: 0 .4rem 1.2rem rgba(163,18,58,.45); }
 .btn.gold { background: linear-gradient(180deg, var(--gold-soft), var(--gold)); color: var(--ink); border-color: transparent; }
 .btn.big { padding: 1.05rem; font-size: 1.2rem; }
-.btn:disabled { opacity: .45; }
+.btn:disabled { opacity: .6; }
 .btn.ghost { background: transparent; }
 
 /* ---------- join ---------- */
 .join { padding: 3.2rem 1.4rem 2rem; text-align: center; }
 .join-eyebrow { color: var(--gold); font-size: .95rem; }
 .join-title { font-size: 4.2rem; line-height: 1.05; margin: .4rem 0 .2rem; color: var(--gold-soft); text-shadow: 0 0 1.6rem rgba(217,164,65,.35), 0 .18rem 0 rgba(163,18,58,.7); }
-.join-tag { color: var(--pom-bright); font-size: 1.15rem; margin: 0 0 2.4rem; }
+.join-tag { color: var(--pom-text); font-size: 1.15rem; margin: 0 0 2.4rem; }
 .join form { display: grid; gap: .9rem; text-align: start; }
 .join label { font-weight: 700; color: var(--parchment); }
 .join input { font: inherit; font-size: 1.3rem; padding: .9rem 1rem; border-radius: .9rem; border: 2px solid rgba(240,208,138,.3);
@@ -65,7 +65,7 @@ button { font-family: inherit; }
 .opt .avatar { width: 2.2rem; height: 2.2rem; font-size: 1.05rem; }
 .opt.lie { display: block; }
 .opt.lie p { margin: 0; font-size: .95rem; line-height: 1.65; font-weight: 500; }
-.opt.lie .hint { display: block; margin-top: .4rem; color: var(--pom-bright); font-size: .85rem; font-weight: 700; }
+.opt.lie .hint { display: block; margin-top: .4rem; color: var(--pom-text); font-size: .85rem; font-weight: 700; }
 
 .seg { display: flex; gap: .4rem; background: rgba(29,16,24,.9); border-radius: .9rem; padding: .3rem; border: 1px solid rgba(240,208,138,.15); }
 .seg button { flex: 1; appearance: none; border: 0; background: transparent; color: var(--muted); font: inherit; font-weight: 700; padding: .55rem; border-radius: .65rem; }
@@ -74,7 +74,8 @@ button { font-family: inherit; }
 .players-mini { display: flex; flex-wrap: wrap; gap: .4rem; }
 .pm { display: inline-flex; align-items: center; gap: .35rem; background: rgba(42,23,34,.9); border-radius: 2rem; padding: .2rem .7rem .2rem .25rem; font-size: .9rem; }
 .pm .avatar { width: 1.6rem; height: 1.6rem; font-size: .8rem; }
-.pm.off { opacity: .45; }
+.pm.off { border: 1px dashed rgba(240,208,138,.3); color: var(--muted); }
+.pm.off .avatar { filter: grayscale(1); opacity: .55; }
 .pm button { appearance: none; border: 0; background: var(--pom); color: #fff; border-radius: 1rem; font: inherit; font-size: .75rem; padding: .1rem .5rem; margin-inline-start: .2rem; }
 
 /* ---------- tabs ---------- */
@@ -82,7 +83,7 @@ button { font-family: inherit; }
 .tabs:empty { display: none; }
 .tabs button { flex: 1; appearance: none; border: 0; background: transparent; color: var(--muted); font: inherit; font-weight: 700; font-size: .98rem; padding: .6rem .3rem; border-radius: .75rem; position: relative; }
 .tabs button.sel { background: rgba(217,164,65,.2); color: var(--gold-soft); }
-.tabs .badge { position: absolute; top: .15rem; left: .6rem; background: var(--pom-bright); color: #fff; font-size: .7rem; border-radius: 1rem; padding: 0 .4rem; min-width: 1.1rem; }
+.tabs .badge { position: absolute; top: .15rem; left: .6rem; background: var(--pom); color: #fff; font-size: .7rem; border-radius: 1rem; padding: 0 .4rem; min-width: 1.1rem; }
 .tab-body { padding: .9rem 1rem 1rem; display: grid; gap: .8rem; }
 
 /* ---------- clue cards ---------- */
@@ -94,7 +95,7 @@ button { font-family: inherit; }
 .clue .meta { display: flex; justify-content: space-between; align-items: center; gap: .6rem; margin-top: .65rem; padding-top: .55rem; border-top: 1px dashed rgba(42,20,24,.25); font-size: .82rem; color: #7a5a48; }
 .clue .pinbtn { appearance: none; border: 0; background: var(--ink); color: var(--gold-soft); font: inherit; font-weight: 700; font-size: .85rem; border-radius: 2rem; padding: .4rem .9rem; white-space: nowrap; }
 .clue .pinbtn:disabled { background: transparent; color: #2c6a49; padding: .4rem 0; }
-.clue .tag { position: absolute; top: -.6rem; left: .8rem; background: var(--pom-bright); color: #fff; font-size: .72rem; font-weight: 800; border-radius: 1rem; padding: .1rem .6rem; }
+.clue .tag { position: absolute; top: -.6rem; left: .8rem; background: var(--pom); color: #fff; font-size: .72rem; font-weight: 800; border-radius: 1rem; padding: .1rem .6rem; }
 .clue .tag.fake { background: #3a0b1a; color: #ffb3c1; border: 1px solid var(--pom-bright); }
 .clue.nothing { background: rgba(240,208,138,.12); color: var(--muted); box-shadow: none; }
 .clue.nothing .meta { border-color: rgba(240,208,138,.2); color: var(--muted); }
@@ -110,10 +111,10 @@ button { font-family: inherit; }
 .nb-row .nm small { color: var(--muted); font-weight: 500; font-size: .8rem; margin-inline-start: .3rem; }
 .nb-row .ti { font-size: .82rem; letter-spacing: .05rem; }
 .nb-row .mark { width: 1.9rem; height: 1.9rem; border-radius: .5rem; display: grid; place-items: center; font-weight: 800; border: 1px solid rgba(240,208,138,.25); }
-.nb-row.x .nm { text-decoration: line-through; opacity: .5; }
+.nb-row.x .nm { text-decoration: line-through; opacity: .65; }
 .nb-row.x .mark { background: rgba(184,161,133,.2); color: var(--muted); }
 .nb-row.q { border-color: var(--pom-bright); }
-.nb-row.q .mark { background: var(--pom-bright); color: #fff; }
+.nb-row.q .mark { background: var(--pom); color: #fff; }
 .nb-help { font-size: .85rem; color: var(--muted); text-align: center; }
 
 /* ---------- role ---------- */
@@ -126,13 +127,13 @@ button { font-family: inherit; }
 .role-body .bio { margin: 0; line-height: 1.7; color: var(--text); }
 .traits { display: flex; flex-wrap: wrap; gap: .35rem; }
 .trait { font-size: .85rem; padding: .15rem .6rem; border-radius: 2rem; background: rgba(240,208,138,.12); color: var(--gold-soft); }
-.trait.no { background: transparent; color: rgba(184,161,133,.55); text-decoration: line-through; }
+.trait.no { background: transparent; color: var(--dim); text-decoration: line-through; }
 .secret { border-radius: .9rem; padding: .9rem 1rem; line-height: 1.75; }
 .secret.innocent { background: rgba(73,194,138,.1); border: 1px solid rgba(73,194,138,.35); }
 .secret.killer { background: rgba(224,51,92,.14); border: 1px solid var(--pom-bright); }
 .secret h4 { margin: 0 0 .3rem; font-family: var(--display); font-weight: 400; font-size: 1.5rem; }
 .secret.innocent h4 { color: var(--good); }
-.secret.killer h4 { color: var(--pom-bright); }
+.secret.killer h4 { color: var(--pom-text); }
 .secret p { margin: 0; }
 .veil { appearance: none; font: inherit; width: 100%; border-radius: 1.1rem; border: 2px dashed rgba(240,208,138,.35); background: rgba(29,16,24,.9); color: var(--gold-soft);
   padding: 2.2rem 1rem; text-align: center; font-weight: 700; font-size: 1.1rem; line-height: 1.8; }
@@ -148,9 +149,9 @@ button { font-family: inherit; }
   border-top: 1px solid var(--line); display: flex; gap: .6rem; align-items: center; backdrop-filter: blur(8px); }
 .vip-bar .lbl { font-size: .82rem; color: var(--gold); white-space: nowrap; }
 .vip-bar .btn { padding: .65rem; font-size: .98rem; }
-.vip-bar .btn.confirm { background: var(--pom-bright); color: #fff; }
+.vip-bar .btn.confirm { background: var(--pom); border-color: var(--pom-bright); color: #fff; }
 
-.toast { position: fixed; top: 4.6rem; left: 50%; transform: translateX(-50%); z-index: 9; background: var(--bad); color: #fff; font-weight: 700; padding: .65rem 1.1rem; border-radius: 1rem; max-width: 90vw; text-align: center; animation: pop .25s ease both; }
+.toast { position: fixed; top: 4.6rem; left: 50%; transform: translateX(-50%); z-index: 9; background: #b8233d; color: #fff; font-weight: 700; padding: .65rem 1.1rem; border-radius: 1rem; max-width: 90vw; text-align: center; animation: pop .25s ease both; }
 .offline { position: fixed; bottom: 6rem; left: 50%; transform: translateX(-50%); z-index: 9; background: var(--pom); color: #fff; padding: .55rem 1.1rem; border-radius: 2rem; font-size: .9rem; white-space: nowrap; }
 
 /* ---------- items mode («دست‌به‌دست») ---------- */
@@ -176,7 +177,7 @@ button { font-family: inherit; }
 .portraits { display: grid; grid-template-columns: repeat(8, 1fr); gap: .35rem; }
 .pt-opt { appearance: none; font-size: 1.5rem; line-height: 1; aspect-ratio: 1; border-radius: .7rem; border: 2px solid rgba(240,208,138,.16); background: rgba(42,23,34,.9); padding: 0; }
 .pt-opt.sel { border-color: var(--gold); background: rgba(217,164,65,.22); }
-.pt-opt:disabled { opacity: .2; }
+.pt-opt:disabled { opacity: .3; }
 
 /* ---------- item illustrations on the phone ---------- */
 .item-now { perspective: 40rem; }
@@ -206,3 +207,25 @@ button { font-family: inherit; }
 .ph-phase { min-width: 0; }
 .ph-phase .display { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 [dir="ltr"] .ph-phase .display { font-size: 1.15rem; }
+
+/* ---------- beginner tip (play.js tipHtml) ---------- */
+.tip { display: flex; gap: .55rem; align-items: flex-start; font-size: .92rem; line-height: 1.65; color: var(--text);
+  background: rgba(47, 179, 166, .1); border: 1px solid rgba(47, 179, 166, .45); border-radius: .9rem; padding: .6rem .85rem; }
+
+/* ---------- clue tags on the phone ---------- */
+.clue .ctag { margin-top: .5rem; }
+/* forgery choices sit on a dark button: light text on a light wash */
+.opt .ctag { margin-top: .45rem; color: var(--text); background: rgba(240, 208, 138, .1); border-color: rgba(240, 208, 138, .25); }
+
+/* ---------- notebook suggestions from your own clues ---------- */
+.nb-row.auto .mark { border-style: dashed; border-color: var(--muted); color: var(--muted); }
+.nb-row.auto .nm { text-decoration: line-through; text-decoration-style: dashed; }
+.nb-auto { display: flex; gap: .6rem; align-items: center; font-size: .85rem; }
+.nb-auto .mark-demo { flex-shrink: 0; width: 1.6rem; height: 1.6rem; border-radius: .45rem; display: grid; place-items: center; border: 1px dashed var(--muted); color: var(--muted); font-weight: 800; }
+
+/* ---------- "what I know for sure" (items journal) ---------- */
+.facts { border-radius: 1rem; padding: .3rem .9rem .8rem; background: rgba(217, 164, 65, .1); border: 1px solid rgba(217, 164, 65, .4); }
+.facts ul { list-style: none; margin: .5rem 0 0; padding: 0; display: grid; gap: .4rem; }
+.facts li { font-size: .95rem; line-height: 1.65; color: var(--text); }
+.facts li.hot { color: var(--pom-text); font-weight: 700; }
+.facts li.muted { color: var(--muted); }

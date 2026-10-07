@@ -201,14 +201,34 @@
     </section>`;
   }
 
+  // ---- round recap (item 6): shown while everyone is busy searching ----
+  function recapHtml() {
+    const prev = S.round - 1;
+    if (prev < 1) return '';
+    const pinned = S.game.board.filter((b) => b.pinRound === prev);
+    const sp = S.game.spotlights.find((s) => s.round === prev);
+    const rows = [];
+    rows.push(`<li><span class="ri">📌</span><div>${pinned.length ? t('{n} مدرک روی تابلو آمد', { n: pinned.length }) : t('هیچ مدرکی روی تابلو نیامد')}
+      ${pinned.length ? `<div class="recap-tags">${pinned.slice(0, 3).map((b) => Z.clueTag(b.about, tagHelp())).join('')}${pinned.length > 3 ? `<span class="more">${t('+ {n} مدرک دیگر', { n: pinned.length - 3 })}</span>` : ''}</div>` : ''}</div></li>`);
+    rows.push(`<li><span class="ri">🎤</span><div>${sp ? t('بازجویی شد: {name} ({n} رأی)', { name: who(sp.playerId), n: sp.votes }) : t('کسی بازجویی نشد')}</div></li>`);
+    if (S.settings.caseFile) {
+      const f = boardFacts();
+      rows.push(`<li><span class="ri">🗂️</span><div>${t('تا اینجا {w} سلاح و {r} اتاق رد شده است.', { w: f.weaponsOut.size, r: f.roomsOut.size })}
+        ${f.conflicts.length ? `<b class="warn">${t('⚠️ {n} تناقض روی تابلو هست!', { n: f.conflicts.length })}</b>` : ''}</div></li>`);
+    }
+    return `<div class="recap"><h3>${t('دور {n} در یک نگاه', { n: prev })}</h3><ul>${rows.join('')}</ul></div>`;
+  }
+
   function viewSearch() {
     const layout = ['library', 'shahneshin', 'kitchen', 'sardab', 'garden', 'howz'];
+    const recap = recapHtml();
     return `<section class="search stage-in">
       <div>
         <div class="eyebrow">${t('دور {n} از {total}', { n: S.round, total: S.totalRounds })}</div>
         <h2 class="h-big">${t('عمارت را بگردید')}</h2>
         <p class="lead">${t('هر کس روی گوشی‌اش یک اتاق را انتخاب می‌کند و مدرکی پیدا می‌کند. مدرک‌ها خصوصی‌اند — خودتان تصمیم بگیرید چه چیزی را بگویید.')}</p>
         <p class="whisper">${t('…و همین حالا، قاتل در تاریکی مدرکی جعلی می‌کارد.')}</p>
+        ${recap}
       </div>
       <div class="mansion">${layout.map((id, i) => { const r = room(id); return `<div class="room ${id === 'garden' ? 'lit' : ''}" style="animation-delay:${i * 0.08}s"><div><div class="ri">${artOf(r, true)}</div><div class="rn">${esc(r.name)}</div></div></div>`; }).join('')}</div>
     </section>`;
@@ -224,14 +244,61 @@
       const isNew = !seenCards.has(c.cardId); seenCards.add(c.cardId);
       const p = pl(c.playerId);
       return `<div class="card ${isNew ? 'anim' : ''} ${i === 0 && isNew ? 'fresh' : ''}"><span class="kind">${KIND_ICON[c.kind] || '📄'}</span>
-        <p>${esc(c.text)}</p>
+        <p>${esc(c.text)}</p>${Z.clueTag(c.about, tagHelp())}
         <div class="by">${avatar(p)}<span>${who(c.playerId)} <i class="sep"></i> ${t('دور {n}', { n: c.round })}</span></div></div>`;
     });
     const more = b.length > max ? `<div class="board-more">${t('+ {n} مدرک قدیمی‌تر روی گوشی صاحبانشان', { n: b.length - max })}</div>` : '';
     return `<div class="board ${denser ? 'dense denser' : dense ? 'dense' : ''}">${items.join('')}${more}</div>`;
   }
 
+  const tagHelp = () => ({ C, artOf, nameOf: plainWho });
+
+  // ---- case file (item 3): what the pinned clues add up to ----
+  // Characters still in play whose traits match every trait the board agrees on.
+  const fitting = (f) => S.players.filter((p) => p.inGame && p.charId && f.fits(ch(p.charId).traits));
+
+  function conflictText(c) {
+    switch (c.type) {
+      case 'trait': return t('دو مدرک درباره‌ی «{trait}» با هم نمی‌خوانند — یکی جعلی است.', { trait: esc(C.traits.find((x) => x.id === c.id).name) });
+      case 'weapons': return t('همه‌ی سلاح‌ها رد شده‌اند — یکی از این مدارک جعلی است.');
+      case 'rooms': return t('همه‌ی اتاق‌ها رد شده‌اند — یکی از این مدارک جعلی است.');
+      case 'dupe': return t('یک مدرک را دو نفر نشان دادند — یکی از آن دو، کپی قاتل را دارد.');
+      case 'nofit': return t('هیچ‌کس با نشانه‌ها جور نیست — یکی از مدارک نشانه جعلی است.');
+      default: return '';
+    }
+  }
+
+  function boardFacts() {
+    const f = Z.caseFacts(S.game.board, C);
+    if (f.knownTraits && !f.conflicts.some((c) => c.type === 'trait') && !fitting(f).length) f.conflicts.push({ type: 'nofit' });
+    return f;
+  }
+
+  function caseFile() {
+    const f = boardFacts();
+    const chips = (list, out) => list.map((o) => `<li class="${out.has(o.id) ? 'out' : ''}">${artOf(o)}<span>${esc(o.name)}</span></li>`).join('');
+    const left = (list, out) => list.filter((o) => !out.has(o.id)).length;
+    const traits = C.traits.map((tr) => {
+      const v = f.traits[tr.id];
+      const val = v === 'conflict' ? `<b class="warn">${t('⚠️ تناقض')}</b>` : v === true ? `<b>${esc(tr.name)}</b>` : v === false ? `<b>${esc(tr.no)}</b>` : `<span class="unk">${t('معلوم نیست')}</span>`;
+      return `<li>${artOf(tr)}<span>${val}</span></li>`;
+    }).join('');
+    const fits = f.knownTraits ? fitting(f) : null;
+    const fitBox = fits && fits.length ? `<div class="fits"><span class="lbl">${t('با نشانه‌ها جور است:')}</span> ${fits.map((p) => `<span class="fit ${f.alibis.has(p.id) ? 'alibi' : ''}">${avatar(p)}${esc(ch(p.charId).name)}${f.alibis.has(p.id) ? ' 🕰️' : ''}</span>`).join('')}</div>` : '';
+    const conflicts = f.conflicts.length
+      ? `<div class="box conflicts"><h3>${t('تناقض!')}</h3><ul>${f.conflicts.map((c) => `<li>⚠️ ${conflictText(c)}</li>`).join('')}</ul></div>` : '';
+    // (Who was interrogated is in the round recap; the panel has to fit a TV.)
+    return `<aside class="side case">
+      ${conflicts}
+      <div class="box"><h3>${t('سلاح')} <small>${t('{n} مانده', { n: left(C.weapons, f.weaponsOut) })}</small></h3><ul class="chips">${chips(C.weapons, f.weaponsOut)}</ul></div>
+      <div class="box"><h3>${t('مکان')} <small>${t('{n} مانده', { n: left(C.rooms, f.roomsOut) })}</small></h3><ul class="chips">${chips(C.rooms, f.roomsOut)}</ul></div>
+      <div class="box"><h3>${t('نشانه‌های قاتل')}</h3><ul class="chips traits-k">${traits}</ul>${fitBox}</div>
+    </aside>`;
+  }
+
+  // Plain reference lists, for hosts who turn the case file off.
   function sidePanel() {
+    if (S.settings.caseFile) return caseFile();
     const spots = S.game.spotlights.length
       ? `<div class="box"><h3>${t('بازجویی‌شده‌ها')}</h3><ul>${S.game.spotlights.map((s) => `<li>${t('دور {n}', { n: s.round })}: ${who(s.playerId)}</li>`).join('')}</ul></div>` : '';
     return `<aside class="side">
@@ -255,7 +322,7 @@
     return `<section class="ask stage-in">
       <div class="ask-head"><div><div class="eyebrow">${t('دور {n}', { n: S.round })}</div><h2 class="h-big">${t('چه کسی باید بازجویی شود؟')}</h2>
       <p class="lead">${t('روی گوشی رأی بدهید. کسی که بیشترین رأی را بیاورد باید از خودش دفاع کند — و اتاق‌هایی که گشته لو می‌رود.')}</p></div></div>
-      ${boardHtml()}
+      <div class="ask-body">${boardHtml()}${sidePanel()}</div>
     </section>`;
   }
 
@@ -281,7 +348,7 @@
     return `<section class="ask stage-in">
       <div class="ask-head"><div><div class="eyebrow">${t('آخرین فرصت')}</div><h2 class="h-big">${esc(C.phaseTitles.final)}</h2>
       <p class="lead">${t('روی گوشی انتخاب کنید: قاتل کیست؟ با چه سلاحی؟ در کدام اتاق؟')}</p></div></div>
-      ${boardHtml()}
+      <div class="ask-body">${boardHtml()}${sidePanel()}</div>
     </section>`;
   }
 
@@ -387,8 +454,16 @@
           ? (S.game.actionsPerRound > 1 ? '…و شاید همین حالا، دو نفر پنهانی کاری مخفی انجام می‌دهند.' : '…و شاید همین حالا، یک نفر پنهانی کاری مخفی انجام می‌دهد.')
           : (S.game.actionsPerRound > 1 ? '…و همین حالا، دو نفر پنهانی کاری مخفی انجام می‌دهند.' : '…و همین حالا، یک نفر پنهانی کاری مخفی انجام می‌دهد.'))}</p>
       </div>
-      <aside class="side">${itemsInPlay()}${actionsBox()}</aside>
+      <aside class="side">${itemsInPlay()}${actionsBox()}${lastGossip()}</aside>
     </section>`;
+  }
+
+  // Recap of the previous gossip round (item 6).
+  function lastGossip() {
+    const g = S.game.gossips[S.game.gossips.length - 1];
+    if (!g) return '';
+    const arrow = document.documentElement.dir === 'ltr' ? '→' : '←';
+    return `<div class="box"><h3>${t('دور قبل')}</h3><p class="small">${esc(g.question)}${g.top.length ? ` ${arrow} <b>${g.top.map(name).join(LIST())}</b>` : ''}</p></div>`;
   }
 
   // Answers so far, as a bar that grows from where it was on the last paint.
@@ -593,6 +668,53 @@
   }
 
 
+  // ---- "what's happening now" bar under the header (item 1) ----
+  // The steps of this round, what to do right now, and who we are waiting for.
+  function flowSteps() {
+    if (itemsMode()) {
+      const last = S.round >= S.totalRounds;
+      const talk = last || S.round % (S.game.discussEvery || 2) === 0;
+      return ['gossip', 'gossipResult', ...(talk ? ['discuss'] : []), ...(last ? ['final'] : [])];
+    }
+    return S.round < S.totalRounds ? ['search', 'discuss', 'vote', 'spotlight'] : ['search', 'discuss', 'final'];
+  }
+
+  function flowDo() {
+    const sp = S.game && S.game.spotlight;
+    const map = itemsMode() ? {
+      gossip: t('📱 روی گوشی به سؤال جواب بدهید.'),
+      gossipResult: t('📺 ببینید بقیه چه جوابی دادند.'),
+      discuss: t('🗣️ حرف بزنید: چه کسی شب را با چاقو شروع کرد؟'),
+      final: t('📱 روی گوشی به کسی رأی بدهید که شب را با چاقو شروع کرد.'),
+    } : {
+      search: t('📱 روی گوشی یک اتاق را برای گشتن انتخاب کنید.'),
+      discuss: t('🗣️ مدارک را مقایسه کنید و با «نشان بده» روی تلویزیون بیاورید.'),
+      vote: t('📱 روی گوشی رأی بدهید: چه کسی بازجویی شود؟'),
+      spotlight: sp ? t('🎤 {name} از خودش دفاع می‌کند — سؤال کنید!', { name: esc(plainWho(sp.playerId)) }) : '',
+      final: t('📱 روی گوشی قاتل، سلاح و مکان را انتخاب کنید.'),
+    };
+    return map[S.phase] || '';
+  }
+
+  function flowWait() {
+    if (!['search', 'vote', 'final', 'gossip'].includes(S.phase)) return '';
+    const left = S.players.filter((p) => p.inGame && p.connected && !p.done);
+    if (!left.length) return `<span class="ok">${t('✓ همه انجام دادند')}</span>`;
+    if (left.length > 4) return t('منتظر {n} نفر…', { n: left.length });
+    return `${t('منتظر:')} ${left.map((p) => `<b>${esc(p.name)}</b>`).join(LIST())}`;
+  }
+
+  function flowHtml() {
+    if (!S.game || !S.round || ['lobby', 'intro', 'reveal', 'results'].includes(S.phase)) return '';
+    const titles = itemsMode() ? C.itemPhaseTitles : C.phaseTitles;
+    const steps = flowSteps();
+    const at = steps.indexOf(S.phase);
+    const arrow = document.documentElement.dir === 'ltr' ? '›' : '‹';
+    const ol = steps.map((ph, i) => `<li class="${i < at ? 'done' : i === at ? 'now' : ''}">${i < at ? '✓ ' : ''}${esc(titles[ph])}</li>`).join(`<li class="ar" aria-hidden="true">${arrow}</li>`);
+    const wait = flowWait();
+    return `<ol class="steps">${ol}</ol><div class="flow-do">${flowDo()}</div>${wait ? `<div class="flow-wait">${wait}</div>` : ''}`;
+  }
+
   function stripHtml() {
     if (['lobby', 'results', 'reveal', 'intro', 'gossipResult'].includes(S.phase)) return '';
     const showDone = ['search', 'vote', 'final', 'gossip'].includes(S.phase);
@@ -728,6 +850,7 @@
     const tableSize = S.phase === 'lobby' ? Math.max(S.players.length, S.modeMax) : S.players.filter((p) => p.inGame).length;
     $('app').classList.toggle('many', tableSize > 8);
     $('strip').innerHTML = stripHtml();
+    $('flow').innerHTML = flowHtml();
 
     if (S.phase === 'reveal' && itemsMode() && S.game.revealStep === 3) drawTrails();
     if (phaseChanged) {

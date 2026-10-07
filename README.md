@@ -44,6 +44,16 @@ Bots wait until a real person has joined, so a person is always the host (bots n
 - **Cinematic intro:** when a game starts, the TV plays a ~26 second animated prologue (Yalda night, the mansion, the clock striking twelve, the lights going out, a candle, the title card) before the story intro. The host can skip it from their phone: the first tap of the skip button ends only the cinematic, the next one skips the story intro as usual. Captions are in the game's language. Reconnecting the TV mid-cinematic resumes at the right moment. `CINEMATIC_SECONDS=0` disables it.
 - **Soundtrack (TV only, never on phones):** put your music in `public/audio/` as `theme.mp3` (loops through the lobby and game, getting quieter or louder with each phase) and optionally `intro.mp3` (plays once during the cinematic). With no files the game stays silent apart from its built-in effects. See `public/audio/README.txt`. Browsers block sound until the page is interacted with: click the TV page once, or launch Chrome with `--autoplay-policy=no-user-gesture-required`. Press **M** on the TV to mute.
 
+## Easier to follow
+
+- **"What's happening now" bar (TV):** under the header during play. It shows this round's steps with the current one highlighted, one line on what to do right now, and who the game is still waiting for.
+- **Clue tags:** every classic clue card says in one line what it proves ("Not the weapon: Samovar", "Killer: Left-handed", "Has an alibi: Shirin"). The tag appears on the phone and on the TV evidence board. The engine stores this as `about` on each card.
+- **Case file (TV, classic, host setting, on by default):** next to the evidence board, it shows which weapons and rooms the pinned clues rule out, what they say about the killer's traits, and which suspects still match. It flags contradictions, each of which means a forgery is on the board: two trait clues that disagree, every weapon or room ruled out, the same clue shown by two players, or nobody matching the traits. The host can switch it off mid-game for a harder table.
+- **Notebook suggestions (phone, classic):** your own clues pre-mark what they rule out with a dashed ✕. Tap to confirm it. The killer, whose cards are all lies, gets no suggestions.
+- **Beginner mode / "first game" (host setting, on by default):** action timers are 1.5× longer, each phone screen shows a one-line rule tip, and before the first game the start button offers "Rules first, then start", which opens the tutorial on the TV.
+- **Round recap (TV):** while everyone searches, the TV recaps the last round: the clues pinned, who was interrogated, and what is ruled out so far. In Hand to Hand, the gossip screen shows the previous question and its answer.
+- **"What you know for sure" (phone, Hand to Hand):** a box at the top of the journal lists hard facts. These are your starting item, anyone whose starting item you saw in round 1 (which tells you if they are a killer), every knife sighting, later snoops, and the rounds your item changed.
+
 ## How a game plays (≈20–25 min)
 
 1. **Lobby:** Players join on their phones and pick an emoji portrait. The first person to join is the host 👑 and controls start/skip from their phone. Everyone presses «آماده‌ام» (Ready), and the host can start once every online player is ready.

@@ -15,7 +15,9 @@
   --night-3: #2a1722;
   --line: rgba(217, 164, 65, 0.22);
   --pom: #a3123a;
-  --pom-bright: #e0335c;
+  --pom-bright: #e0335c; /* fills and borders; white text goes on --pom (7.8:1) */
+  --pom-text: #ff6f8e; /* pomegranate for TEXT on the dark theme (7.4:1 on --night) */
+  --dim: #a08b72; /* struck-out / upcoming text, still ≥5:1 on the dark panels */
   --gold: #d9a441;
   --gold-soft: #f0d08a;
   --parchment: #f5e6c8;
@@ -55,6 +57,17 @@ body {
 .display { font-family: var(--display); font-weight: 400; letter-spacing: 0; }
 .muted { color: var(--muted); }
 .gold { color: var(--gold); }
+.warn { color: var(--pom-text); }
+
+/* ---------- clue tag: what a clue proves (shared.js clueTag) ---------- */
+/* On parchment cards: ink on a faint ink wash. On dark panels: see overrides. */
+.ctag { display: inline-flex; flex-wrap: wrap; align-items: center; gap: .25rem; align-self: flex-start; max-width: 100%;
+  font-size: .9rem; font-weight: 500; line-height: 1.5; color: var(--ink); background: rgba(42, 20, 24, .09);
+  border: 1px solid rgba(42, 20, 24, .18); border-radius: .5rem; padding: .1rem .55rem; }
+.ctag b { font-weight: 800; }
+.ctag .art { width: 1.35em; height: 1.35em; vertical-align: -.35em; }
+.ctag-alibi { background: rgba(44, 106, 73, .12); border-color: rgba(44, 106, 73, .35); }
+.ctag-motive { background: rgba(163, 18, 58, .08); border-color: rgba(163, 18, 58, .3); }
 .hidden { display: none !important; }
 
 .avatar {
