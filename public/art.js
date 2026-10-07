@@ -298,5 +298,44 @@
     </svg>`;
   }
 
-  window.Art = { item, mansion, has: (id) => !!DRAW[id] };
+  // Night skyline for the Nowruz story: the Alborz foothills, a northern villa
+  // with a hipped roof and a long veranda, palms and orange trees, a jetty and
+  // the Caspian with moonlight glinting on it. Same classes as mansion():
+  // .body silhouettes, .lit .win flickering windows, plus .hills and .sea.
+  function villa() {
+    const win = (x, y, w, h, d) => `<rect class="win" style="animation-delay:${d}s" x="${x}" y="${y}" width="${w}" height="${h}" rx="2"/>`;
+    const palm = (x, h, lean) => {
+      const top = 320 - h;
+      const tx = x + lean;
+      const frond = (dx, dy) => `<path d="M${tx} ${top} Q${tx + dx * 0.5} ${top - 26 + dy} ${tx + dx} ${top + dy} Q${tx + dx * 0.55} ${top - 14 + dy} ${tx} ${top + 4} Z"/>`;
+      return `<path d="M${x - 5} 320 Q${x + lean * 0.4} ${top + h * 0.5} ${tx - 3} ${top} L${tx + 3} ${top} Q${x + lean * 0.4 + 6} ${top + h * 0.5} ${x + 5} 320 Z"/>
+        ${frond(-70, 18)}${frond(70, 14)}${frond(-46, 34)}${frond(50, 36)}${frond(-12, -6)}`;
+    };
+    const tree = (x, r) => `<circle cx="${x}" cy="${318 - r}" r="${r}"/><circle cx="${x - r * 0.7}" cy="${318 - r * 0.7}" r="${r * 0.7}"/><circle cx="${x + r * 0.75}" cy="${318 - r * 0.65}" r="${r * 0.65}"/>`;
+    const upper = [[600, 0.4], [670, 1.9], [740, 0.9], [830, 2.6], [900, 1.3], [970, 0.2]].map(([x, d]) => win(x, 206, 30, 34, d)).join('');
+    const glints = [[1040, 60], [1110, 34], [1180, 50], [1230, 26], [990, 30], [1290, 40]].map(([x, w], i) => `<rect class="glint" style="animation-delay:${i * 0.7}s" x="${x}" y="${330 + (i % 3) * 8}" width="${w}" height="2" rx="1"/>`).join('');
+    return `<svg class="manor villa" viewBox="0 0 1600 360" preserveAspectRatio="xMidYMax slice" aria-hidden="true">
+      <path class="hills" d="M0 262 Q120 176 250 236 Q370 150 520 222 Q700 120 880 206 Q1050 136 1210 214 Q1370 160 1600 236 L1600 360 L0 360 Z"/>
+      <rect class="sea" x="0" y="318" width="1600" height="42"/>
+      <g class="glints">${glints}</g>
+      <g class="body">
+        ${palm(250, 190, -24)}${palm(330, 150, 18)}${palm(1360, 200, 22)}
+        ${tree(450, 34)}${tree(1150, 30)}${tree(1210, 22)}
+        <path d="M380 322 L1260 322 L1240 312 L400 312 Z"/>
+        <rect x="560" y="196" width="480" height="122"/>
+        <path d="M528 200 L640 138 L960 138 L1072 200 Z"/>
+        <path d="M712 138 L760 112 L840 112 L888 138 Z"/>
+        <path d="M516 266 L1084 266 L1064 250 L536 250 Z"/>
+        <rect x="1240" y="314" width="230" height="6"/>
+        <rect x="1290" y="318" width="5" height="22"/><rect x="1370" y="318" width="5" height="22"/><rect x="1450" y="318" width="5" height="22"/>
+      </g>
+      <rect class="iwan" x="566" y="266" width="468" height="50"/>
+      <g class="body">${[574, 670, 766, 830, 926, 1022].map((x) => `<rect x="${x}" y="266" width="8" height="52"/>`).join('')}</g>
+      <g class="lit">${upper}
+        <path class="win door" style="animation-delay:1.2s" d="M778 316 L778 278 Q800 268 822 278 L822 316 Z"/>
+      </g>
+    </svg>`;
+  }
+
+  window.Art = { item, mansion, villa, has: (id) => !!DRAW[id] };
 })();

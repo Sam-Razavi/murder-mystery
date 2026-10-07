@@ -591,3 +591,10 @@ ul.small { list-style: none; padding: 0; display: grid; gap: .35rem; line-height
 .award .aw span { display: inline-flex; align-items: center; gap: .4rem; }
 .award .aw .avatar { width: 2rem; height: 2rem; font-size: 1rem; }
 .award .why { font-size: .95rem; color: var(--muted); line-height: 1.5; }
+
+/* ---------- Nowruz backdrop: villa, hills and sea (art.js villa) ---------- */
+.manor .hills { fill: #26162e; }
+.manor .sea { fill: #151a33; }
+.manor .glint { fill: #f0d08a; opacity: .4; animation: sea-glint 4.2s ease-in-out infinite; }
+@keyframes sea-glint { 0%, 100% { opacity: .2; } 50% { opacity: .7; } }
+@media (prefers-reduced-motion: reduce) { .manor .glint { animation: none; } }

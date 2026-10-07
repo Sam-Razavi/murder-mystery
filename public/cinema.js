@@ -27,7 +27,8 @@
     setTimeout(() => el.remove(), 900);
   }
 
-  /* opts: { lang, durationMs, elapsedMs, title, subtitle, texts, cues, skipHint }
+  /* opts: { lang, durationMs, elapsedMs, title, subtitle, texts, cues, skipHint, skyline }
+     skyline: SVG for the story (default: the Yalda mansion).
      texts: window.Guide.CINEMA[lang]; cues: { fraction: fn } for sound effects. */
   function play(opts) {
     stop(true);
@@ -41,7 +42,7 @@
     const art = window.Art;
     root.innerHTML = `
       <div class="cin-sky"></div><div class="cin-stars"></div>
-      <div class="cin-world"><div class="cin-moon"></div><div class="cin-mansion">${art ? art.mansion() : ''}</div></div>
+      <div class="cin-world"><div class="cin-moon"></div><div class="cin-mansion">${opts.skyline || (art ? art.mansion() : '')}</div></div>
       <div class="cin-fog f1"></div><div class="cin-fog f2"></div>
       <div class="cin-clock">${clockSvg}</div>
       <div class="cin-candle"><div class="cin-glow"></div>${art && art.has('candle') ? art.item('candle', { anim: true, title: '' }) : ''}</div>

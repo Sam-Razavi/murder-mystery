@@ -1,5 +1,6 @@
 /* TV atmosphere: a living night scene behind every screen (sky, moon,
-   twinkling stars, falling snow, the mansion skyline with flickering
+   twinkling stars, falling snow over the Shiraz mansion, or drifting
+   blossom over the Ramsar villa in the Nowruz story, with flickering
    windows) and the curtain transition between phases. window.Scene. */
 (function () {
   const reduced = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -26,6 +27,7 @@
   let dpr = 1;
   let stars = [];
   let flakes = [];
+  let weather = 'snow'; // 'snow' (Yalda) or 'petals' (Nowruz)
 
   function resize() {
     dpr = Math.min(window.devicePixelRatio || 1, 1.5);
@@ -35,13 +37,14 @@
       x: Math.random() * W, y: Math.random() * H * 0.62, r: (0.4 + Math.random() * 1.2) * dpr,
       p: Math.random() * Math.PI * 2, s: 0.6 + Math.random() * 1.6,
     }));
-    flakes = Array.from({ length: 80 }, () => newFlake(true));
+    flakes = Array.from({ length: weather === 'petals' ? 46 : 80 }, () => newFlake(true));
   }
   function newFlake(anywhere) {
     return {
       x: Math.random() * W, y: anywhere ? Math.random() * H : -10,
       r: (0.8 + Math.random() * 2) * dpr, vy: (0.25 + Math.random() * 0.6) * dpr,
       sw: Math.random() * Math.PI * 2, a: 0.25 + Math.random() * 0.45,
+      rot: Math.random() * Math.PI, spin: (Math.random() - 0.5) * 0.04,
     };
   }
 
@@ -57,13 +60,23 @@
       ctx.fillStyle = '#f5e6c8';
       ctx.beginPath(); ctx.arc(s.x, s.y, s.r, 0, Math.PI * 2); ctx.fill();
     });
+    const petals = weather === 'petals';
     flakes.forEach((f, i) => {
-      f.y += f.vy;
+      f.y += petals ? f.vy * 0.7 : f.vy;
       f.sw += 0.012;
-      const x = f.x + Math.sin(f.sw) * 14 * dpr;
+      const x = f.x + Math.sin(f.sw) * (petals ? 26 : 14) * dpr;
       ctx.globalAlpha = f.a;
-      ctx.fillStyle = '#ffffff';
-      ctx.beginPath(); ctx.arc(x, f.y, f.r, 0, Math.PI * 2); ctx.fill();
+      ctx.beginPath();
+      if (petals) {
+        // orange-blossom and pink petals tumbling as they drift
+        f.rot += f.spin;
+        ctx.fillStyle = i % 3 ? '#f7d6e0' : '#fff4e4';
+        ctx.ellipse(x, f.y, f.r * 1.9, f.r, f.rot, 0, Math.PI * 2);
+      } else {
+        ctx.fillStyle = '#ffffff';
+        ctx.arc(x, f.y, f.r, 0, Math.PI * 2);
+      }
+      ctx.fill();
       if (f.y > H + 10) flakes[i] = newFlake(false);
     });
     ctx.globalAlpha = 1;
@@ -96,5 +109,18 @@
   // Busy screens (reveal timeline, scoreboard) get a calmer backdrop.
   function setDim(on) { scene.classList.toggle('dim', !!on); }
 
-  window.Scene = { transition, setDim, reduced };
+  // Backdrop for the story being played: skyline and weather.
+  let story = 'yalda';
+  function setStory(id) {
+    const next = id === 'nowruz' ? 'nowruz' : 'yalda';
+    if (next === story) return;
+    story = next;
+    scene.querySelector('.skyline').innerHTML = story === 'nowruz' ? window.Art.villa() : window.Art.mansion();
+    scene.classList.toggle('spring', story === 'nowruz');
+    weather = story === 'nowruz' ? 'petals' : 'snow';
+    resize();
+    if (reduced) frame(1000);
+  }
+
+  window.Scene = { transition, setDim, setStory, reduced };
 })();

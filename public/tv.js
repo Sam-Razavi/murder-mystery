@@ -811,7 +811,7 @@
     const story = itemsMode() ? C.itemsStory : C.story;
     Cinema.play({
       durationMs: dur, elapsedMs: dur - window.Z.remaining(S.timer), title: story.title, subtitle: story.subtitle,
-      texts: cinemaTexts(), skipHint: Guide.CINEMA[S.lang || 'fa'].skip, cues,
+      skyline: S.story === 'nowruz' ? Art.villa() : null, texts: cinemaTexts(), skipHint: Guide.CINEMA[S.lang || 'fa'].skip, cues,
     });
   }
 
@@ -896,6 +896,7 @@
       });
     }
     Scene.setDim(['reveal', 'results', 'summary'].includes(S.phase));
+    Scene.setStory(S.story);
     // Big tables (9–12) switch the TV to a denser layout.
     const tableSize = S.phase === 'lobby' ? Math.max(S.players.length, S.modeMax) : S.players.filter((p) => p.inGame).length;
     $('app').classList.toggle('many', tableSize > 8);
