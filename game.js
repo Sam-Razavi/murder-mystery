@@ -1025,6 +1025,44 @@ class Game {
     return out;
   }
 
+  // ---------------------------------------------------------------- save / restore
+
+  // What survives a server restart: who is here, the scores, the night's
+  // stats and the host's settings. A game in progress is not saved; after a
+  // restart everyone is back in the lobby with their scores.
+  snapshot() {
+    return {
+      v: 1,
+      savedAt: Date.now(),
+      vipId: this.vipId,
+      gamesPlayed: this.gamesPlayed,
+      settings: this.settings,
+      stats: this.stats,
+      players: this.players.map(({ id, name, score, portrait, joinedAt }) => ({ id, name, score, portrait, joinedAt })),
+    };
+  }
+
+  // Restores a snapshot into the lobby: everyone offline until their phone
+  // reconnects (phones remember their id). Unknown settings are dropped.
+  restore(data) {
+    if (!data || data.v !== 1 || !Array.isArray(data.players)) return false;
+    this.players = data.players
+      .filter((p) => p && typeof p.id === 'string' && typeof p.name === 'string')
+      .slice(0, this.maxPlayers)
+      .map((p) => ({ id: p.id, name: p.name, score: Number(p.score) || 0, portrait: p.portrait, joinedAt: p.joinedAt || 0, connected: false, ready: false }));
+    Object.entries(data.settings || {}).forEach(([k, v]) => {
+      const options = SETTING_OPTIONS[k];
+      const match = options && options.find((o) => String(o) === String(v));
+      if (match !== undefined) this.settings[k] = match;
+    });
+    this.stats = data.stats && typeof data.stats === 'object' ? data.stats : {};
+    this.gamesPlayed = Number(data.gamesPlayed) || 0;
+    this.vipId = this.players.some((p) => p.id === data.vipId) ? data.vipId : null;
+    this._ensureVip();
+    this.phase = 'lobby';
+    return true;
+  }
+
   dispose() { this._clearTimer(); this._phaseToken += 1; }
 }
 

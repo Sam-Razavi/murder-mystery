@@ -61,6 +61,43 @@ const playerSockets = new Map();
 
 const game = new Game({ timeScale: TIME_SCALE, minPlayers: MIN_PLAYERS, cinematic: CINEMATIC, onChange: broadcast });
 
+// ---- the night survives a restart (players, scores, stats, settings) ----
+// SAVE_FILE=off turns it off. A save older than SAVE_MAX_HOURS is a new night.
+const SAVE_FILE = process.env.SAVE_FILE === 'off' ? null : (process.env.SAVE_FILE || path.join(__dirname, 'data', 'night.json'));
+const SAVE_MAX_MS = (Number(process.env.SAVE_MAX_HOURS) || 12) * 3600 * 1000;
+let lastSaved = '';
+let saveTimer = null;
+
+function loadNight() {
+  if (!SAVE_FILE) return;
+  try {
+    const data = JSON.parse(fs.readFileSync(SAVE_FILE, 'utf8'));
+    if (Date.now() - (data.savedAt || 0) > SAVE_MAX_MS) return;
+    if (game.restore(data)) {
+      lastSaved = JSON.stringify({ ...game.snapshot(), savedAt: 0 });
+      console.log(`  Restored tonight's game — players: ${game.players.length}, games played: ${game.gamesPlayed}`);
+    }
+  } catch { /* no save yet, or unreadable: start fresh */ }
+}
+
+// Called on every change; writes (at most once a second) only when the saved part changed.
+function saveNightSoon() {
+  if (!SAVE_FILE || saveTimer) return;
+  saveTimer = setTimeout(() => {
+    saveTimer = null;
+    const snap = game.snapshot();
+    const key = JSON.stringify({ ...snap, savedAt: 0 });
+    if (key === lastSaved) return;
+    try {
+      fs.mkdirSync(path.dirname(SAVE_FILE), { recursive: true });
+      fs.writeFileSync(`${SAVE_FILE}.tmp`, JSON.stringify(snap));
+      fs.renameSync(`${SAVE_FILE}.tmp`, SAVE_FILE); // never leave a half-written save
+      lastSaved = key;
+    } catch (err) { console.error('Could not save the night:', err.message); }
+  }, 1000);
+}
+loadNight();
+
 // Story content for the screens (bundle.js), sent to each one on connect.
 const CONTENT = screenContent(JOIN_URL);
 
@@ -69,6 +106,7 @@ function broadcast() {
   // Coalesce bursts of changes into one emit per tick.
   if (broadcastQueued) return;
   broadcastQueued = true;
+  saveNightSoon();
   setImmediate(() => {
     broadcastQueued = false;
     const pub = game.publicState();

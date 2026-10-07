@@ -26,6 +26,10 @@ Requires Node 18+. The phones and the PC have to be on the same Wi-Fi/LAN. The g
 | `MIN_PLAYERS` | `4` | Lower it for testing |
 | `TIME_SCALE` | `1` | >1 runs every timer faster (testing) |
 | `CINEMATIC_SECONDS` | `26` | Length of the TV cinematic before the story intro; `0` turns it off |
+| `SAVE_FILE` | `data/night.json` | Where the night is saved; `off` turns saving off |
+| `SAVE_MAX_HOURS` | `12` | An older save counts as a new night and is ignored |
+
+**The night survives a restart.** The server saves the players, scores, the night's stats and the host's settings to `data/night.json` whenever they change. If the PC restarts or the server crashes, start it again: everyone is back in the lobby with their scores, and phones reconnect by themselves (they remember who they are). A game in progress is lost, but not the night. A save older than 12 hours is ignored, and «شب تازه» / "New night" resets it.
 
 ## Playing with fewer than 4 people (bots)
 

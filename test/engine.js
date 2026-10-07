@@ -385,6 +385,28 @@ async function playOne(n, gameNo, lang = 'fa', story = 'yalda') {
   check('night: new night resets', ng2.newNight('a').ok && ng2.phase === 'lobby' && ng2.gamesPlayed === 0 && !Object.keys(ng2.stats).length && ng2.players.every((p) => p.score === 0));
   ng2.dispose();
 
+  // Save / restore: scores, stats, settings and the host survive a restart.
+  const sv = new Game({ timeScale: 1000, minPlayers: 4 });
+  pids.forEach((id) => sv.join(id, `N${id}`));
+  pids.forEach((id) => sv.setReady(id, true));
+  sv.setSetting('a', 'lang', 'en');
+  sv.setSetting('a', 'story', 'nowruz');
+  sv.start('a');
+  for (let i = 0; i < 40 && sv.phase !== 'reveal'; i++) sv.skip('a');
+  sv.skipReveal('a');
+  const snap = JSON.parse(JSON.stringify(sv.snapshot()));
+  sv.dispose();
+  const rs = new Game({ minPlayers: 4 });
+  check('restore: accepted', rs.restore(snap) === true && rs.phase === 'lobby');
+  check('restore: players, names and scores', rs.players.length === 4 && pids.every((id) => rs.player(id).name === `N${id}` && rs.player(id).score === snap.players.find((p) => p.id === id).score));
+  check('restore: everyone offline and not ready', rs.players.every((p) => !p.connected && !p.ready));
+  check('restore: settings, stats, games, host', rs.settings.lang === 'en' && rs.settings.story === 'nowruz' && rs.gamesPlayed === 1 && Object.keys(rs.stats).length === 4 && rs.vipId === 'a');
+  check('restore: a phone reconnects by id', rs.join('b', '').ok && rs.player('b').connected);
+  check('restore: bad data refused', !new Game().restore({ v: 2 }) && !new Game().restore(null));
+  const junk = new Game();
+  check('restore: unknown settings dropped', junk.restore({ v: 1, players: [], settings: { lang: 'xx', evil: 1 } }) && junk.settings.lang === 'fa' && !('evil' in junk.settings));
+  rs.dispose();
+
   // The host's first look at the slides is remembered (the phone's start button uses it).
   const tg = new Game({ minPlayers: 4 });
   ['a', 'b', 'c', 'd'].forEach((id) => tg.join(id, id));
