@@ -105,6 +105,8 @@ The host chooses the mode in the lobby on their phone. This mode follows the ite
 - Killer: escapes, i.e. does not get the most votes in the final accusation (a tie for most still counts as caught) **+5**; plus **+1** for each forged clue that reached another player
 
 ### Phone features
+The phone screen stays awake during the game (no dimming in a long discussion). It uses [NoSleep.js](https://github.com/richtr/NoSleep.js) (MIT): the Wake Lock API where the browser allows it, otherwise a tiny muted looping video, which also works on plain http on the LAN. Browsers only allow it after a tap, so it switches on with the first tap on the phone.
+
 Private role card (tap to reveal, hides itself after 15 seconds), clue hand with pin-to-TV, a deduction notebook (tap to mark ✕ or ؟, saved per game), reconnect-safe identity (the phone remembers who it is), and vibration when it's your turn to act.
 
 ## Languages: فارسی and English

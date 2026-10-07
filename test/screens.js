@@ -13,7 +13,7 @@ const PERSIAN = /[؀-ۿ]/;
 const CONTENT = screenContent('http://localhost:3100/');
 const pub = (f) => path.join(__dirname, '..', 'public', f);
 const TV_SCRIPTS = ['i18n.js', 'shared.js', 'art.js', 'faces.js', 'scene.js', 'guide.js', 'cinema.js', 'audio.js', 'tv.js'];
-const PHONE_SCRIPTS = ['i18n.js', 'shared.js', 'art.js', 'faces.js', 'guide.js', 'play.js'];
+const PHONE_SCRIPTS = ['i18n.js', 'shared.js', 'art.js', 'faces.js', 'guide.js', '../node_modules/nosleep.js/dist/NoSleep.min.js', 'play.js'];
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
 let pass = 0;
@@ -39,6 +39,9 @@ function makeScreen(htmlFile, scripts, url = 'http://localhost:3100/', setup = (
   w.matchMedia = () => ({ matches: true, addEventListener() {}, removeEventListener() {}, addListener() {} });
   w.HTMLCanvasElement.prototype.getContext = () => new Proxy({}, { get: (t, k) => (k in t ? t[k] : () => {}), set: (t, k, v) => { t[k] = v; return true; } });
   w.scrollTo = () => {};
+  w.HTMLMediaElement.prototype.play = function play() { return Promise.resolve(); }; // NoSleep's video
+  w.HTMLMediaElement.prototype.pause = () => {};
+  w.HTMLMediaElement.prototype.load = () => {};
   w.HTMLElement.prototype.scrollIntoView = () => {};
   w.fetch = async () => ({ json: async () => ({ theme: null, intro: null }) });
   w.Audio = class { play() { return Promise.resolve(); } pause() {} addEventListener() {} };

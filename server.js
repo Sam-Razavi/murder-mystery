@@ -49,6 +49,8 @@ app.get('/audio/manifest.json', (req, res) => {
   res.set('Cache-Control', 'no-store').json({ theme: find('theme'), intro: find('intro') });
 });
 app.use(express.static(path.join(__dirname, 'public'), { extensions: ['html'] }));
+// Keeps phone screens awake (MIT, npm "nosleep.js"); see play.js stayAwake().
+app.get('/vendor/nosleep.js', (req, res) => res.sendFile(require.resolve('nosleep.js/dist/NoSleep.min.js')));
 app.get('/', (req, res) => res.sendFile(path.join(__dirname, 'public', 'play.html')));
 app.get('/qr.svg', async (req, res) => {
   const svg = await QRCode.toString(JOIN_URL, { type: 'svg', margin: 1, color: { dark: '#1a0f14', light: '#f5e6c8' } });

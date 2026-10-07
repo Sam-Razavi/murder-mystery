@@ -74,6 +74,17 @@
   }
   const buzz = (ms = 60) => { try { navigator.vibrate && navigator.vibrate(ms); } catch { /* ignore */ } };
 
+  // Keep the screen from sleeping during long discussions. NoSleep uses the
+  // Wake Lock API where the browser allows it (https/localhost) and otherwise
+  // a tiny muted looping video, which also works on plain http on the LAN.
+  // Browsers only allow either from a tap, so every tap (re)arms it.
+  const noSleep = window.NoSleep ? new window.NoSleep() : null;
+  function stayAwake() {
+    if (!noSleep || noSleep.isEnabled) return;
+    try { Promise.resolve(noSleep.enable()).catch(() => {}); } catch { /* unsupported: the phone may dim */ }
+  }
+  document.addEventListener('click', stayAwake, true);
+
   // ------------------------------------------------------------ notebook
   const nbKey = () => `ziafat:nb:${S.game ? S.game.id : 'x'}`;
   const nbGet = () => store.get(nbKey(), {});
