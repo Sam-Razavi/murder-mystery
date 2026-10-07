@@ -1,0 +1,13 @@
+# Text files are LF in the repo and in every working copy (also on Windows),
+# so git stops warning about line endings and diffs stay clean.
+* text=auto eol=lf
+
+# Never touch binary assets.
+*.woff2 binary
+*.mp3 binary
+*.ogg binary
+*.m4a binary
+*.wav binary
+*.webm binary
+*.png binary
+*.jpg binary
