@@ -171,7 +171,7 @@
           <li><span>${t('<b>بحث کنید، بازجویی کنید،</b> و در آخر بگویید قاتل کیست، با چه سلاحی و کجا.')}</span></li>`;
     return `<section class="lobby stage-in">
       <div>
-        <div class="eyebrow">${t('شب یلدا')} <i class="sep"></i> ${t('شیراز')} <i class="sep"></i> ${t('عمارت فرهمند')}</div>
+        <div class="eyebrow">${esc(story.eyebrow)}</div>
         <h1 class="display title">${esc(story.title)}</h1>
         <p class="subtitle">${esc(story.subtitle)}</p>
         <ol class="how">${how}
@@ -220,7 +220,7 @@
   }
 
   function viewSearch() {
-    const layout = ['library', 'shahneshin', 'kitchen', 'sardab', 'garden', 'howz'];
+    const layout = C.rooms.map((r) => r.id); // the story's six rooms
     const recap = recapHtml();
     return `<section class="search stage-in">
       <div>
@@ -370,7 +370,7 @@
           <div class="n">${num(row.votes)}</div></div>`).join('')}</div>`;
     } else if (step === 1) {
       const p = pl(r.killerId);
-      inner = `<div class="killer-reveal show" style="--sus:${SUSPENSE + 0.5}s"><div class="spot"></div>${unmask(p, SUSPENSE - 0.3)}<div class="k1">${t('قاتل آقابزرگ…')}</div>
+      inner = `<div class="killer-reveal show" style="--sus:${SUSPENSE + 0.5}s"><div class="spot"></div>${unmask(p, SUSPENSE - 0.3)}<div class="k1">${t('قاتل {victim}…', { victim: esc(C.story.victim) })}</div>
         ${dots()}<div class="k2 after">${esc(ch(p.charId).name)} (${esc(p.name)})</div>
         <div class="verdict stamp ${r.caught ? 'caught' : 'escaped'}" style="--vd:${SUSPENSE + 1.1}s">${r.caught ? t('گیر افتاد!') : t('فرار کرد!')}</div></div>`;
     } else if (step === 2) {
@@ -792,6 +792,13 @@
   let lastDone = 0; // pending reveal sounds, cancelled when the screen changes
 
   // ------------------------------------------------------------ cinematic, slides, music
+  // Cinematic captions in the game's language, for its story.
+  function cinemaTexts() {
+    const base = Guide.CINEMA[S.lang || 'fa'];
+    const own = !itemsMode() && Guide.STORIES[S.story];
+    return own ? { ...base, captions: own.captions[S.lang || 'fa'] } : base;
+  }
+
   // Prologue: cinematic over the intro phase until the host skips it or it ends.
   function syncCinema() {
     const on = S.phase === 'intro' && !!S.prologue && !!S.timer && !!window.Cinema;
@@ -804,7 +811,7 @@
     const story = itemsMode() ? C.itemsStory : C.story;
     Cinema.play({
       durationMs: dur, elapsedMs: dur - window.Z.remaining(S.timer), title: story.title, subtitle: story.subtitle,
-      texts: Guide.CINEMA[S.lang || 'fa'], skipHint: Guide.CINEMA[S.lang || 'fa'].skip, cues,
+      texts: cinemaTexts(), skipHint: Guide.CINEMA[S.lang || 'fa'].skip, cues,
     });
   }
 
@@ -819,10 +826,12 @@
     }
     const lang = S.lang || 'fa';
     const mode = S.settings.mode === 'items' ? 'items' : 'classic';
-    const key = `${S.tutorial}:${lang}:${mode}`;
+    const key = `${S.tutorial}:${lang}:${mode}:${S.story}`;
     if (el && key === guideKey) return;
     guideKey = key;
-    const slides = Guide.GUIDE[lang][mode];
+    // Another classic story swaps in its own opening slide.
+    const own = mode === 'classic' && Guide.STORIES[S.story];
+    const slides = own ? [own.slide[lang], ...Guide.GUIDE[lang][mode].slice(1)] : Guide.GUIDE[lang][mode];
     const s = slides[Math.min(S.tutorial, slides.length - 1)];
     if (!el) { el = document.createElement('div'); el.id = 'guide'; el.className = 'guide'; document.body.appendChild(el); }
     el.innerHTML = `<div class="guide-card"><div class="guide-ico">${s.icon}</div>
@@ -935,11 +944,11 @@
 
   socket.on('connect', () => { $('offline').classList.add('hidden'); socket.emit('tv:hello'); });
   socket.on('disconnect', () => $('offline').classList.remove('hidden'));
-  socket.on('content', (c) => { ALL = c; C = ALL[(S && S.lang) || 'fa']; render(); });
+  socket.on('content', (c) => { ALL = c; C = Z.bundleFor(ALL, S); render(); });
   socket.on('state', (s) => {
     S = s;
     setLang(s.lang || 'fa');
-    if (ALL) C = ALL[s.lang || 'fa'];
+    if (ALL) C = Z.bundleFor(ALL, s);
     syncClock(s.serverNow); setTimer(s.timer); render();
   });
 })();

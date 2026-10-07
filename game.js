@@ -3,6 +3,12 @@
 
 const C = require('./content'); // Farsi bundle: language-independent data (ids, portraits, counts)
 const LANGS = { fa: C, en: require('./content.en') };
+// Stories for the classic mode, each laid over the base bundle (same keys).
+// «دست‌به‌دست» always plays the Yalda story.
+const STORIES = {
+  yalda: LANGS,
+  nowruz: { fa: { ...C, ...require('./content.nowruz') }, en: { ...LANGS.en, ...require('./content.nowruz.en') } },
+};
 const { tr } = require('./public/i18n');
 const Items = require('./items');
 
@@ -36,6 +42,7 @@ const SETTING_OPTIONS = {
   killersKnow: [false, true], // items mode: killers see each other
   beginner: [true, false], // first game: slower action timers + rule tips on the phones
   caseFile: [true, false], // classic: TV sums up what the pinned clues prove
+  story: Object.keys(STORIES), // classic: which mystery
 };
 const LIVE_SETTINGS = ['discussSeconds', 'caseFile'];
 const BEGINNER_SLOWDOWN = 1.5; // action timers in beginner mode
@@ -69,7 +76,7 @@ class Game {
     this.round = 0;
     this.settings = {
       discussSeconds: 150, mode: 'classic', lang: 'fa', itemRounds: 6, gossipSeconds: 40, quietRounds: false, killersKnow: false,
-      beginner: true, caseFile: true,
+      beginner: true, caseFile: true, story: 'yalda',
     };
     this.g = null; // per-game state
     this.timer = null; // {endsAt, duration}
@@ -95,8 +102,14 @@ class Game {
   // Language of everything shown: fixed for a running game, else the lobby setting.
   lang() { return (this.g && this.g.lang) || this.settings.lang || 'fa'; }
 
+  // Story of the running game, else the lobby choice. Hand to Hand is always Yalda.
+  story() {
+    if (this.g) return this.g.story || 'yalda';
+    return this.settings.mode === 'items' ? 'yalda' : this.settings.story;
+  }
+
   // Story content in the current language (ids are the same in both).
-  get L() { return LANGS[this.lang()]; }
+  get L() { return STORIES[this.story()][this.lang()]; }
 
   // Interface text: written in Farsi, translated by public/i18n.js.
   _t(text, vars) { return tr(this.lang(), text, vars); }
@@ -343,6 +356,7 @@ class Game {
     this.g = {
       mode: 'classic',
       lang: this.settings.lang,
+      story: this.settings.story,
       beginner: !!this.settings.beginner,
       id: `${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`,
       ids,
@@ -917,6 +931,7 @@ class Game {
       phase: this.phase,
       mode: g ? g.mode : this.settings.mode,
       lang: this.lang(),
+      story: this.story(),
       round: this.round,
       totalRounds: g && g.mode === 'items' ? g.totalRounds : TOTAL_ROUNDS,
       // A paused timer carries the time left instead of an end time.
@@ -1015,4 +1030,4 @@ class Game {
 
 Object.assign(Game.prototype, Items.methods);
 
-module.exports = { Game, TOTAL_ROUNDS, DEFAULT_DURATIONS, SETTING_OPTIONS, MAX_PLAYERS, CLASSIC_MAX };
+module.exports = { Game, STORIES, TOTAL_ROUNDS, DEFAULT_DURATIONS, SETTING_OPTIONS, MAX_PLAYERS, CLASSIC_MAX };

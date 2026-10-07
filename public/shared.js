@@ -111,5 +111,12 @@
     return f;
   }
 
-  window.Z = { num, t, setLang, getLang, esc, store, makeId, syncClock, now, remaining, setTimer, clueTag, caseFacts };
+  // Content bundle for a state: its story (classic) in its language.
+  const bundleFor = (all, s) => {
+    const lang = (s && s.lang) || 'fa';
+    const st = s && s.story && all.stories && all.stories[s.story];
+    return st ? st[lang] : all[lang];
+  };
+
+  window.Z = { num, t, setLang, getLang, esc, store, makeId, syncClock, now, remaining, setTimer, clueTag, caseFacts, bundleFor };
 })();

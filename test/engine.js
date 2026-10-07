@@ -1,8 +1,7 @@
 // Plays many random games straight against the engine and checks invariants.
 // Run: node test/engine.js
-const { Game } = require('../game');
+const { Game, STORIES } = require('../game');
 const CF = require('../content');
-const CE = require('../content.en');
 const PERSIAN = /[\u0600-\u06FF]/;
 
 let pass = 0;
@@ -23,12 +22,13 @@ require('../public/shared.js');
 const { Z } = global.window;
 delete global.window;
 
-async function playOne(n, gameNo, lang = 'fa') {
-  const C = lang === 'en' ? CE : CF;
+async function playOne(n, gameNo, lang = 'fa', story = 'yalda') {
+  const C = STORIES[story][lang];
   const game = new Game({ timeScale: 1000, minPlayers: 4 });
   const ids = Array.from({ length: n }, (_, i) => `p${i}`);
   ids.forEach((id, i) => game.join(id, `Bot${i}`));
   if (lang === 'en') check(`[${n}] set English`, game.setSetting('p0', 'lang', 'en').ok);
+  if (story !== 'yalda') check(`[${n}] set story ${story}`, game.setSetting('p0', 'story', story).ok && game.publicState().story === story);
   // In English, nothing any screen receives may contain Persian.
   const noPersian = (label) => {
     if (lang !== 'en') return;
@@ -192,12 +192,32 @@ async function playOne(n, gameNo, lang = 'fa') {
   const stats = { games: 0, caught: 0, delivered: 0 };
   for (let k = 0; k < 40; k++) {
     for (const n of [4, 5, 6, 7, 8]) {
-      const r = await playOne(n, k, k % 2 ? 'en' : 'fa');
+      const r = await playOne(n, k, k % 2 ? 'en' : 'fa', k % 4 >= 2 ? 'nowruz' : 'yalda');
       stats.games += 1;
       if (r.caught) stats.caught += 1;
       stats.delivered += r.delivered;
     }
   }
+  // Every story keeps the family (ids, traits) and six weapons and rooms.
+  for (const [id, L] of Object.entries(STORIES)) {
+    for (const lang of ['fa', 'en']) {
+      const B = L[lang];
+      check(`story ${id}/${lang}: same characters and traits`, JSON.stringify(B.CHARACTERS.map((c) => [c.id, c.traits])) === JSON.stringify(CF.CHARACTERS.map((c) => [c.id, c.traits])));
+      check(`story ${id}/${lang}: same trait ids`, B.TRAITS.map((t) => t.id).join() === CF.TRAITS.map((t) => t.id).join());
+      check(`story ${id}/${lang}: 6 weapons, 6 rooms, unique ids`, B.WEAPONS.length === 6 && B.ROOMS.length === 6 && new Set(B.WEAPONS.map((w) => w.id)).size === 6 && new Set(B.ROOMS.map((r) => r.id)).size === 6);
+      check(`story ${id}/${lang}: eyebrow and victim`, !!B.STORY.eyebrow && !!B.STORY.victim);
+      check(`story ${id}/${lang}: same ids in both languages`, JSON.stringify([B.WEAPONS, B.ROOMS].map((l) => l.map((x) => x.id))) === JSON.stringify([L.fa.WEAPONS, L.fa.ROOMS].map((l) => l.map((x) => x.id))));
+      if (lang === 'en') check(`story ${id}/en: no Persian`, !PERSIAN.test(JSON.stringify([B.STORY, B.TRAITS, B.CHARACTERS, B.WEAPONS, B.ROOMS, B.ALIBI_TEMPLATES, B.MOTIVE_TEMPLATES])));
+    }
+  }
+  // Hand to Hand ignores the story setting.
+  const sg = new Game({ minPlayers: 4 });
+  ['a', 'b', 'c', 'd'].forEach((x) => sg.join(x, x));
+  sg.setSetting('a', 'story', 'nowruz');
+  sg.setSetting('a', 'mode', 'items');
+  check('items mode always plays Yalda', sg.publicState().story === 'yalda');
+  sg.dispose();
+
   // Lobby edge cases
   const C = CF;
   const lg = new Game({ minPlayers: 4 });
@@ -278,6 +298,11 @@ async function playOne(n, gameNo, lang = 'fa') {
       const slides = GUIDE[lang][mode];
       check(`guide ${lang}/${mode}: 6 complete slides`, slides.length === 6 && slides.every((s) => s.icon && s.title && s.text));
       if (lang === 'en') check('guide en/' + mode + ': no Persian', !PERSIAN.test(JSON.stringify(slides)));
+    }
+    for (const [id, st] of Object.entries(global.window.Guide.STORIES)) {
+      check(`guide story ${id}/${lang}: opening slide`, !!(st.slide[lang].icon && st.slide[lang].title && st.slide[lang].text));
+      check(`cinema story ${id}/${lang}: captions in order`, st.captions[lang].length === CINEMA[lang].captions.length && st.captions[lang].every((c, i, a) => c[0] < c[1] && (i === 0 || a[i - 1][1] <= c[0])));
+      if (lang === 'en') check(`story ${id} slide/captions en: no Persian`, !PERSIAN.test(JSON.stringify([st.slide.en, st.captions.en])));
     }
     check(`cinema ${lang}: captions in order`, CINEMA[lang].captions.every((c, i, a) => c[0] < c[1] && (i === 0 || a[i - 1][1] <= c[0]) && c[1] <= 1) && !!CINEMA[lang].skip);
   }

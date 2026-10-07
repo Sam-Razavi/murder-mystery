@@ -5,6 +5,8 @@
 const STORY = {
   title: 'The Last Feast',
   subtitle: 'A murder mystery for Yalda night',
+  eyebrow: 'Yalda night · Shiraz · The Farahmand mansion',
+  victim: 'Agha-bozorg',
   intro: [
     'Yalda night, the old Farahmand family mansion in Shiraz.',
     'Agha-bozorg, the family patriarch, invited everyone to hear his will read at midnight.',
@@ -110,6 +112,8 @@ const PHASE_TITLES = {
 const ITEMS_STORY = {
   title: 'Hand to Hand',
   subtitle: 'The knife changes hands. Who had it first?',
+  eyebrow: 'Yalda night · Shiraz · The Farahmand mansion',
+  victim: 'Agha-bozorg',
   intro: [
     'Yalda night at the Farahmand mansion. Around the spread, everyone is holding something.',
     'When the lights came back on, Agha-bozorg was no longer breathing.',

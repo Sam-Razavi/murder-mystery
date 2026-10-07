@@ -15,7 +15,7 @@ global.window = { I18N: require('../public/i18n') };
 global.document = { querySelectorAll: () => [], documentElement: {} };
 global.requestAnimationFrame = () => {};
 require('../public/shared.js');
-const { caseFacts } = global.window.Z;
+const { caseFacts, bundleFor } = global.window.Z;
 
 const COUNT = Math.max(1, Math.min(8, Number(process.argv[2]) || 2));
 const URL = process.env.BOT_URL || `http://localhost:${process.env.PORT || 3100}`;
@@ -37,7 +37,7 @@ function makeBot(i) {
     b.joined = false;
     b.sock.emit('player:hello', { id: b.id }, (r) => { b.joined = !!(r && r.known); log(`${b.name} connected${b.joined ? ' (rejoined)' : ''}`); });
   });
-  Object.defineProperty(b, 'content', { get: () => b.all && b.all[(b.state && b.state.lang) || 'fa'] });
+  Object.defineProperty(b, 'content', { get: () => b.all && bundleFor(b.all, b.state) });
   return b;
 }
 

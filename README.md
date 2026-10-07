@@ -119,6 +119,8 @@ The host picks the language in the lobby, and it applies to the TV and every pho
 ## Edit the content
 All Persian text lives in **`content.js`**: story, characters, traits, weapons, rooms, clue templates and missions. Each character needs a unique trait combination.
 
+**Stories (classic mode):** the host picks the story in the lobby. *The Last Feast* (Yalda night in Shiraz) lives in `content.js`. *Turn of the Year* (Nowruz at the family villa in Ramsar, a year later) is in `content.nowruz.js` and `content.nowruz.en.js`. A story file lays its own `STORY`, `TRAITS`, `CHARACTERS`, `WEAPONS`, `ROOMS` and clue templates over the base content; the characters keep the same ids and traits, so their drawn faces carry over. Weapon and room ids that match a drawing in `public/art.js` reuse it, and the rest show their emoji. To add a story, add the two files, register them in `STORIES` in `game.js`, and give it an opening slide and cinematic captions in `public/guide.js` (`STORIES`). Hand to Hand always plays the Yalda story.
+
 ## Tests
 ```bash
 npm test

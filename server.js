@@ -5,7 +5,7 @@ const os = require('os');
 const path = require('path');
 const { Server } = require('socket.io');
 const QRCode = require('qrcode');
-const { Game } = require('./game');
+const { Game, STORIES } = require('./game');
 const C = require('./content');
 const CE = require('./content.en');
 const { tr } = require('./public/i18n');
@@ -70,7 +70,13 @@ const bundle = (L) => ({
   modes: L.MODES, itemsStory: L.ITEMS_STORY, items: [L.KNIFE, ...L.ITEMS], knifeId: L.KNIFE.id,
   secretActions: L.SECRET_ACTIONS, itemPhaseTitles: L.ITEM_PHASE_TITLES, portraits: L.PORTRAITS,
 });
-const CONTENT = { fa: bundle(C), en: bundle(CE) };
+// ...plus every classic story's bundle: { stories: { nowruz: { fa, en } } };
+// the screens pick ALL.stories[state.story][state.lang] (Z.bundleFor).
+const CONTENT = {
+  fa: bundle(C),
+  en: bundle(CE),
+  stories: Object.fromEntries(Object.entries(STORIES).map(([id, L]) => [id, { fa: bundle(L.fa), en: bundle(L.en) }])),
+};
 
 let broadcastQueued = false;
 function broadcast() {

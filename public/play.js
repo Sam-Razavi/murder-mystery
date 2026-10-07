@@ -129,6 +129,8 @@
         <div class="sub">${t('کدام بازی؟')}</div>
         <div class="seg">${C.modes.map((m) => `<button data-act="setMode" data-v="${m.id}" class="${mode.id === m.id ? 'sel' : ''}">${esc(m.name)}</button>`).join('')}</div>
         <div class="note">${esc(mode.text)}</div>
+        ${mode.id === 'classic' ? `<div class="sub">${t('کدام داستان؟')}</div>${seg('story', Object.keys(ALL.stories).map((id) => [id, esc(ALL.stories[id][S.lang || 'fa'].story.title)]))}
+        <div class="note">${esc(C.story.eyebrow)} — ${esc(C.story.subtitle)}</div>` : ''}
         ${mode.id === 'items' ? `<div class="sub">${t('تعداد دورهای پچ‌پچ (هر ۲ دور یک گفت‌وگو)')}</div>${seg('itemRounds', [[4, t('{n} — کوتاه', { n: 4 })], [6, num(6)], [8, t('{n} — بلند', { n: 8 })]])}
         <div class="sub">${t('زمان جواب دادن در هر دور')}</div>${seg('gossipSeconds', [30, 40, 60].map((v) => [v, t('{n} ثانیه', { n: v })]))}
         <div class="sub">${t('دورهای بی‌صدا: گاهی هیچ‌کس کار مخفی نمی‌گیرد')}</div>${seg('quietRounds', [[false, t('خاموش')], [true, t('روشن')]])}
@@ -155,7 +157,7 @@
     let secret;
     if (isKiller()) {
       secret = `<div class="secret killer"><h4>${t('🔪 تو قاتلی!')}</h4>
-        <p>${t('آقابزرگ را با <b>{w}</b> در <b>{r}</b> کشتی.', { w: esc(weapon(me.truth.weapon).name), r: esc(room(me.truth.room).name) })}</p>
+        <p>${t('{victim} را با <b>{w}</b> در <b>{r}</b> کشتی.', { victim: esc(C.story.victim), w: esc(weapon(me.truth.weapon).name), r: esc(room(me.truth.room).name) })}</p>
         <p style="margin-top:.5rem">${t('هر دور یک مدرک جعلی می‌کاری. وانمود کن بی‌گناهی، دروغ بگو و شک را به سمت دیگران ببر. اگر در رأی نهایی بیشترین رأی را نگیری، فرار کرده‌ای.')}</p></div>`;
     } else {
       secret = `<div class="secret innocent"><h4>${t('🕊️ تو بی‌گناهی')}</h4>
@@ -589,7 +591,9 @@
     const joined = !!me;
     const watching = !joined && S.phase !== 'lobby';
     $('join').classList.toggle('hidden', joined || watching);
-    $('joinTitle').textContent = (S.settings.mode === 'items' ? C.itemsStory : C.story).title;
+    const story = S.settings.mode === 'items' ? C.itemsStory : C.story;
+    $('joinTitle').textContent = story.title;
+    $('joinEyebrow').textContent = story.eyebrow;
     $('game').classList.toggle('hidden', !joined);
     $('watch').classList.toggle('hidden', !watching);
     if (!joined) {
@@ -735,11 +739,11 @@
     socket.emit('player:hello', { id: myId }, () => {});
   });
   socket.on('disconnect', () => $('offline').classList.remove('hidden'));
-  socket.on('content', (c) => { ALL = c; C = ALL[(S && S.lang) || 'fa']; render(); });
+  socket.on('content', (c) => { ALL = c; C = Z.bundleFor(ALL, S); render(); });
   socket.on('state', (s) => {
     S = s; me = s.me;
     setLang(s.lang || 'fa');
-    if (ALL) C = ALL[s.lang || 'fa'];
+    if (ALL) C = Z.bundleFor(ALL, s);
     syncClock(s.serverNow); setTimer(s.timer);
     // When the final vote is already on the server, mirror it so "update" works.
     if (me && me.myFinal && S.phase === 'final' && S.mode !== 'items' && !ui.final.suspect) ui.final = { ...me.myFinal };

@@ -69,5 +69,34 @@
     },
   };
 
-  window.Guide = { GUIDE, CINEMA, steps: GUIDE.fa.classic.length };
+  /* Other classic stories: their own opening slide (replaces slide 1) and
+     cinematic captions (same timings as above). */
+  const STORIES = {
+    nowruz: {
+      slide: {
+        fa: { icon: '🐟', title: 'نوروز، ویلای رامسر', text: 'درست لحظه‌ی تحویل سال، عمو جمشید کنار سفره‌ی هفت‌سین افتاد. یکی از مهمان‌ها قاتل است — و همین‌جا بین شما نشسته. بقیه باید پیش از سیزده‌به‌در او را پیدا کنند.' },
+        en: { icon: '🐟', title: 'Nowruz, the Ramsar villa', text: 'At the very moment the year turned, Uncle Jamshid collapsed by the haft-sin spread. One of the guests is the killer — sitting right here among you. The rest must find them before Sizdah-bedar.' },
+      },
+      captions: {
+        fa: [
+          [0.02, 0.15, 'نوروز · رامسر', 'یک سال بعد از آن شب یلدا…'],
+          [0.17, 0.33, 'ویلای فرهمند', 'عمو جمشید بعد از بیست سال برگشته بود — و ویلا را فروخته بود.'],
+          [0.35, 0.50, '', 'ثانیه‌ها تا تحویل سال می‌گذشت…'],
+          [0.57, 0.66, '', '…و چراغ‌ها خاموش شد.'],
+          [0.70, 0.80, '', 'وقتی نور برگشت، عمو جمشید کنار سفره‌ی هفت‌سین افتاده بود.'],
+          [0.81, 0.88, '', 'یکی از شما قاتل است.'],
+        ],
+        en: [
+          [0.02, 0.15, 'Nowruz · Ramsar', 'A year after that Yalda night…'],
+          [0.17, 0.33, 'The Farahmand villa', 'Uncle Jamshid had come back after twenty years — and sold the villa.'],
+          [0.35, 0.50, '', 'The seconds ticked toward the new year…'],
+          [0.57, 0.66, '', '…and the lights went out.'],
+          [0.70, 0.80, '', 'When the light returned, Uncle Jamshid lay by the haft-sin spread.'],
+          [0.81, 0.88, '', 'One of you is the killer.'],
+        ],
+      },
+    },
+  };
+
+  window.Guide = { GUIDE, CINEMA, STORIES, steps: GUIDE.fa.classic.length };
 })();
