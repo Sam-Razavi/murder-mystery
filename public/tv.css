@@ -1,4 +1,8 @@
-html { font-size: clamp(11px, 1.04vw, 42px); }
+/* Everything on the TV is sized in rem (and --u for the full-screen overlays),
+   so the layout scales with the screen. Both follow whichever is tighter:
+   the width, or the height of a 16:9 screen. Ultrawide or a browser that
+   isn't fullscreen then shrinks the text instead of overflowing it. */
+html { --u: min(1vw, 1.778vh); font-size: clamp(11px, calc(1.04 * var(--u)), 42px); }
 body { overflow: hidden; }
 
 .tv {
