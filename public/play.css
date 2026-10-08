@@ -258,3 +258,6 @@ button { font-family: inherit; }
 .clue.lost .meta { color: var(--muted); border-color: rgba(240, 208, 138, .2); }
 .clue.lost .ctag { color: var(--text); background: rgba(240, 208, 138, .1); border-color: rgba(240, 208, 138, .25); }
 .clue .tag.lost { background: #2a1722; color: var(--gold-soft); border: 1px solid var(--gold); }
+.join-skyline .manor .hills { fill: #26162e; }
+.join-skyline .manor .sea { fill: #151a33; }
+.join-skyline .manor .glint { fill: #f0d08a; opacity: .45; }

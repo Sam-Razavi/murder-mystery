@@ -183,7 +183,19 @@ async function run(mode, lang, story) {
     show('final');
     ids.forEach((id) => game.itFinal(id, game.g.killers.find((k) => k !== id) || ids.find((x) => x !== id)));
     await sleep(5);
-    for (let s = 0; s <= 3; s++) { show(`reveal ${s}`); game.next('p0'); }
+    for (let s = 0; s <= 3; s++) {
+      show(`reveal ${s}`);
+      if (s === 3) {
+        // The knife trail's last row must show what everyone really ends up
+        // holding, lights-out swaps included (each cell's drawing is art-<item id>).
+        const rows = [...tv.doc.querySelectorAll('.trail .tr-row')];
+        const last = rows[rows.length - 1];
+        const shown = last ? [...last.querySelectorAll('.tc')].map((c) => ((c.querySelector('svg') || {}).getAttribute ? c.querySelector('svg').getAttribute('class') : '').match(/art-(\w+)/)) : [];
+        check(`${tag}: knife trail ends at the real holdings`, shown.length === ids.length && shown.every((m, i) => m && m[1] === game.g.hold[ids[i]]));
+        check(`${tag}: knife trail labels the dark`, !game.g.log.some((e) => e.type === 'blackout') || tv.doc.querySelector('.trail').textContent.includes(lang === 'en' ? 'In the dark' : 'در تاریکی'));
+      }
+      game.next('p0');
+    }
   }
   show('results');
   check(`${tag}: end the night`, game.endNight('p0').ok);

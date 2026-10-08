@@ -455,6 +455,7 @@
     'مدرکی را غیب کن که به تو نزدیک می‌شود… اما شاید کسی از آن نگهبانی کند.': 'Make the clue that gets closest to you vanish… but someone may be guarding it.',
     'از مدرکی نگهبانی کن که فکر می‌کنی قاتل از آن می‌ترسد.': 'Guard the clue you think the killer fears most.',
     'سوزانده شد در: {x}': 'Burned in: {x}',
+    '🕯️ در تاریکی: {a} و {b}': '🕯️ In the dark: {a} and {b}',
     'غافلگیری‌ها: خاموشی، مدرک سوخته، حدس کارآگاه': "Twists: lights out, burned evidence, the detective's hunch",
     'غافلگیری: خاموشی (چیزها در تاریکی جابه‌جا می‌شوند)': 'Twist: lights out (items change hands in the dark)',
     // ---------------------------------------------------------- twists (engine)

@@ -666,6 +666,10 @@
     const story = S.settings.mode === 'items' ? C.itemsStory : C.story;
     $('joinTitle').textContent = story.title;
     $('joinEyebrow').textContent = story.eyebrow;
+    // The skyline under the join form matches the story (public/art.js).
+    const sky = document.querySelector('.join-skyline');
+    const scene = S.settings.mode !== 'items' && S.story === 'nowruz' ? 'villa' : 'mansion';
+    if (sky && window.Art && sky.dataset.scene !== scene) { sky.dataset.scene = scene; sky.innerHTML = Art[scene](); }
     $('game').classList.toggle('hidden', !joined);
     $('watch').classList.toggle('hidden', !watching);
     if (!joined) {
@@ -698,7 +702,7 @@
     const c = me.charId ? ch(me.charId) : null;
     setHTML($('meChip'), `${avatar(meP)}<div style="min-width:0"><div class="t1">${esc(me.name)}${me.isVip ? ' 👑' : ''}</div><div class="t2">${c ? esc(c.name) : t('{n} امتیاز', { n: meP ? meP.score : 0 })}</div></div>`);
     $('phPhase').textContent = phaseTitles()[S.phase] || '';
-    $('phRound').textContent = S.round ? t('دور {n} از {total}', { n: S.round, total: S.totalRounds }) : '';
+    $('phRound').textContent = S.round && S.phase !== 'summary' ? t('دور {n} از {total}', { n: S.round, total: S.totalRounds }) : '';
 
     const playing = inGame();
     setHTML($('action'), (playing || S.phase === 'lobby' || S.phase === 'summary') ? tipHtml() + (itemsMode() ? IT_ACTIONS : ACTIONS)[S.phase]() : `<p class="sub">${t('بازی در جریان است…')}</p>`);

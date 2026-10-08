@@ -630,6 +630,7 @@
       case 'snoop': return t('🕵️ {a} به {b}', { a: a(e.actorId), b: a(e.targets[0]) });
       case 'swap': return t('🔄 {a} و {b}', { a: a(e.actorId), b: a(e.targets[0]) });
       case 'steal': return t('🫳 {a} از {b}', { a: a(e.actorId), b: a(e.targets[0]) });
+      case 'blackout': return t('🕯️ در تاریکی: {a} و {b}', { a: a(e.targets[0]), b: a(e.targets[1]) });
       default: return t('🔀 {a} و {b}', { a: a(e.targets[0]), b: a(e.targets[1]) });
     }
   }
@@ -651,7 +652,7 @@
     roundsOf(r.log).forEach(([round, es]) => {
       es.forEach((e) => {
         if (e.type === 'swap' || e.type === 'steal') exchange(e.actorId, e.targets[0]);
-        else if (e.type === 'shuffle') exchange(e.targets[0], e.targets[1]);
+        else if (e.type === 'shuffle' || e.type === 'blackout') exchange(e.targets[0], e.targets[1]); // the dark swaps two players too
       });
       rows.push({ label: `<b>${t('دور {n}', { n: round })}</b> ${es.map(actShort).join('<br>')}`, hold: { ...hold }, kid: { ...kid } });
     });
