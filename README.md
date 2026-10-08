@@ -3,9 +3,67 @@
 A Farsi (and English) murder-mystery party game for 4–12 players: up to 8 in the classic mode, up to 12 in «دست‌به‌دست». One shared TV screen, and everyone plays on their own phone.
 It's a social-deduction game in the spirit of *Dead Man's Party*, but with its own story, characters and rules. Nothing comes from the Knives Out IP.
 
+> 🎲 **A fun hobby project.** This is a game made for family and friends to play together on Yalda night and Nowruz, not a commercial product.
+>
+> 🤖 **Vibecoded with Claude.** Almost all of the code, art, story text and tests were written by [Claude](https://claude.ai) (Anthropic's AI) through Claude Code, steered by conversation: describing what the game should feel like, playing it, and asking for changes. The illustrations, including Kāragāh Kamali, are hand-written SVG that Claude drew in code.
+
 **Setting:** It's Yalda night at the Farahmand family's old mansion in Shiraz. Agha-bozorg (the grandfather) called everyone together to read his will at midnight. When the clock strikes twelve, he's dead. One of the guests is the killer.
 
 Same architecture as `guess-the-music`: Node + Express + Socket.IO on the always-on PC, the TV shows `/tv`, and phones join by scanning a QR code.
+
+## Screenshots
+
+All screenshots are from real games played against the bots, captured at TV size (16:9) and phone size. They're shown in English; every screen also comes in Farsi, right to left.
+
+### The TV
+
+| | |
+|---|---|
+| ![Lobby: players join by scanning the QR code](docs/screenshots/tv-lobby.jpg) | ![The cinematic prologue: the clock about to strike twelve over the mansion](docs/screenshots/tv-cinematic-clock.jpg) |
+| **Lobby.** Everyone scans the QR code and picks a portrait; the host runs the game from their phone. | **Cinematic prologue.** The clock creeps toward midnight… and the lights go out. |
+| ![The suspects: each player gets a character with visible traits](docs/screenshots/tv-intro-suspects.jpg) | ![How to play, shown on the TV and stepped from the host's phone](docs/screenshots/tv-tutorial.jpg) |
+| **The suspects.** Each player becomes a family member with visible traits (glasses, left-handed, smoker, rose perfume). | **How to play.** Six slides on the TV, stepped from the host's phone. |
+| ![Searching the house, with the "what's happening now" bar](docs/screenshots/tv-search.jpg) | ![The evidence board with clue tags, the case file and Kāragāh Kamali](docs/screenshots/tv-evidence-board.jpg) |
+| **Search.** The bar at the top shows the round's steps, what to do now and who we're waiting for. | **Evidence board.** Every clue says what it proves; the case file adds them up, and Kāragāh Kamali comments. |
+| ![Interrogation: the suspect's searched rooms and the votes are exposed](docs/screenshots/tv-spotlight-kamali.jpg) | ![Lights out: the killer reaches for a clue in the dark](docs/screenshots/tv-lights-out.jpg) |
+| **In the spotlight.** The most-voted player's rooms and the ballots come out; Kamali asks for an explanation. | **Lights out.** A twist: in the dark, the killer may make a clue vanish while everyone else guards one. |
+| ![Kamali's gold-edged hunch and a contradiction on the board](docs/screenshots/tv-hunch-contradiction.jpg) | ![The scoreboard after the reveal](docs/screenshots/tv-scoreboard.jpg) |
+| **Kamali's hunch.** In the last round the detective pins one true fact; the case file flags a duplicated clue. | **Scoreboard.** Points add up across the night. |
+
+### Kāragāh Kamali
+
+Our narrator: a Qajar-era Persian detective in a tall felt kolah, with a waxed moustache, a watch chain and a magnifying glass. He's drawn in SVG and animated (he blinks, breathes and talks), and slides in to react to the game. You can see him in the spotlight and evidence-board shots above.
+
+### Hand to Hand («دست‌به‌دست»)
+
+| | |
+|---|---|
+| ![A gossip question on the TV, with answer progress and the items in play](docs/screenshots/tv-gossip.jpg) | ![The gossip results with the most-picked player crowned](docs/screenshots/tv-gossip-result.jpg) |
+| **Gossip.** Everyone answers a question while one player secretly snoops, swaps, steals or shuffles. | **Gossip results.** Bars spring out and the most-picked player gets the crown. |
+| ![Discussion: who STARTED with the knife?](docs/screenshots/tv-items-discuss.jpg) | ![The final vote and how it's decided](docs/screenshots/tv-items-final.jpg) |
+| **Discussion.** The question isn't who has the knife now, but who had it first. | **Final vote.** One vote, three outcomes. |
+| ![The verdict lands like a stamp](docs/screenshots/tv-verdict.jpg) | ![The killers are unmasked](docs/screenshots/tv-killers-unmasked.jpg) |
+| **The verdict.** A drumroll, then the result lands like a stamp. | **Unmasked.** Who started the night with a knife. |
+| ![The knife trail: every knife traced back to its first owner](docs/screenshots/tv-knife-trail.jpg) | ![End of the night: the champion and the awards](docs/screenshots/tv-end-of-night.jpg) |
+| **The knife trail.** Each knife's path drawn round by round, through every swap, including one in the dark. | **End of the night.** Tonight's champion and the awards (best liar, sharpest detective, …). |
+
+### The second story: Turn of the Year (Nowruz)
+
+| | |
+|---|---|
+| ![The Nowruz story's lobby with the Ramsar villa by the sea](docs/screenshots/tv-nowruz-lobby.jpg) | ![The cinematic's title card](docs/screenshots/tv-cinematic-title.jpg) |
+| **Nowruz in Ramsar.** A year later, at the family's villa by the Caspian, with blossom drifting instead of snow. | **Title card.** The end of the cinematic prologue. |
+
+### The phones
+
+| | | | |
+|---|---|---|---|
+| ![Joining the game](docs/screenshots/phone-join.jpg) | ![The host's settings](docs/screenshots/phone-host-settings.jpg) | ![The killer forges a clue and may burn one](docs/screenshots/phone-killer-forge.jpg) | ![The killer's clues: what they burned and planted](docs/screenshots/phone-killer-clues.jpg) |
+| **Join** with a name, no app needed. | **Host settings:** language, mode, story, length, beginner mode, twists. | **The killer forges** a lie, picks a room, and may burn a clue. | **The killer's notes:** the burned clue, planted fakes, forged copies. |
+| ![Lights out on the killer's phone](docs/screenshots/phone-lights-out.jpg) | ![The final accusation](docs/screenshots/phone-final-accusation.jpg) | ![Hand to Hand: the item you're holding](docs/screenshots/phone-item.jpg) | ![The secret journal: what you know for sure](docs/screenshots/phone-journal.jpg) |
+| **Lights out:** the same list on every phone, so nobody can tell who's doing what. | **Final accusation:** killer, weapon and room. | **Hand to Hand:** your item, and the reminder that only your *starting* item counts. | **Secret journal:** the hard facts at the top. |
+| ![Your night: personal stats at the end](docs/screenshots/phone-your-night.jpg) | | | |
+| **Your night:** your stats and awards at the end. | | | |
 
 ## Run it
 
