@@ -30,7 +30,11 @@ function lanIp() {
   return pref ? pref.address : 'localhost';
 }
 
-const JOIN_URL = `http://${lanIp()}:${PORT}/`;
+// On a public host (e.g. a cloud deploy behind HTTPS) set PUBLIC_URL to the site's address so the
+// QR code points there instead of at a LAN IP and port.
+const JOIN_URL = process.env.PUBLIC_URL
+  ? `${process.env.PUBLIC_URL.replace(/\/+$/, '')}/`
+  : `http://${lanIp()}:${PORT}/`;
 
 const app = express();
 const server = http.createServer(app);
@@ -250,6 +254,23 @@ server.listen(PORT, '0.0.0.0', () => {
   console.log(`  TV screen : http://localhost:${PORT}/tv`);
   console.log(`  Phones    : ${JOIN_URL}`);
   console.log('');
+  startDemoBots();
 });
+
+// DEMO_BOTS=N (1-8) starts N bots with the server, for a public demo where one visitor plays
+// alone. Same bots as `npm run bots`; restarted if they ever exit.
+function startDemoBots() {
+  const count = Number(process.env.DEMO_BOTS) || 0;
+  if (count < 1) return;
+  const { spawn } = require('child_process');
+  const run = () => {
+    const bots = spawn(process.execPath, [path.join(__dirname, 'scripts', 'bots.js'), String(count)], {
+      env: { ...process.env, BOT_URL: `http://localhost:${PORT}` },
+      stdio: 'inherit',
+    });
+    bots.on('exit', () => setTimeout(run, 5000));
+  };
+  run();
+}
 
 module.exports = { server, game };

@@ -14,11 +14,11 @@
     "express": "^5.2.1",
     "nosleep.js": "^0.12.0",
     "qrcode": "^1.5.4",
-    "socket.io": "^4.8.4"
+    "socket.io": "^4.8.4",
+    "socket.io-client": "^4.8.4"
   },
   "devDependencies": {
-    "jsdom": "^30.1.2",
-    "socket.io-client": "^4.8.4"
+    "jsdom": "^30.1.2"
   },
   "private": true
 }

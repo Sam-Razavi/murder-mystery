@@ -81,6 +81,8 @@ Requires Node 18+. The phones and the PC have to be on the same Wi-Fi/LAN. The g
 |---|---|---|
 | `PORT` | `3100` | Server port (guess-the-music uses 3000) |
 | `PUBLIC_HOST` | auto | LAN IP for the QR code, if auto-detection picks the wrong adapter |
+| `PUBLIC_URL` | none | Full public address for the QR code (e.g. `https://ziafat.example.com`) when the game runs on a public host instead of the LAN |
+| `DEMO_BOTS` | `0` | Start this many bots (1–8) with the server, so one visitor can try the game alone on a public demo |
 | `MIN_PLAYERS` | `4` | Lower it for testing |
 | `TIME_SCALE` | `1` | >1 runs every timer faster (testing) |
 | `CINEMATIC_SECONDS` | `26` | Length of the TV cinematic before the story intro; `0` turns it off |
